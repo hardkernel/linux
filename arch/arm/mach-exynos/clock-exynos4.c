@@ -1205,6 +1205,17 @@ static struct clksrc_clk exynos4_clk_sclk_mmc3 = {
 	.reg_div = { .reg = EXYNOS4_CLKDIV_FSYS2, .shift = 24, .size = 8 },
 };
 
+static struct clksrc_clk exynos4_clk_sclk_dwmci = {
+       .clk    = {
+               .name           = "sclk_dwmci",
+               .devname        = "dw_mmc",
+               .parent         = &exynos4_clk_dout_mmc4.clk,
+               .enable         = exynos4_clksrc_mask_fsys_ctrl,
+               .ctrlbit        = (1 << 16),
+       },
+       .reg_div = { .reg = EXYNOS4_CLKDIV_FSYS3, .shift = 8, .size = 8 },
+};
+
 static struct clksrc_clk exynos4_clk_mdout_spi0 = {
 	.clk	= {
 		.name		= "mdout_spi",
@@ -1318,6 +1329,7 @@ static struct clksrc_clk *exynos4_clksrc_cdev[] = {
 	&exynos4_clk_sclk_mmc1,
 	&exynos4_clk_sclk_mmc2,
 	&exynos4_clk_sclk_mmc3,
+	&exynos4_clk_sclk_dwmci,
 	&exynos4_clk_sclk_spi0,
 	&exynos4_clk_sclk_spi1,
 	&exynos4_clk_sclk_spi2,
