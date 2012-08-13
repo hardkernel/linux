@@ -877,6 +877,11 @@ static struct i2c_board_info hkdk4412_i2c_devs0[] __initdata = {
 };
 
 static struct i2c_board_info hkdk4412_i2c_devs1[] __initdata = {
+#if defined(CONFIG_SND_SOC_MAX98090)
+	{
+		I2C_BOARD_INFO("max98090", (0x20>>1)),
+	},
+#endif
 };
 
 static struct i2c_board_info hkdk4412_i2c_devs3[] __initdata = {
@@ -999,6 +1004,13 @@ static struct platform_device hkdk4412_gpio_keys = {
 	},
 };
 
+#if defined(CONFIG_SND_SOC_HKDK_MAX98090)
+static struct platform_device hardkernel_audio_device = {
+	.name	= "hkdk-snd-max89090",
+	.id	= -1,
+};
+#endif
+
 /* USB EHCI */
 static struct s5p_ehci_platdata hkdk4412_ehci_pdata;
 
@@ -1060,6 +1072,9 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_usb_hsotg,
 	&s3c_device_wdt,
 	&s5p_device_ehci,
+#ifdef CONFIG_SND_SAMSUNG_I2S
+	&exynos4_device_i2s0,
+#endif
 	&s5p_device_fimc0,
 	&s5p_device_fimc1,
 	&s5p_device_fimc2,
@@ -1082,6 +1097,11 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 	&hkdk4412_lcd_lp101wh1,
 #endif
 	&hkdk4412_gpio_keys,
+	&samsung_asoc_dma,
+	&samsung_asoc_idma,
+#if defined(CONFIG_SND_SOC_HKDK_MAX98090)
+	&hardkernel_audio_device,
+#endif
 };
 
 static void __init hkdk4412_map_io(void)
