@@ -401,3 +401,17 @@
 #define BLENDCON_NEW_8BIT_ALPHA_VALUE		(1 << 0)
 #define BLENDCON_NEW_4BIT_ALPHA_VALUE		(0 << 0)
 
+/* Blending control registers */
+#define S3C_WINCON_BLD_PIXEL			(1 << 6)
+#define S3C_WINCON_BLD_MASK			(1 << 6)
+#define S3C_WINCON_ALPHA1_SEL			(1 << 1)
+#define S3C_WINCON_ALPHA_SEL_MASK		(1 << 1)
+#define S3C_WINCON(x)				(0x0020 + (x * 0x04))
+#define S3C_VIDOSD_C(x)				(0x0048 + (x * 0x10))
+#define S3C_WINSHMAP				(0x0034)
+#define S3C_WINSHMAP_CH_ENABLE(x)		(1 << (x))
+#define S3C_WINCON_BLD_PLANE			(0 << 6)
+#define S3C_WINCON_ALPHA0_SEL			(0 << 1)
+#define S3C_VIDOSD_ALPHA0_SHIFT			(12)
+#define S3C_VIDOSD_ALPHA1_SHIFT			(0)
+

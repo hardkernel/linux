@@ -1,0 +1,148 @@
+* Samsung Display Controller Framebuffer Controller
+
+The display controller is used to transfer image data from memory to a
+external display device such as an RGB interface LCD panel. It supports
+various color formats such as rgb and yuv. It also supports multiple window
+overlays.
+
+Required properties:
+
+    - compatible: should be one of the following
+      - samsung,exynos4210-fimd: for fimd compatible with Exynos4210 fimd
+      - samsung,s5pv210-fimd: for fimd compatible with s5pv210 fimd
+
+    - reg: physical base address of the controller and length of memory
+      mapped region.
+
+    - interrupts: Three interrupts should be specified. The format of the
+      interrupt specifier depends on the interrupt controller. The interrupts
+      should be specified in the following order.
+      - VSYNC (Video Frame) interrupt
+      - Video FIFO level interrupt
+      - FIMD System Interrupt
+
+    - gpios: The gpios used to interface with the external LCD panel. For a
+      panel with rgb interface, the gpio interface consists of video data
+      lines, HSYNC, VSYNC, Pixel Clock and Data Enable. The gpio's used for
+      these interface lines can be listed under this property in any order.
+
+    - samsung,fimd-display: The fimd controller is interfaced with the a
+      display device such as a lcd panel. This property should specify the
+      phandle of the display device node. For a display device node that
+      represents a RGB type display interface, it is expected to specify the
+      video interface timing using the following properties.
+
+      - lcd-htiming: Specifies the horizontal timing for the overlay. The
+        horizontal timing includes four parameters in the following order.
+
+        - horizontal back porch (in number of lcd clocks)
+        - horizontal front porch (in number of lcd clocks)
+        - hsync pulse width (in number of lcd clocks)
+        - Display panels X resolution.
+
+      - lcd-vtiming: Specifies the vertical timing for the overlay. The
+        vertical timing includes four parameters in the following order.
+
+        - vertical back porch (in number of lcd lines)
+        - vertical front porch (in number of lcd lines)
+        - vsync pulse width (in number of lcd clocks)
+        - Y resolution.
+
+    - Overlay/Windows: Multiple overlays/windows can be specified as child
+      nodes. Each window should have the following properties (optional
+      window properties are marked as 'optional').
+
+      - samsung,fimd-win-id: Specifies the window number of the fimd controller.
+
+      - samsung,fimd-win-bpp: Specifies the bits per pixel. Two values should
+	be specified in the following order.
+        - default-bpp: bpp supported by the overlay.
+        - max-bpp: maximum required bpp for the overlay.
+
+      - samsung,fimd-win-res: (OPTIONAL) Specifies the window resolution in
+        pixels. The resolution contains the X and Y pixel values with X being
+        specified first. If this property is not specified, the window
+        resolution is set to be equal to the display panel resolution.
+
+      - samsung,fimd-win-virtres: (OPTIONAL) Specifies the resolution of the
+        virtual frame buffer for the window. The resolution contains the X
+        and Y resolution in pixels with value of X being the specified first.
+
+Optional properties:
+
+    - samsung,fimd-vidout-rgb: Video output format is RGB.
+    - samsung,fimd-inv-hsync: invert hsync pulse polarity.
+    - samsung,fimd-inv-vsync: invert vsync pulse polarity.
+    - samsung,fimd-inv-vclk: invert video clock polarity.
+    - samsung,fimd-inv-vden: invert video enable signal polarity.
+    - samsung,fimd-frame-rate: Number of video frames per second.
+
+Example:
+
+    The following is an example for the fimd framebuffer controller is split
+    into two portions. The SoC specific portion can be specified in the SoC
+    specific dts file. The board specific portion can be specified in the
+    board specific dts file.
+
+    - SoC Specific portion
+
+	fimd@11C00000 {
+		compatible = "samsung,exynos4210-fimd";
+		interrupt-parent = <&combiner>;
+		reg = <0x11C00000 0x8000>;
+		interrupts = <11 1>, <11 0>, <11 2>;
+	};
+
+    - Board Specific portion
+
+	fimd@11C00000 {
+		samsung,fimd-display = <&lcd_fimd0>;
+		samsung,fimd-vidout-rgb;
+		samsung,fimd-inv-hsync;
+		samsung,fimd-inv-vsync;
+		samsung,fimd-inv-vclk;
+		samsung,fimd-frame-rate = <60>;
+
+		gpios = <&gpf0 0 2 0 0>,
+			<&gpf0 1 2 0 0>,
+			<&gpf0 2 2 0 0>,
+			<&gpf0 3 2 0 0>,
+			<&gpf0 4 2 0 0>,
+			<&gpf0 5 2 0 0>,
+			<&gpf0 6 2 0 0>,
+			<&gpf0 7 2 0 0>,
+			<&gpf1 0 2 0 0>,
+			<&gpf1 1 2 0 0>,
+			<&gpf1 2 2 0 0>,
+			<&gpf1 3 2 0 0>,
+			<&gpf1 4 2 0 0>,
+			<&gpf1 5 2 0 0>,
+			<&gpf1 6 2 0 0>,
+			<&gpf1 7 2 0 0>,
+			<&gpf2 0 2 0 0>,
+			<&gpf2 1 2 0 0>,
+			<&gpf2 2 2 0 0>,
+			<&gpf2 3 2 0 0>,
+			<&gpf2 4 2 0 0>,
+			<&gpf2 5 2 0 0>,
+			<&gpf2 6 2 0 0>,
+			<&gpf2 7 2 0 0>,
+			<&gpf3 0 2 0 0>,
+			<&gpf3 1 2 0 0>,
+			<&gpf3 2 2 0 0>,
+			<&gpf3 3 2 0 0>;
+
+		window0 {
+			samsung,fimd-win-id = <0>;
+			samsung,fimd-win-bpp = <32 24>;
+			samsung,fimd-win-res = <512 300>;
+			samsung,fimd-win-vres = <1024 600>;
+		};
+
+		window1 {
+			samsung,fimd-win-id = <1>;
+			samsung,fimd-win-bpp = <32 24>;
+			samsung,fimd-win-res = <1024 200>;
+			samsung,fimd-win-vres = <1024 600>;
+		};
+	};

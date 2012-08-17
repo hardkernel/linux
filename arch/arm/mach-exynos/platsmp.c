@@ -34,9 +34,6 @@
 
 extern void exynos4_secondary_startup(void);
 
-#define CPU1_BOOT_REG		(samsung_rev() == EXYNOS4210_REV_1_1 ? \
-				S5P_INFORM5 : S5P_VA_SYSRAM)
-
 /*
  * control for which core is the next to come out of the secondary
  * boot "holding pen"
@@ -59,6 +56,9 @@ static void write_pen_release(int val)
 
 static void __iomem *scu_base_addr(void)
 {
+	if (soc_is_exynos5250())
+		return 0;
+
 	return (void __iomem *)(S5P_VA_SCU);
 }
 
@@ -86,15 +86,53 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 	spin_unlock(&boot_lock);
 }
 
+static int exynos_power_up_cpu(unsigned int cpu)
+{
+	unsigned long timeout;
+	unsigned int val;
+	void __iomem *power_base = S5P_ARM_CORE_CONFIGURATION(cpu);
+
+	val = __raw_readl(power_base);
+	if (!(val & S5P_CORE_LOCAL_PWR_EN)) {
+		__raw_writel(S5P_CORE_LOCAL_PWR_EN, power_base);
+
+		timeout = 10;
+
+		/* wait max 10 ms until cpu is on */
+		while ((__raw_readl(power_base + 0x4)
+			& S5P_CORE_LOCAL_PWR_EN) != S5P_CORE_LOCAL_PWR_EN) {
+			if (timeout-- == 0)
+				break;
+
+			mdelay(1);
+		}
+
+		if (timeout == 0) {
+			pr_err("cpu%d power enable failed", cpu);
+			return -ETIMEDOUT;
+		}
+	}
+
+	return 0;
+}
+
 int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	unsigned long timeout;
+	void __iomem *boot_base;
+	int ret;
 
 	/*
 	 * Set synchronisation state between this boot processor
 	 * and the secondary one
 	 */
 	spin_lock(&boot_lock);
+
+	ret = exynos_power_up_cpu(cpu);
+	if (ret) {
+		spin_unlock(&boot_lock);
+		return ret;
+	}
 
 	/*
 	 * The secondary processor is waiting to be released from
@@ -106,39 +144,33 @@ int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 	 */
 	write_pen_release(cpu_logical_map(cpu));
 
-	if (!(__raw_readl(S5P_ARM_CORE1_STATUS) & S5P_CORE_LOCAL_PWR_EN)) {
-		__raw_writel(S5P_CORE_LOCAL_PWR_EN,
-			     S5P_ARM_CORE1_CONFIGURATION);
-
-		timeout = 10;
-
-		/* wait max 10 ms until cpu1 is on */
-		while ((__raw_readl(S5P_ARM_CORE1_STATUS)
-			& S5P_CORE_LOCAL_PWR_EN) != S5P_CORE_LOCAL_PWR_EN) {
-			if (timeout-- == 0)
-				break;
-
-			mdelay(1);
-		}
-
-		if (timeout == 0) {
-			printk(KERN_ERR "cpu1 power enable failed");
-			spin_unlock(&boot_lock);
-			return -ETIMEDOUT;
-		}
-	}
 	/*
 	 * Send the secondary CPU a soft interrupt, thereby causing
 	 * the boot monitor to read the system wide flags register,
 	 * and branch to the address found there.
 	 */
-
 	timeout = jiffies + (1 * HZ);
 	while (time_before(jiffies, timeout)) {
 		smp_rmb();
 
+		if (soc_is_exynos4210() &&
+				(samsung_rev() == EXYNOS4210_REV_1_1))
+			boot_base = S5P_INFORM5;
+		else
+			boot_base = S5P_VA_SYSRAM;
+
+		if (soc_is_exynos4412())
+			boot_base += (0x4 * cpu);
+
+		/*
+		 * Write the address of secondary startup into the
+		 * system-wide flags register. The boot monitor waits
+		 * until it receives a soft interrupt, and then the
+		 * secondary CPU branches to this address.
+		 */
 		__raw_writel(virt_to_phys(exynos4_secondary_startup),
-			CPU1_BOOT_REG);
+				boot_base);
+
 		gic_raise_softirq(cpumask_of(cpu), 1);
 
 		if (pen_release == -1)
@@ -186,15 +218,15 @@ void __init smp_init_cpus(void)
 
 void __init platform_smp_prepare_cpus(unsigned int max_cpus)
 {
-	if (!soc_is_exynos5250())
-		scu_enable(scu_base_addr());
+	int i;
 
 	/*
-	 * Write the address of secondary startup into the
-	 * system-wide flags register. The boot monitor waits
-	 * until it receives a soft interrupt, and then the
-	 * secondary CPU branches to this address.
+	 * Initialise the present map, which describes the set of CPUs
+	 * actually populated at the present time.
 	 */
-	__raw_writel(virt_to_phys(exynos4_secondary_startup),
-			CPU1_BOOT_REG);
+	for (i = 0; i < max_cpus; i++)
+		set_cpu_present(i, true);
+
+	if (!soc_is_exynos5250())
+		scu_enable(scu_base_addr());
 }

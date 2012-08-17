@@ -115,7 +115,13 @@ void mxr_reg_reset(struct mxr_device *mdev)
 	/* setting graphical layers */
 
 	val  = MXR_GRP_CFG_COLOR_KEY_DISABLE; /* no blank key */
+#if 0
+	/*
+	 * Without this change, the HDMI display in Android had a green tint.
+	 * Yet to find the exact reason for the same.
+	 */
 	val |= MXR_GRP_CFG_BLEND_PRE_MUL; /* premul mode */
+#endif
 	val |= MXR_GRP_CFG_ALPHA_VAL(0xff); /* non-transparent alpha */
 
 	/* the same configuration for both layers */

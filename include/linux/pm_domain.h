@@ -112,7 +112,6 @@ struct generic_pm_domain_data {
 	struct gpd_timing_data td;
 	struct notifier_block nb;
 	struct mutex lock;
-	unsigned int refcount;
 	bool need_restore;
 	bool always_on;
 };

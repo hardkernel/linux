@@ -54,6 +54,9 @@ config SOC_EXYNOS4412
 	default y
 	depends on ARCH_EXYNOS4
 	select SAMSUNG_DMADEV
+	select S5P_PM if PM
+	select S5P_SLEEP if PM
+	select PM_GENERIC_DOMAINS
 	help
 	  Enable EXYNOS4412 SoC support
 
@@ -158,6 +161,17 @@ config EXYNOS4_SETUP_SDHCI_GPIO
 	bool
 	help
 	  Common setup code for SDHCI gpio.
+
+config EXYNOS4_SETUP_DWMCI
+       bool
+       select EXYNOS4_SETUP_DWMCI_GPIO
+       help
+         Internal helper functions for EXYNOS4 based DWMCI systems.
+
+config EXYNOS4_SETUP_DWMCI_GPIO
+       bool
+       help
+         Common setup code for DWMCI gpio.
 
 config EXYNOS4_SETUP_FIMC
 	bool
@@ -394,6 +408,28 @@ config MACH_SMDK4412
 	select MACH_SMDK4212
 	help
 	  Machine support for Samsung SMDK4412
+
+config MACH_HKDK4412
+	bool "HKDK4412"
+	select SOC_EXYNOS4412
+	select MACH_SMDK4212
+	select S3C_DEV_HSMMC
+	select S3C_DEV_HSMMC1
+	select S3C_DEV_USB_HSOTG
+	select S5P_DEV_CSIS0
+	select S5P_DEV_G2D
+	select S5P_DEV_JPEG
+	select S5P_DEV_USB_EHCI
+	select S5P_DEV_I2C_HDMIPHY
+	select S5P_DEV_TV
+	select S5P_GPIO_INT
+	select EXYNOS4_DEV_USB_OHCI
+	select EXYNOS4_DEV_DWMCI
+	select EXYNOS4_SETUP_DWMCI
+	select SAMSUNG_DEV_ADC
+	help
+	  Machine support for Odroid-X based on Samsung EXYNOS4412
+
 endif
 
 comment "Flattened Device Tree based board for EXYNOS SoCs"
