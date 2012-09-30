@@ -537,4 +537,25 @@ config LEDS_TRIGGER_TRANSIENT
 	  GPIO/PWM based hardware.
 	  If unsure, say Y.
 
+choice
+        prompt "ODROID-X LED Style"
+        default ODROID_X_ANDROID_LEDS
+	depends on MACH_HKDK4412
+        help
+	  This is to choose between Android style (default on and flashing)
+	  and Linux style (/sys/class/leds/ledX)
+
+config ODROID_X_LINUX_LEDS
+        bool "Linux"
+        help
+          Linux style LEDs, Provides access to /sys/class/leds
+	  default heartbeat on LED1
+
+config ODROID_X_ANDROID_LEDS
+        bool "Android"
+        help
+          Android style LEDs, one always on, one blinking at 1s
+
+endchoice
+
 endif # NEW_LEDS

@@ -892,8 +892,8 @@ static struct i2c_board_info hkdk4412_i2c_devs7[] __initdata = {
 	/* nothing here yet */
 };
 
-// Disable
-#if 0
+
+#if defined(CONFIG_ODROID_X_LINUX_LEDS)
 static struct gpio_led hkdk4412_gpio_leds[] = {
 	{
 		.name		= "led1",	/* D5 on ODROID-X */
@@ -1096,10 +1096,11 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 #endif
 	&exynos4_device_ohci,
 	&exynos4_device_dwmci,
+#if defined(CONFIG_ODROID_X_LINUX_LEDS)
 	
 	// Disable : ADD
-	// &hkdk4412_leds_gpio,
-	
+	&hkdk4412_leds_gpio,
+#endif	
 #if defined(CONFIG_LCD_LP101WH1)
 	&hkdk4412_lcd_lp101wh1,
 #endif
@@ -1139,7 +1140,7 @@ static struct i2c_board_info hdmiphy_info = {
 	I2C_BOARD_INFO("hdmiphy-exynos4412", 0x38),
 };
 #endif
-
+#if defined(CONFIG_ODROID_X_ANDROID_LEDS)
 //------------------ ADD Hardkernel -------------------
 #include <linux/hrtimer.h>
 #include <linux/slab.h>
@@ -1192,7 +1193,7 @@ static void hkdk4412_led_deinit(void)
 }
 
 //------------------ END Hardkernel -------------------
-
+#endif
 static void __init hkdk4412_gpio_init(void)
 {
 	/* Peripheral power enable (P3V3) */
@@ -1221,10 +1222,12 @@ static void hkdk4412_power_off(void)
 {
 	pr_emerg("Bye...\n");
 
+#if defined(CONFIG_ODROID_X_ANDROID_LEDS)
+
     // ADD Hardkernel
     hkdk4412_led_deinit();
     // END Hardkernel
-
+#endif
 	writel(0x5200, S5P_PS_HOLD_CONTROL);
 	while (1) {
 		pr_emerg("%s : should not reach here!\n", __func__);
@@ -1235,11 +1238,12 @@ static void hkdk4412_power_off(void)
 static void __init hkdk4412_machine_init(void)
 {
 	hkdk4412_gpio_init();
+#if defined(CONFIG_ODROID_X_ANDROID_LEDS)
 
     // ADD Hardkernel
     hkdk4412_led_init();
     // END Hardkernel
-
+#endif
 	/* Register power off function */
 	pm_power_off = hkdk4412_power_off;
 

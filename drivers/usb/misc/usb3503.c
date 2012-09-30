@@ -197,8 +197,13 @@ static int usb3503_set_mode(struct usb3503_hubctl *hc, int mode)
 			goto exit;
 		}
 #endif
+
 		/* PDS : Port2,3 Disable For Self Powered Operation */
+
+		err = -1;
+#if defined(CONFIG_USB3503_PORTS_SELF_POWER_DISABLED)
 		err = reg_update(i2c_dev, PDS_REG, (PDS_PORT2 | PDS_PORT3), 1);
+#endif
 		if (err < 0) {
 			pr_err(HUB_TAG "PDS update fail err = %d\n", err);
 			goto exit;
