@@ -87,6 +87,9 @@ struct drm_memblock_item {
 struct drm_sman {
 	struct drm_sman_mm *mm;
 	int num_managers;
+	struct drm_open_hash owner_hash_tab;
+	struct drm_open_hash user_hash_tab;
+	struct list_head owner_items;
 };
 
 /*
@@ -138,8 +141,30 @@ extern struct drm_memblock_item *drm_sman_alloc(struct drm_sman * sman,
 						unsigned long size,
 						unsigned alignment,
 						unsigned long owner);
+/*
+ * Free a memory block identified by its user hash key.
+ */
 
-extern void drm_sman_free(struct drm_memblock_item *item);
+extern int drm_sman_free_key(struct drm_sman * sman, unsigned int key);
+
+/*
+ * returns 1 iff there are no stale memory blocks associated with this owner.
+ * Typically called to determine if we need to idle the hardware and call
+ * drm_sman_owner_cleanup. If there are no stale memory blocks, it removes all
+ * resources associated with owner.
+ */
+
+extern int drm_sman_owner_clean(struct drm_sman * sman, unsigned long owner);
+
+/*
+ * Frees all stale memory blocks associated with this owner. Note that this
+ * requires that the hardware is finished with all blocks, so the graphics engine
+ * should be idled before this call is made. This function also frees
+ * any resources associated with "owner" and should be called when owner
+ * is not going to be referenced anymore.
+ */
+
+extern void drm_sman_owner_cleanup(struct drm_sman * sman, unsigned long owner);
 
 /*
  * Frees all stale memory blocks associated with the memory manager.
