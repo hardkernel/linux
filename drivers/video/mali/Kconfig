@@ -1,0 +1,12 @@
+config VIDEO_MALI_R3P2
+	bool "User Mali r3p2 Driver (Mali and UMP)"
+	default n
+	help
+	  Use Mali r3p2
+
+
+if VIDEO_MALI_R3P2
+	source "drivers/video/mali/r3p2/mali/Kconfig"
+	source "drivers/video/mali/r3p2/ump/Kconfig"
+endif
+
