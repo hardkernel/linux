@@ -13,8 +13,6 @@
 export ARCH ?= arm
 BUILD ?= debug
 
-cflags-y := -Idrivers/video/mali/r3p2/ump -Idrivers/video/mali/r3p2/ump/linux
-
 check_cc2 = \
 	$(shell if $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
 	then \
