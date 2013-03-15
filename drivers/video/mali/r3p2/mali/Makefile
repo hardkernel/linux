@@ -23,6 +23,8 @@ ARCH ?= arm
 OSKOS=linux
 FILES_PREFIX=
 
+cflags-y := -Idrivers/video/mali/r3p2/ump -Idrivers/video/mali/r3p2/ump/linux -Idrivers/video/mali/r3p2/mali/include -Idrivers/video/mali/r3p2/mali/common
+
 check_cc2 = \
 	$(shell if $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
 	then \
