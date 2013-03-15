@@ -226,7 +226,7 @@ static struct regulator_init_data __initdata max77686_buck4_data = {
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
 		.state_mem = {
-			.disabled = 1,
+			.enabled = 1,
 		},
 	},
 	.num_consumer_supplies = ARRAY_SIZE(max77686_buck4_consumer),
@@ -711,7 +711,7 @@ static struct regulator_init_data __initdata max77686_ldo25_data = {
 		.apply_uV	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem = {
-			.disabled = 1,
+			.enabled = 1,
 		},
 	},
 	.num_consumer_supplies = ARRAY_SIZE(max77686_ldo25_consumer),
