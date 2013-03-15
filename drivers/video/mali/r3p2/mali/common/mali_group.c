@@ -8,19 +8,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_kernel_common.h"
-#include "mali_group.h"
-#include "mali_osk.h"
-#include "mali_l2_cache.h"
-#include "mali_gp.h"
-#include "mali_pp.h"
-#include "mali_mmu.h"
-#include "mali_dlbu.h"
-#include "mali_broadcast.h"
-#include "mali_gp_scheduler.h"
-#include "mali_pp_scheduler.h"
-#include "mali_kernel_core.h"
-#include "mali_osk_profiling.h"
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_group.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_l2_cache.h>
+#include <mali/common/mali_gp.h>
+#include <mali/common/mali_pp.h>
+#include <mali/common/mali_mmu.h>
+#include <mali/common/mali_dlbu.h>
+#include <mali/common/mali_broadcast.h>
+#include <mali/common/mali_gp_scheduler.h>
+#include <mali/common/mali_pp_scheduler.h>
+#include <mali/common/mali_kernel_core.h>
+#include <mali/common/mali_osk_profiling.h>
 
 static void mali_group_bottom_half_mmu(void *data);
 static void mali_group_bottom_half_gp(void *data);

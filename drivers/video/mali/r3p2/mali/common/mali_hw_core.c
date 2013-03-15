@@ -8,9 +8,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_hw_core.h"
-#include "mali_osk.h"
-#include "mali_kernel_common.h"
+#include <mali/common/mali_hw_core.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_kernel_common.h>
 
 _mali_osk_errcode_t mali_hw_core_create(struct mali_hw_core *core, const _mali_osk_resource_t *resource, u32 reg_size)
 {

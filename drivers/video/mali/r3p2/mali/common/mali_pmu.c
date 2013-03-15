@@ -12,11 +12,11 @@
  * @file mali_pmu.c
  * Mali driver functions for Mali 400 PMU hardware
  */
-#include "mali_hw_core.h"
-#include "mali_pmu.h"
-#include "mali_pp.h"
-#include "mali_kernel_common.h"
-#include "mali_osk.h"
+#include <mali/common/mali_hw_core.h>
+#include <mali/common/mali_pmu.h>
+#include <mali/common/mali_pp.h>
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_osk.h>
 
 static u32 mali_pmu_detect_mask(u32 number_of_pp_cores, u32 number_of_l2_caches);
 

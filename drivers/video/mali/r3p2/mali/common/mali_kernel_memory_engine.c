@@ -8,10 +8,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_kernel_common.h"
-#include "mali_kernel_memory_engine.h"
-#include "mali_osk.h"
-#include "mali_osk_list.h"
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_kernel_memory_engine.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_osk_list.h>
 
 typedef struct memory_engine
 {

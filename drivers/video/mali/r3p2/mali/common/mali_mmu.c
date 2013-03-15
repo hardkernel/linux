@@ -8,16 +8,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_kernel_common.h"
-#include "mali_osk.h"
-#include "mali_osk_bitops.h"
-#include "mali_osk_list.h"
-#include "mali_ukk.h"
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_osk_bitops.h>
+#include <mali/common/mali_osk_list.h>
+#include <mali/common/mali_ukk.h>
 
-#include "mali_mmu.h"
-#include "mali_hw_core.h"
-#include "mali_group.h"
-#include "mali_mmu_page_directory.h"
+#include <mali/common/mali_mmu.h>
+#include <mali/common/mali_hw_core.h>
+#include <mali/common/mali_group.h>
+#include <mali/common/mali_mmu_page_directory.h>
 
 /**
  * Size of the MMU registers in bytes

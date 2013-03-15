@@ -13,9 +13,9 @@
  * Implementation of the Mali pause/resume functionality
  */
 
-#include "mali_gp_scheduler.h"
-#include "mali_pp_scheduler.h"
-#include "mali_group.h"
+#include <mali/common/mali_gp_scheduler.h>
+#include <mali/common/mali_pp_scheduler.h>
+#include <mali/common/mali_group.h>
 
 void mali_dev_pause(mali_bool *power_is_on)
 {

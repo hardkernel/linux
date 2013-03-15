@@ -8,10 +8,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_kernel_common.h"
-#include "mali_kernel_descriptor_mapping.h"
-#include "mali_osk.h"
-#include "mali_osk_bitops.h"
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_kernel_descriptor_mapping.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_osk_bitops.h>
 
 #define MALI_PAD_INT(x) (((x) + (BITS_PER_LONG - 1)) & ~(BITS_PER_LONG - 1))
 

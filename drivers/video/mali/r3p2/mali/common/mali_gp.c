@@ -8,15 +8,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_gp.h"
-#include "mali_hw_core.h"
-#include "mali_group.h"
-#include "mali_osk.h"
-#include "regs/mali_gp_regs.h"
-#include "mali_kernel_common.h"
-#include "mali_kernel_core.h"
+#include <mali/common/mali_gp.h>
+#include <mali/common/mali_hw_core.h>
+#include <mali/common/mali_group.h>
+#include <mali/common/mali_osk.h>
+#include <mali/regs/mali_gp_regs.h>
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_kernel_core.h>
 #if defined(CONFIG_MALI400_PROFILING)
-#include "mali_osk_profiling.h"
+#include <mali/common/mali_osk_profiling.h>
 #endif
 
 static struct mali_gp_core *mali_global_gp_core = NULL;

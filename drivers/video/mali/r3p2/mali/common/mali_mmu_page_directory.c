@@ -8,14 +8,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_kernel_common.h"
-#include "mali_kernel_core.h"
-#include "mali_osk.h"
-#include "mali_uk_types.h"
-#include "mali_mmu_page_directory.h"
-#include "mali_memory.h"
-#include "mali_l2_cache.h"
-#include "mali_group.h"
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_kernel_core.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_uk_types.h>
+#include <mali/common/mali_mmu_page_directory.h>
+#include <mali/common/mali_memory.h>
+#include <mali/common/mali_l2_cache.h>
+#include <mali/common/mali_group.h>
 
 static _mali_osk_errcode_t fill_page(mali_io_address mapping, u32 data);
 

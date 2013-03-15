@@ -8,12 +8,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mali_dlbu.h"
-#include "mali_memory.h"
-#include "mali_pp.h"
-#include "mali_group.h"
-#include "mali_osk.h"
-#include "mali_hw_core.h"
+#include <mali/common/mali_dlbu.h>
+#include <mali/common/mali_memory.h>
+#include <mali/common/mali_pp.h>
+#include <mali/common/mali_group.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_hw_core.h>
 
 /**
  * Size of DLBU registers in bytes

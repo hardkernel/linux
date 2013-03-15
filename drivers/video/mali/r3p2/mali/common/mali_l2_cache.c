@@ -7,11 +7,11 @@
  * A copy of the licence is included with the program, and can also be obtained from Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-#include "mali_kernel_common.h"
-#include "mali_osk.h"
-#include "mali_l2_cache.h"
-#include "mali_hw_core.h"
-#include "mali_scheduler.h"
+#include <mali/common/mali_kernel_common.h>
+#include <mali/common/mali_osk.h>
+#include <mali/common/mali_l2_cache.h>
+#include <mali/common/mali_hw_core.h>
+#include <mali/common/mali_scheduler.h>
 
 /**
  * Size of the Mali L2 cache registers in bytes
