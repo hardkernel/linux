@@ -8,27 +8,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_kernel_descriptor_mapping.h>
-#include <mali/common/mali_mem_validation.h>
-#include <mali/common/mali_memory.h>
-#include <mali/common/mali_mmu_page_directory.h>
-#include <mali/common/mali_kernel_memory_engine.h>
-#include <mali/common/mali_block_allocator.h>
-#include <mali/common/mali_kernel_mem_os.h>
-#include <mali/common/mali_session.h>
-#include <mali/common/mali_l2_cache.h>
-#include <mali/common/mali_scheduler.h>
+#include "mali_kernel_common.h"
+#include "mali_kernel_descriptor_mapping.h"
+#include "mali_mem_validation.h"
+#include "mali_memory.h"
+#include "mali_mmu_page_directory.h"
+#include "mali_kernel_memory_engine.h"
+#include "mali_block_allocator.h"
+#include "mali_kernel_mem_os.h"
+#include "mali_session.h"
+#include "mali_l2_cache.h"
+#include "mali_scheduler.h"
 #if defined(CONFIG_MALI400_UMP)
 #include <ump/ump_kernel_interface.h>
 #endif
 
 /* kernel side OS functions and user-kernel interface */
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_osk_mali.h>
-#include <mali/common/mali_ukk.h>
-#include <mali/common/mali_osk_list.h>
-#include <mali/common/mali_osk_bitops.h>
+#include "mali_osk.h"
+#include "mali_osk_mali.h"
+#include "mali_ukk.h"
+#include "mali_osk_list.h"
+#include "mali_osk_bitops.h"
 
 /**
  * Per-session memory descriptor mapping table sizes

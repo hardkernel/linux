@@ -15,14 +15,14 @@
 #include <linux/rbtree.h>
 #include <linux/platform_device.h>
 
-#include <mali/linux/mali_ukk.h>
-#include <mali/linux/mali_osk.h>
-#include <mali/linux/mali_kernel_common.h>
-#include <mali/linux/mali_session.h>
-#include <mali/linux/mali_kernel_linux.h>
+#include "mali_ukk.h"
+#include "mali_osk.h"
+#include "mali_kernel_common.h"
+#include "mali_session.h"
+#include "mali_kernel_linux.h"
 
-#include <mali/linux/mali_kernel_memory_engine.h>
-#include <mali/linux/mali_memory.h>
+#include "mali_kernel_memory_engine.h"
+#include "mali_memory.h"
 
 
 struct mali_dma_buf_attachment {

@@ -8,15 +8,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_pp_job.h>
-#include <mali/common/mali_pp.h>
-#include <mali/common/mali_hw_core.h>
-#include <mali/common/mali_group.h>
-#include <mali/regs/mali_200_regs.h>
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_kernel_core.h>
+#include "mali_pp_job.h"
+#include "mali_pp.h"
+#include "mali_hw_core.h"
+#include "mali_group.h"
+#include "regs/mali_200_regs.h"
+#include "mali_kernel_common.h"
+#include "mali_kernel_core.h"
 #if defined(CONFIG_MALI400_PROFILING)
-#include <mali/common/mali_osk_profiling.h>
+#include "mali_osk_profiling.h"
 #endif
 
 /* Number of frame registers on Mali-200 */

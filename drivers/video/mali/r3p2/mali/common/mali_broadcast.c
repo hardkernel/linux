@@ -8,9 +8,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_broadcast.h>
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_osk.h>
+#include "mali_broadcast.h"
+#include "mali_kernel_common.h"
+#include "mali_osk.h"
 
 static const int bcast_unit_reg_size = 0x1000;
 static const int bcast_unit_addr_broadcast_mask = 0x0;

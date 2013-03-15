@@ -8,12 +8,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_ukk.h>
+#include "mali_kernel_common.h"
+#include "mali_osk.h"
+#include "mali_ukk.h"
 
 #if defined(CONFIG_MALI400_PROFILING)
-#include <mali/common/mali_osk_profiling.h>
+#include "mali_osk_profiling.h"
 #endif
 
 _mali_osk_errcode_t _mali_ukk_vsync_event_report(_mali_uk_vsync_event_report_s *args)

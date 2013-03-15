@@ -8,11 +8,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_pp_job.h>
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_osk_list.h>
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_uk_types.h>
+#include "mali_pp_job.h"
+#include "mali_osk.h"
+#include "mali_osk_list.h"
+#include "mali_kernel_common.h"
+#include "mali_uk_types.h"
 
 static u32 pp_counter_src0 = MALI_HW_CORE_NO_COUNTER;      /**< Performance counter 0, MALI_HW_CORE_NO_COUNTER for disabled */
 static u32 pp_counter_src1 = MALI_HW_CORE_NO_COUNTER;      /**< Performance counter 1, MALI_HW_CORE_NO_COUNTER for disabled */

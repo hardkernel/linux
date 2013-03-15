@@ -8,33 +8,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_session.h>
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_osk_mali.h>
-#include <mali/common/mali_ukk.h>
-#include <mali/common/mali_kernel_core.h>
-#include <mali/common/mali_memory.h>
-#include <mali/common/mali_mem_validation.h>
-#include <mali/common/mali_mmu.h>
-#include <mali/common/mali_mmu_page_directory.h>
-#include <mali/common/mali_dlbu.h>
-#include <mali/common/mali_broadcast.h>
-#include <mali/common/mali_gp.h>
-#include <mali/common/mali_pp.h>
-#include <mali/common/mali_gp_scheduler.h>
-#include <mali/common/mali_pp_scheduler.h>
-#include <mali/common/mali_group.h>
-#include <mali/common/mali_pm.h>
-#include <mali/common/mali_pmu.h>
-#include <mali/common/mali_scheduler.h>
-#include <mali/common/mali_kernel_utilization.h>
-#include <mali/common/mali_l2_cache.h>
+#include "mali_kernel_common.h"
+#include "mali_session.h"
+#include "mali_osk.h"
+#include "mali_osk_mali.h"
+#include "mali_ukk.h"
+#include "mali_kernel_core.h"
+#include "mali_memory.h"
+#include "mali_mem_validation.h"
+#include "mali_mmu.h"
+#include "mali_mmu_page_directory.h"
+#include "mali_dlbu.h"
+#include "mali_broadcast.h"
+#include "mali_gp.h"
+#include "mali_pp.h"
+#include "mali_gp_scheduler.h"
+#include "mali_pp_scheduler.h"
+#include "mali_group.h"
+#include "mali_pm.h"
+#include "mali_pmu.h"
+#include "mali_scheduler.h"
+#include "mali_kernel_utilization.h"
+#include "mali_l2_cache.h"
 #if defined(CONFIG_MALI400_PROFILING)
-#include <mali/common/mali_osk_profiling.h>
+#include "mali_osk_profiling.h"
 #endif
 #if defined(CONFIG_MALI400_INTERNAL_PROFILING)
-#include <mali/common/mali_profiling_internal.h>
+#include "mali_profiling_internal.h"
 #endif
 
 

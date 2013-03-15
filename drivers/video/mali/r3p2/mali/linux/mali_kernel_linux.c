@@ -19,30 +19,30 @@
 #include <linux/mali/mali_utgard_ioctl.h>
 #include <linux/version.h>
 #include <linux/device.h>
-#include <mali/linux/mali_kernel_license.h>
+#include "mali_kernel_license.h"
 #include <linux/platform_device.h>
 #include <linux/miscdevice.h>
 #include <linux/mali/mali_utgard.h>
-#include <mali/linux/mali_kernel_common.h>
-#include <mali/linux/mali_session.h>
-#include <mali/linux/mali_kernel_core.h>
-#include <mali/linux/mali_osk.h>
-#include <mali/linux/mali_kernel_linux.h>
-#include <mali/linux/mali_ukk.h>
-#include <mali/linux/mali_ukk_wrappers.h>
-#include <mali/linux/mali_kernel_sysfs.h>
-#include <mali/linux/mali_pm.h>
-#include <mali/linux/mali_kernel_license.h>
-#include <mali/linux/mali_dma_buf.h>
+#include "mali_kernel_common.h"
+#include "mali_session.h"
+#include "mali_kernel_core.h"
+#include "mali_osk.h"
+#include "mali_kernel_linux.h"
+#include "mali_ukk.h"
+#include "mali_ukk_wrappers.h"
+#include "mali_kernel_sysfs.h"
+#include "mali_pm.h"
+#include "mali_kernel_license.h"
+#include "mali_dma_buf.h"
 #if defined(CONFIG_MALI400_INTERNAL_PROFILING)
-#include <mali/linux/mali_profiling_internal.h>
+#include "mali_profiling_internal.h"
 #endif
 
 /* Streamline support for the Mali driver */
 #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_MALI400_PROFILING)
 /* Ask Linux to create the tracepoints */
 #define CREATE_TRACE_POINTS
-#include <mali/linux/mali_linux_trace.h>
+#include "mali_linux_trace.h"
 #endif /* CONFIG_TRACEPOINTS */
 
 /* from the __malidrv_build_info.c file that is generated during build */
@@ -87,7 +87,7 @@ module_param(mali_max_pp_cores_group_2, int, S_IRUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(mali_max_pp_cores_group_2, "Limit the number of PP cores to use from second PP group (Mali-450 only).");
 
 /* Export symbols from common code: mali_user_settings.c */
-#include <mali/linux/mali_user_settings_db.h>
+#include "mali_user_settings_db.h"
 EXPORT_SYMBOL(mali_set_user_setting);
 EXPORT_SYMBOL(mali_get_user_setting);
 

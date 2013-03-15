@@ -8,10 +8,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_kernel_utilization.h>
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_osk_mali.h>
-#include <mali/common/mali_kernel_common.h>
+#include "mali_kernel_utilization.h"
+#include "mali_osk.h"
+#include "mali_osk_mali.h"
+#include "mali_kernel_common.h"
 
 /* Define how often to calculate and report GPU utilization, in milliseconds */
 static _mali_osk_lock_t *time_data_lock;

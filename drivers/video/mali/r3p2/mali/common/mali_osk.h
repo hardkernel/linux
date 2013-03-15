@@ -580,7 +580,7 @@ typedef struct _mali_osk_resource
 /** @} */ /* end group _mali_osk_miscellaneous */
 
 
-#include <mali/common/mali_kernel_memory_engine.h>   /* include for mali_memory_allocation and mali_physical_memory_allocation type */
+#include "mali_kernel_memory_engine.h"   /* include for mali_memory_allocation and mali_physical_memory_allocation type */
 
 /** @addtogroup _mali_osk_wq
  * @{ */
@@ -1784,7 +1784,7 @@ void _mali_osk_pm_dev_ref_dec_no_power_on(void);
 }
 #endif
 
-#include <mali/linux/mali_osk_specific.h>           /* include any per-os specifics */
+#include "mali_osk_specific.h"           /* include any per-os specifics */
 
 /* Check standard inlines */
 #ifndef MALI_STATIC_INLINE

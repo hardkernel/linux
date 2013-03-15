@@ -8,9 +8,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_osk_list.h>
-#include <mali/common/mali_session.h>
+#include "mali_osk.h"
+#include "mali_osk_list.h"
+#include "mali_session.h"
 
 _MALI_OSK_LIST_HEAD(mali_sessions);
 

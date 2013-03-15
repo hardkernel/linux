@@ -8,11 +8,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <mali/common/mali_osk.h>
-#include <mali/common/mali_kernel_common.h>
-#include <mali/common/mali_uk_types.h>
-#include <mali/common/mali_user_settings_db.h>
-#include <mali/common/mali_session.h>
+#include "mali_osk.h"
+#include "mali_kernel_common.h"
+#include "mali_uk_types.h"
+#include "mali_user_settings_db.h"
+#include "mali_session.h"
 
 static u32 mali_user_settings[_MALI_UK_USER_SETTING_MAX];
 const char *_mali_uk_user_setting_descriptions[] = _MALI_UK_USER_SETTING_DESCRIPTIONS;
