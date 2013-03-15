@@ -18,9 +18,9 @@
 #include <linux/fs.h>
 #include <linux/device.h>
 #include <linux/module.h>
-#include "mali_kernel_license.h"
-#include "mali_kernel_common.h"
-#include "mali_ukk.h"
+#include <mali/linux/mali_kernel_license.h>
+#include <mali/linux/mali_kernel_common.h>
+#include <mali/linux/mali_ukk.h>
 
 #if MALI_LICENSE_IS_GPL
 
@@ -28,23 +28,23 @@
 #include <linux/debugfs.h>
 #include <asm/uaccess.h>
 #include <linux/module.h>
-#include "mali_kernel_sysfs.h"
+#include <mali/linux/mali_kernel_sysfs.h>
 #if defined(CONFIG_MALI400_INTERNAL_PROFILING)
 #include <linux/slab.h>
-#include "mali_osk_profiling.h"
+#include <mali/linux/mali_osk_profiling.h>
 #endif
-#include "mali_pm.h"
-#include "mali_group.h"
-#include "mali_gp.h"
-#include "mali_pp.h"
-#include "mali_l2_cache.h"
-#include "mali_hw_core.h"
-#include "mali_kernel_core.h"
-#include "mali_user_settings_db.h"
-#include "mali_device_pause_resume.h"
-#include "mali_profiling_internal.h"
-#include "mali_gp_job.h"
-#include "mali_pp_job.h"
+#include <mali/linux/mali_pm.h>
+#include <mali/linux/mali_group.h>
+#include <mali/linux/mali_gp.h>
+#include <mali/linux/mali_pp.h>
+#include <mali/linux/mali_l2_cache.h>
+#include <mali/linux/mali_hw_core.h>
+#include <mali/linux/mali_kernel_core.h>
+#include <mali/linux/mali_user_settings_db.h>
+#include <mali/linux/mali_device_pause_resume.h>
+#include <mali/linux/mali_profiling_internal.h>
+#include <mali/linux/mali_gp_job.h>
+#include <mali/linux/mali_pp_job.h>
 
 #define POWER_BUFFER_SIZE 3
 

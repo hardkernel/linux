@@ -15,9 +15,9 @@
 
 #include <linux/slab.h>	/* For memory allocation */
 
-#include "mali_osk.h"
-#include "mali_kernel_common.h"
-#include "linux/interrupt.h"
+#include <mali/linux/mali_osk.h>
+#include <mali/linux/mali_kernel_common.h>
+#include <mali/linux/interrupt.h>
 
 typedef struct _mali_osk_irq_t_struct
 {
