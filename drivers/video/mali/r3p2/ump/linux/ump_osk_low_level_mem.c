@@ -148,7 +148,8 @@ _mali_osk_errcode_t _ump_osk_mem_mapregion_init( ump_memory_allocation * descrip
 
 	vma->vm_private_data = vma_usage_tracker;
 	vma->vm_flags |= VM_IO;
-	vma->vm_flags |= VM_RESERVED;
+	vma->vm_flags |= VM_DONTEXPAND;
+	vma->vm_flags |= VM_DONTCOPY;
 
 	if (0==descriptor->is_cached)
 	{
