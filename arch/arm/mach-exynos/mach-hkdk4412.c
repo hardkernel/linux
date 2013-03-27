@@ -177,11 +177,15 @@ static struct regulator_init_data __initdata max77686_buck1_data = {
 	.constraints = {
 		.name		= "VDD_MIF_1.0V",
 		.min_uV		= 800000,
-		.max_uV		= 1050000,
+		.max_uV		= 1100000,
 		.always_on	= 1,
 		.boot_on	= 1,
-		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE |
-				REGULATOR_CHANGE_STATUS,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE | REGULATOR_CHANGE_STATUS,
+		.state_mem = 	{
+		        .uV = 1100000,
+                        .mode = REGULATOR_MODE_NORMAL,
+                        .enabled = 1,
+                },
 	},
 	.num_consumer_supplies = ARRAY_SIZE(max77686_buck1_consumer),
 	.consumer_supplies = max77686_buck1_consumer,
@@ -191,7 +195,7 @@ static struct regulator_init_data __initdata max77686_buck2_data = {
 	.constraints = {
 		.name		= "VDD_ARM_1.3V",
 		.min_uV		= 800000,
-		.max_uV		= 1350000,
+		.max_uV		= 1500000,
 		.always_on	= 1,
 		.boot_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,

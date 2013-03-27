@@ -969,7 +969,22 @@ static int set_machine_constraints(struct regulator_dev *rdev,
 			goto out;
 		}
 	}
-
+	
+	#if defined(CONFIG_ODROID_U2)
+	else {
+		if(ops->disable) {
+			ret = ops->disable(rdev);
+		
+			if(ret < 0)
+				rdev_warn(rdev, "ODROIDU2: Error disabling the regulator\n");
+			else
+				rdev_warn(rdev, "ODROIDU2: Disabled regulator\n");
+		
+			ret = 0;
+		}
+	}
+	#endif
+		
 	if (rdev->constraints->ramp_delay && ops->set_ramp_delay) {
 		ret = ops->set_ramp_delay(rdev, rdev->constraints->ramp_delay);
 		if (ret < 0) {
@@ -2224,7 +2239,15 @@ static int _regulator_do_set_voltage(struct regulator_dev *rdev,
 				ret = regulator_map_voltage_iterate(rdev,
 								min_uV, max_uV);
 		}
-
+#if defined(CONFIG_ODROID_U2)
+#include <linux/kernel.h>
+#include <linux/mfd/max77686.h>
+	if(rdev->desc->id == MAX77686_BUCK8) {
+		pr_alert("ODROIDU2: Regulator %s\n", rdev->desc->name);
+		rdev->desc->ops->set_voltage_sel(rdev, 0);
+		mdelay(120);
+	}
+#endif
 		if (ret >= 0) {
 			best_val = rdev->desc->ops->list_voltage(rdev, ret);
 			if (min_uV <= best_val && max_uV >= best_val) {
