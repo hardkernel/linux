@@ -1226,7 +1226,13 @@ static void __init hkdk4412_machine_init(void)
 	platform_add_devices(hkdk4412_devices, ARRAY_SIZE(hkdk4412_devices));
 }
 
-MACHINE_START(ODROIDX, "ODROID-X")
+#if defined(CONFIG_ODROID_X)
+MACHINE_START(ODROIDX, "ODROIDX")
+#elif defined(CONFIG_ODROID_X2)
+MACHINE_START(ODROIDX, "ODROIDX2")
+#elif defined(CONFIG_ODROID_U2)
+MACHINE_START(ODROIDX, "ODROIDU2"
+#endif
 	/* Maintainer: Dongjin Kim <dongjin.kim@agreeyamobiity.net> */
 	.atag_offset	= 0x100,
 	.smp		= smp_ops(exynos_smp_ops),

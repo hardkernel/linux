@@ -442,7 +442,19 @@ config MACH_HKDK4412
 	select EXYNOS4_SETUP_DWMCI
 	select SAMSUNG_DEV_ADC
 	help
-	  Machine support for Odroid-X based on Samsung EXYNOS4412
+	  Machine support for ODROIDs based on Samsung EXYNOS4412 (X/X2/U2)
+
+config ODROID_X
+	bool "Enable Support for ODROID-X"
+	depends on MACH_HKDK4412
+
+config ODROID_X2
+	bool "Enable support for ODROID-X2"
+	depends on MACH_HKDK4412
+
+config ODROID_U2
+	bool "Enable support for ODROID-U2"
+	depends on MACH_HKDK4412
 
 endif
 
