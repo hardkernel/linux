@@ -169,6 +169,11 @@ static int exynos4_clk_ip_tv_ctrl(struct clk *clk, int enable)
 	return s5p_gatectrl(EXYNOS4_CLKGATE_IP_TV, clk, enable);
 }
 
+static int exynos4_clk_ip_g3d_ctrl(struct clk *clk, int enable)
+{
+	return s5p_gatectrl(EXYNOS4_CLKGATE_IP_G3D, clk, enable);
+}
+
 int exynos4_clk_ip_image_ctrl(struct clk *clk, int enable)
 {
 	return s5p_gatectrl(EXYNOS4_CLKGATE_IP_IMAGE, clk, enable);
@@ -512,6 +517,53 @@ static struct clksrc_clk exynos4_clk_sclk_audss_bus = {
 	.reg_div = { .reg = S5P_CLKDIV_AUDSS, .shift = 4, .size = 4 },
 };
 
+static struct clk *exynos4_clkset_mout_g3d0_list[] = {
+	[0] = &exynos4_clk_mout_mpll.clk,
+	[1] = &exynos4_clk_sclk_apll.clk,
+};
+
+static struct clksrc_sources exynos4_clkset_mout_g3d0 = {
+        .sources        = exynos4_clkset_mout_g3d0_list, 
+	.nr_sources     = ARRAY_SIZE(exynos4_clkset_mout_g3d0_list),
+};
+
+static struct clksrc_clk exynos4_clk_mout_g3d0 = {
+        .clk    = {
+                .name           = "mout_g3d0",
+        },
+        .sources = &exynos4_clkset_mout_g3d0,
+        .reg_src = { .reg = EXYNOS4_CLKSRC_G3D, .shift = 0, .size = 1 },
+};
+  
+static struct clk *exynos4_clkset_mout_g3d1_list[] = {
+        [0] = &exynos4_clk_mout_epll.clk,
+        [1] = &exynos4_clk_vpllsrc.clk,
+};
+  
+static struct clksrc_sources exynos4_clkset_mout_g3d1 = {
+        .sources        = exynos4_clkset_mout_g3d1_list, 
+        .nr_sources     = ARRAY_SIZE(exynos4_clkset_mout_g3d1_list),
+};
+  
+static struct clksrc_clk exynos4_clk_mout_g3d1 = {
+        .clk    = {
+                .name           = "mout_g3d1",
+        },
+        .sources = &exynos4_clkset_mout_g3d1,
+        .reg_src = { .reg = EXYNOS4_CLKSRC_G3D, .shift = 4, .size = 1 },
+};
+  
+static struct clk *exynos4_clkset_mout_g3d_list[] = {
+        [0] = &exynos4_clk_mout_g3d0.clk,
+        [1] = &exynos4_clk_mout_g3d1.clk,
+};
+  
+static struct clksrc_sources exynos4_clkset_mout_g3d = {
+        .sources        = exynos4_clkset_mout_g3d_list, 
+        .nr_sources     = ARRAY_SIZE(exynos4_clkset_mout_g3d_list),
+};
+
+
 static struct clk exynos4_init_audss_clocks[] = {
 	{
 		.name		= "srpclk",
@@ -797,32 +849,37 @@ static struct clk exynos4_init_clocks_off[] = {
 		.ctrlbit	= (1 << 4),
 	}, {
 		.name		= SYSMMU_CLOCK_NAME,
-		.devname	= SYSMMU_CLOCK_DEVNAME(jpeg, 3),
+		.devname	= SYSMMU_CLOCK_DEVNAME(g3d, 3),
+		.enable		= exynos4_clk_ip_g3d_ctrl,
+		.ctrlbit	= (1 << 1),  
+	}, {
+		.name		= SYSMMU_CLOCK_NAME,
+		.devname	= SYSMMU_CLOCK_DEVNAME(jpeg, 4),
 		.enable		= exynos4_clk_ip_cam_ctrl,
 		.ctrlbit	= (1 << 11),
 	}, {
 		.name		= SYSMMU_CLOCK_NAME,
-		.devname	= SYSMMU_CLOCK_DEVNAME(rot, 4),
+		.devname	= SYSMMU_CLOCK_DEVNAME(rot, 5),
 		.enable		= exynos4_clk_ip_image_ctrl,
 		.ctrlbit	= (1 << 4),
 	}, {
 		.name		= SYSMMU_CLOCK_NAME,
-		.devname	= SYSMMU_CLOCK_DEVNAME(fimc0, 5),
+		.devname	= SYSMMU_CLOCK_DEVNAME(fimc0, 6),
 		.enable		= exynos4_clk_ip_cam_ctrl,
 		.ctrlbit	= (1 << 7),
 	}, {
 		.name		= SYSMMU_CLOCK_NAME,
-		.devname	= SYSMMU_CLOCK_DEVNAME(fimc1, 6),
+		.devname	= SYSMMU_CLOCK_DEVNAME(fimc1, 7),
 		.enable		= exynos4_clk_ip_cam_ctrl,
 		.ctrlbit	= (1 << 8),
 	}, {
 		.name		= SYSMMU_CLOCK_NAME,
-		.devname	= SYSMMU_CLOCK_DEVNAME(fimc2, 7),
+		.devname	= SYSMMU_CLOCK_DEVNAME(fimc2, 8),
 		.enable		= exynos4_clk_ip_cam_ctrl,
 		.ctrlbit	= (1 << 9),
 	}, {
 		.name		= SYSMMU_CLOCK_NAME,
-		.devname	= SYSMMU_CLOCK_DEVNAME(fimc3, 8),
+		.devname	= SYSMMU_CLOCK_DEVNAME(fimc3, 9),
 		.enable		= exynos4_clk_ip_cam_ctrl,
 		.ctrlbit	= (1 << 10),
 	}, {
@@ -1263,6 +1320,15 @@ static struct clksrc_clk exynos4_clksrcs[] = {
 		.reg_src = { .reg = EXYNOS4_CLKSRC_MFC, .shift = 8, .size = 1 },
 		.reg_div = { .reg = EXYNOS4_CLKDIV_MFC, .shift = 0, .size = 4 },
 	}, {
+		.clk 	= {
+			.name		= "sclk_g3d",
+			.enable		= exynos4_clk_ip_g3d_ctrl,
+			.ctrlbit	= (1 << 0),
+		},
+		.sources = &exynos4_clkset_mout_g3d,
+                .reg_src = { .reg = EXYNOS4_CLKSRC_G3D, .shift = 8, .size = 1 },
+                .reg_div = { .reg = EXYNOS4_CLKDIV_G3D, .shift = 0, .size = 4 },
+	}, {
 		.clk	= {
 			.name		= "ciu",
 			.parent		= &exynos4_clk_dout_mmc4.clk,
@@ -1475,6 +1541,8 @@ static struct clksrc_clk *exynos4_sysclks[] = {
 	&exynos4_clk_dout_audss_srp,
 	&exynos4_clk_sclk_audio0,
 	&exynos4_clk_sclk_pcm0,
+	&exynos4_clk_mout_g3d0,     
+        &exynos4_clk_mout_g3d1,
 };
 
 static struct clk *exynos4_clk_cdev[] = {
