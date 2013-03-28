@@ -7,5 +7,12 @@ config HARDKERNEL_UMP
 	---help---
 		This enables the needed GLUE to Mali UMP to the Framebuffer
 
+config ODROID_U2_FAN
+	bool "Enable the PWM Controlled FAN on ODROID-U2"
+	depends on ODROID_U2
+	default y
+	---help---
+		Enables the PWM Controlled FAN on ODROID-U2
+
 endmenu
 
