@@ -241,14 +241,6 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 		cpumask_setall(policy->cpus);
 	}
 
-	/* Set startup values for the CPU */
-#if defined(CONFIG_ODROID_X)
-	policy->max = 1500000;
-#elif defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_U2)
-	policy->max = 1704000;
-#endif
-	policy->min = 200000;
-
 	return cpufreq_frequency_table_cpuinfo(policy, exynos_info->freq_table);
 }
 
