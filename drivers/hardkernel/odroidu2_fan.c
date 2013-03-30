@@ -23,7 +23,7 @@
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 #define	DEBUG_PM_MSG
-#include	"odroidu2_fan.h"
+#include	<linux/platform_data/odroidu2_fan.h>
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -214,7 +214,7 @@ static	int		odroid_fan_remove		(struct platform_device *pdev)
 //[*]--------------------------------------------------------------------------------------------------[*]
 static struct platform_driver odroid_fan_driver = {
 	.driver = {
-		.name = "odroid-fan",
+		.name = "odroidu2-fan",
 		.owner = THIS_MODULE,
 	},
 	.probe 		= odroid_fan_probe,

@@ -1091,6 +1091,24 @@ static struct platform_device hkdk4412_tmu = {
 	.resource = tmu_resource,
 };
 
+#if defined(CONFIG_ODROID_U2_FAN)
+#include	<linux/platform_data/odroidu2_fan.h>
+struct odroid_fan_platform_data odroid_fan_pdata = {
+        .pwm_gpio = EXYNOS4_GPD0(0),
+        .pwm_func = S3C_GPIO_SFN(2),
+
+        .pwm_id = 0,
+        .pwm_periode_ns = 20972,        // Freq 22KHz,
+        .pwm_duty = 255,                                // max=255, 
+};
+
+static struct platform_device odroid_fan = {
+        .name   = "odroidu2-fan",
+        .id     = -1,  
+        .dev.platform_data = &odroid_fan_pdata,
+};
+#endif
+
 static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_hsmmc2,
 	&s3c_device_i2c0,
@@ -1133,6 +1151,9 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 #if defined(CONFIG_EXYNOS_THERMAL)
 	&hkdk4412_tmu,
 #endif
+#if defined(CONFIG_ODROID_U2_FAN)
+	&odroid_fan,
+#endif
 };
 
 static void __init hkdk4412_map_io(void)
@@ -1163,6 +1184,8 @@ static struct i2c_board_info hdmiphy_info = {
 	I2C_BOARD_INFO("hdmiphy-exynos4412", 0x38),
 };
 #endif
+
+
 
 static void __init hkdk4412_gpio_init(void)
 {
