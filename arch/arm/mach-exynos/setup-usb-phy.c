@@ -275,7 +275,8 @@ static int exynos4_usb_phy1_init(struct platform_device *pdev)
 	/* set to normal HSIC 0 and 1 of PHY1 */
 	phypwr = readl(EXYNOS4_PHYPWR);
 	phypwr &= ~(PHY1_STD_NORMAL_MASK
-		| EXYNOS4210_HSIC0_NORMAL_MASK);
+		| EXYNOS4210_HSIC0_NORMAL_MASK
+		| EXYNOS4210_HSIC1_NORMAL_MASK);
 	writel(phypwr, EXYNOS4_PHYPWR);
 
 	/* floating prevention logic: disable */
@@ -307,7 +308,8 @@ static int exynos4_usb_phy1_exit(struct platform_device *pdev)
 
 	phypwr = readl(EXYNOS4_PHYPWR)
 		| PHY1_STD_NORMAL_MASK
-		| EXYNOS4210_HSIC0_NORMAL_MASK;
+		| EXYNOS4210_HSIC0_NORMAL_MASK
+		| EXYNOS4210_HSIC1_NORMAL_MASK;
 	writel(phypwr, EXYNOS4_PHYPWR);
 
 	exynos_usb_phy_control(USB_PHY1, PHY_DISABLE);
@@ -337,7 +339,7 @@ static int exynos4_usb_phy20_init(struct platform_device *pdev)
 		ETC6PUD);
 
 	exynos_usb_phy_control(USB_PHY
-		| USB_PHY_HSIC0,
+		| USB_PHY_HSIC0 | USB_PHY_HSIC1,
 		PHY_ENABLE);
 
 	/* set clock frequency for PLL */
@@ -353,7 +355,7 @@ static int exynos4_usb_phy20_init(struct platform_device *pdev)
 	/* set to normal of Host */
 	phypwr = readl(EXYNOS4_PHYPWR);
 	phypwr &= ~(PHY1_STD_NORMAL_MASK
-		| EXYNOS4X12_HSIC0_NORMAL_MASK);
+		| EXYNOS4X12_HSIC0_NORMAL_MASK | EXYNOS4X12_HSIC1_NORMAL_MASK);
 	writel(phypwr, EXYNOS4_PHYPWR);
 
 	/* reset both PHY and Link of Device */
@@ -394,11 +396,11 @@ static int exynos4_usb_phy20_exit(struct platform_device *pdev)
 	/* unset to normal of Host */
 	phypwr = readl(EXYNOS4_PHYPWR)
 		| PHY1_STD_NORMAL_MASK
-		| EXYNOS4X12_HSIC0_NORMAL_MASK;
+		| EXYNOS4X12_HSIC0_NORMAL_MASK | EXYNOS4X12_HSIC1_NORMAL_MASK;
 	writel(phypwr, EXYNOS4_PHYPWR);
 
 	exynos_usb_phy_control(USB_PHY
-		| USB_PHY_HSIC0,
+		| USB_PHY_HSIC0 | USB_PHY_HSIC1,
 		PHY_DISABLE);
 
 	return 0;

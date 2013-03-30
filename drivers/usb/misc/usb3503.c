@@ -135,13 +135,13 @@ static int usb3503_switch_mode(struct usb3503 *hub, enum usb3503_mode mode)
 		}
 
 		/* PDS : Port2,3 Disable For Self Powered Operation */
-		err = usb3503_set_bits(i2c, USB3503_PDS,
+/*		err = usb3503_set_bits(i2c, USB3503_PDS,
 				(USB3503_PORT2 | USB3503_PORT3));
 		if (err < 0) {
 			dev_err(&i2c->dev, "PDS failed (%d)\n", err);
 			goto err_hubmode;
 		}
-
+*/
 		/* CFG1 : SELF_BUS_PWR -> Self-Powerd operation */
 		err = usb3503_set_bits(i2c, USB3503_CFG1, USB3503_SELF_BUS_PWR);
 		if (err < 0) {
