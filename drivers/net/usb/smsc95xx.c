@@ -68,6 +68,67 @@ static bool turbo_mode = true;
 module_param(turbo_mode, bool, 0644);
 MODULE_PARM_DESC(turbo_mode, "Enable multiple frames per Rx transaction");
 
+#if defined(CONFIG_MACH_HKDK4412)
+const   char *filepath = "/etc/smsc95xx_mac_addr";
+
+int smsc95xx_read_mac_addr(unsigned char *mac)
+{
+    struct file *fp      = NULL;
+
+    char macbuffer[20]   = {0};
+    mm_segment_t oldfs   = {0};
+    char randommac[6]    = {0};
+
+    int ret = 0;
+
+    //MAC address copied from nv
+    fp = filp_open(filepath, O_RDONLY, 0);
+
+    if (IS_ERR(fp)) {
+        fp = filp_open(filepath, O_RDWR | O_CREAT, 0666);
+
+        if (IS_ERR(fp)) {
+            printk("%s : Can't file(%s) create!!\n", __func__, filepath);
+            return  -1;
+        }
+
+        oldfs = get_fs();
+        set_fs(get_ds());
+
+        /* Generating the Random Bytes for 3 last octects of the MAC address */
+        get_random_bytes(randommac, 6);
+
+        randommac[0] &= 0xfe;  /* clear multicast bit */
+        randommac[0] |= 0x02;  /* set local assignment bit (IEEE802) */
+        
+        memset(macbuffer, 0x00, sizeof(macbuffer));
+        sprintf(macbuffer,"%02X:%02X:%02X:%02X:%02X:%02X\n", randommac[0],randommac[1],randommac[2],randommac[3],randommac[4],randommac[5]);
+        printk("[%s] The Random Generated MAC ID : %s\n", __func__, macbuffer);
+
+        if(fp->f_mode & FMODE_WRITE) {                  
+            ret = fp->f_op->write(fp, (const char *)macbuffer, sizeof(macbuffer), &fp->f_pos);
+
+            if(ret < 0)
+                printk("[%s] Failed to write into File: %s\n", __func__, filepath);
+                
+        }
+        set_fs(oldfs);
+    }
+
+    memset(macbuffer, 0x00, sizeof(macbuffer));
+
+    if((ret = kernel_read(fp, 0, macbuffer, 18)) < 0)   return  -1;      
+
+    sscanf(macbuffer, "%02X:%02X:%02X:%02X:%02X:%02X",(unsigned int *)&mac[0], (unsigned int *)&mac[1], (unsigned int *)&mac[2], (unsigned int *)&mac[3], (unsigned int *)&mac[4], (unsigned int *)&mac[5]);
+
+    printk("[%s] Mac address = %02X:%02X:%02X:%02X:%02X:%02X\n", __func__, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+    if (fp)  filp_close(fp, NULL);
+
+    return  0;
+}
+#endif  
+
 static int __must_check __smsc95xx_read_reg(struct usbnet *dev, u32 index,
 					    u32 *data, int in_pm)
 {
@@ -789,6 +850,11 @@ static void smsc95xx_init_mac_address(struct usbnet *dev)
 
 	/* no eeprom, or eeprom values are invalid. generate random MAC */
 	eth_hw_addr_random(dev->net);
+#if defined(CONFIG_MACH_HKDK4412)
+	if(smsc95xx_read_mac_addr(dev->net->dev_addr) < 0) {
+		netdev_warn(dev->net, "Failed to write /etc/smsc95xx_mac_addr file!\n");
+	}
+#endif
 	netif_dbg(dev, ifup, dev->net, "MAC address set to eth_random_addr\n");
 }
 
