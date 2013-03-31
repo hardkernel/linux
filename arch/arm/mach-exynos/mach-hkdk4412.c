@@ -898,6 +898,16 @@ static struct i2c_board_info hkdk4412_i2c_devs7[] __initdata = {
 	/* nothing here yet */
 };
 
+#if defined(CONFIG_ODROID_U2)
+static struct gpio_led hkdk4412_gpio_leds[] = {
+        {
+                .name			= "led1",
+                .default_trigger	= "heartbeat",
+                .gpio			= EXYNOS4_GPC1(0),
+                .active_low		= 1,
+        },
+};
+#else
 static struct gpio_led hkdk4412_gpio_leds[] = {
 	{
 		.name		= "led1",	/* D5 on ODROID-X */
@@ -912,6 +922,7 @@ static struct gpio_led hkdk4412_gpio_leds[] = {
 		.active_low	= 1,
 	},
 };
+#endif
 
 static struct gpio_led_platform_data hkdk4412_gpio_led_info = {
 	.leds		= hkdk4412_gpio_leds,
