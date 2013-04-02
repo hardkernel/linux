@@ -1,12 +1,5 @@
 menu "Hardkernel Specific Hardware"
 
-config HARDKERNEL_UMP
-	bool "Enable the UMP Glue"
-	depends on MACH_HKDK4412 && MALI400
-	default y
-	---help---
-		This enables the needed GLUE to Mali UMP to the Framebuffer
-
 config ODROID_U2_FAN
 	bool "Enable the PWM Controlled FAN on ODROID-U2"
 	depends on ODROID_U2

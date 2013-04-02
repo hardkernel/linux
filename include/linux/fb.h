@@ -5,6 +5,7 @@
 #include <uapi/linux/fb.h>
 
 #define FBIO_CURSOR            _IOWR('F', 0x08, struct fb_cursor_user)
+#define FBIO_WAITFORVSYNC	_IOW('F', 0x20, __u32)
 
 #include <linux/fs.h>
 #include <linux/init.h>

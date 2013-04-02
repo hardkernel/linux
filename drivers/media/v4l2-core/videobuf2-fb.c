@@ -25,6 +25,10 @@
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-fb.h>
 
+#include "s5p-tv/mixer.h"
+#include "ump_kernel_interface_ref_drv.h"
+#include <video/hardkernel_ump.h>
+
 static int debug = 1;
 module_param(debug, int, 0644);
 
@@ -52,6 +56,7 @@ struct vb2_fb_data {
 	struct inode fake_inode;
 
 	struct mutex fb_lock;
+	ump_dd_handle ump_handle[2];
 };
 
 static int vb2_fb_stop(struct fb_info *info);
@@ -95,6 +100,57 @@ static struct fmt_desc fmt_conv_table[] = {
 	},
 	/* TODO: add more format descriptors */
 };
+
+static void create_ump_ids(struct vb2_fb_data *data, unsigned int smem, int size)
+{
+        ump_dd_physical_block block;
+        block.addr = smem;
+        block.size = size;
+        data->ump_handle[0] = ump_dd_handle_create_from_phys_blocks(&block, 1);
+        data->ump_handle[1] = ump_dd_handle_create_from_phys_blocks(&block, 1);
+}
+
+static int hkdk_vsync(struct fb_info *info, u32 crtc)
+{
+        /* TODO: To Implement the wait for VSYNC on HDMI */
+        return -ENODEV;
+}
+
+static int hkdk_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
+{
+	struct vb2_fb_data *data = info->par;
+	u32 crtc;
+	int ret = 0;
+	
+	switch (cmd) {
+		case FBIO_WAITFORVSYNC:
+			if (get_user(crtc, (__u32 __user *)arg))
+				ret = -EFAULT;
+			else
+				ret = hkdk_vsync(info, crtc);
+			break;
+	
+
+	       	case GET_UMP_SECURE_ID_BUF1: {
+               	 	u32 __user *secureid = (u32 __user *) arg;
+                	ret = put_user(ump_dd_secure_id_get(data->ump_handle[0]), secureid);
+                	break;
+        	}
+
+        	case GET_UMP_SECURE_ID_BUF2: {
+                	u32 __user *secureid = (u32 __user *) arg;
+	                ret = put_user(ump_dd_secure_id_get(data->ump_handle[1]), secureid);
+        	        break;
+        	}
+
+        	default:
+        	        pr_emerg("hkdk_fb invalid ioctl command: %x\n", cmd);
+                	ret =  -EINVAL;
+                	break;
+        }
+
+        return ret;
+}
 
 /**
  * vb2_drv_lock() - a shortcut to call driver specific lock()
@@ -238,6 +294,8 @@ static int vb2_fb_activate(struct fb_info *info)
 	info->screen_size = size;
 	info->fix.line_length = bpl;
 	info->fix.smem_len = info->fix.mmio_len = size;
+
+	create_ump_ids(data, info->fix.smem_start, info->fix.smem_len);
 
 	var = &info->var;
 	var->xres = var->xres_virtual = var->width = width;
@@ -485,6 +543,7 @@ static struct fb_ops vb2_fb_ops = {
 	.fb_release	= vb2_fb_release,
 	.fb_mmap	= vb2_fb_mmap,
 	.fb_blank	= vb2_fb_blank,
+	.fb_ioctl	= hkdk_fb_ioctl,
 	.fb_fillrect	= cfb_fillrect,
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,

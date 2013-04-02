@@ -17,10 +17,22 @@
  * MA 02111-1307 USA
  */
 
+#include <linux/types.h>
+#include <linux/fb.h>
+
 
 #define GET_UMP_SECURE_ID_BUF1   _IOWR('m', 311, unsigned int)
 #define GET_UMP_SECURE_ID_BUF2   _IOWR('m', 312, unsigned int)
 
-extern int (*disp_get_ump_secure_id) (struct fb_info *info, unsigned long arg, int buf);
 
-
+struct hkdk4412_fb_pdata {
+    u32 xres, yres;
+    u32 virtual_x, virtual_y;
+    u32 max_bpp;
+    struct fb_info *fbinfo;
+    u32 fb_phys;
+    u32 rotate_screen;
+    u32 screen_height_mm;   
+    u32 screen_width_mm;
+};
+               

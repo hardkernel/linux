@@ -33,4 +33,5 @@ obj-$(CONFIG_VIDEOBUF2_DMA_SG) += videobuf2-dma-sg.o
 ccflags-y += -I$(srctree)/drivers/media/dvb-core
 ccflags-y += -I$(srctree)/drivers/media/dvb-frontends
 ccflags-y += -I$(srctree)/drivers/media/tuners
+CFLAGS_videobuf2-fb.o += -I$(srctree)/drivers/video/mali/r3p2/ump/include -I$(srctree)/include/ump -I$(srctree)/drivers/media/platform
 
