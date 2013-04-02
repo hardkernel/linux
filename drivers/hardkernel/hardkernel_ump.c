@@ -51,8 +51,7 @@
 #include "common/ump_kernel_memory_backend.h"
 #include <ump/ump_kernel_interface_ref_drv.h>
 
-int disp_get_ump_secure_id(struct fb_info *info, unsigned long arg, int buf) 
-{
+static int disp_get_ump_secure_id(struct fb_info *info, unsigned long arg, int buf) {
 
 	int buf_len = info->fix.smem_len;
 
@@ -82,10 +81,10 @@ int disp_get_ump_secure_id(struct fb_info *info, unsigned long arg, int buf)
 }
 EXPORT_SYMBOL(disp_get_ump_secure_id);
 
-static int disp_ump_module_init(void) 
-{
+static int disp_ump_module_init(void) {
+	int ret = 0;
 	pr_emerg("Hardkernel UMP: Loaded!\n");
-	return 0;
+	return ret;
 }
 
 module_init(disp_ump_module_init);
