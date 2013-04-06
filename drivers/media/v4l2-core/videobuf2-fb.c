@@ -112,8 +112,18 @@ static void create_ump_ids(struct vb2_fb_data *data, unsigned int smem, int size
 
 static int hkdk_vsync(struct fb_info *info, u32 crtc)
 {
-        /* TODO: To Implement the wait for VSYNC on HDMI */
-        return -ENODEV;
+        struct vb2_fb_data *data = info->par;
+        struct vb2_queue *q = data->q;
+        struct mxr_layer *layer = vb2_get_drv_priv(q);
+        struct mxr_device *mdev = layer->mdev;
+
+        if (crtc != 0)
+                return -ENODEV;
+
+        if (mxr_reg_wait4vsync(mdev) < 0)
+                return -ETIMEDOUT;
+
+        return 0;
 }
 
 static int hkdk_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
