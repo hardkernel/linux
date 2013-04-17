@@ -25,9 +25,11 @@
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-fb.h>
 
+/*
 #include "s5p-tv/mixer.h"
 #include "ump_kernel_interface_ref_drv.h"
 #include <video/hardkernel_ump.h>
+*/
 
 static int debug = 1;
 module_param(debug, int, 0644);
@@ -553,7 +555,7 @@ static struct fb_ops vb2_fb_ops = {
 	.fb_release	= vb2_fb_release,
 	.fb_mmap	= vb2_fb_mmap,
 	.fb_blank	= vb2_fb_blank,
-	.fb_ioctl	= hkdk_fb_ioctl,
+//	.fb_ioctl	= hkdk_fb_ioctl,
 	.fb_fillrect	= cfb_fillrect,
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,
