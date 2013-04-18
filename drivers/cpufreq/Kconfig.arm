@@ -71,6 +71,15 @@ config ARM_EXYNOS4X12_CPUFREQ
 	  This adds the CPUFreq driver for Samsung EXYNOS4X12
 	  SoC (EXYNOS4212 or EXYNOS4412).
 
+config ARM_EXYNOS4x12_DVFS_HOTPLUG
+	bool "DVFS hotplug driver"
+	depends on ARM_EXYNOS4X12_CPUFREQ && HOTPLUG_CPU
+	default y
+	help
+	  This adds the CPUFreq DVFS hotplug capability for Samsung EXYNOS4x12
+	  SoC (EXYNOS4212 or EXYNOS4412).
+	  
+
 config ARM_EXYNOS5250_CPUFREQ
 	def_bool SOC_EXYNOS5250
 	help
