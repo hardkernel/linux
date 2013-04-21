@@ -254,7 +254,7 @@ static unsigned int clkdiv_cpu1_4412[CPUFREQ_LEVEL_END][3] = {
 	/* Clock divider value for following
 	 * { DIVCOPY, DIVHPM, DIVCORES }
 	 */
-#if defined(CONFIG_BOARD_ODROID_X2) || defined(CONFIG_BOARD_ODROID_Q2) || defined(CONFIG_BOARD_ODROID_U2)
+#if defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_Q2) || defined(CONFIG_ODROID_U2)
 	/* 2000Mhz */
 	{ 7, 0, 7 },
 
