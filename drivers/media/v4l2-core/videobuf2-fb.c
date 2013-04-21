@@ -58,7 +58,7 @@ struct vb2_fb_data {
 	struct inode fake_inode;
 
 	struct mutex fb_lock;
-	ump_dd_handle ump_handle[2];
+//	ump_dd_handle ump_handle[2];
 };
 
 static int vb2_fb_stop(struct fb_info *info);
@@ -103,7 +103,7 @@ static struct fmt_desc fmt_conv_table[] = {
 	/* TODO: add more format descriptors */
 };
 
-static void create_ump_ids(struct vb2_fb_data *data, unsigned int smem, int size)
+/*static void create_ump_ids(struct vb2_fb_data *data, unsigned int smem, int size)
 {
         ump_dd_physical_block block;
         block.addr = smem;
@@ -162,7 +162,7 @@ static int hkdk_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long a
         }
 
         return ret;
-}
+}*/
 
 /**
  * vb2_drv_lock() - a shortcut to call driver specific lock()
@@ -307,7 +307,7 @@ static int vb2_fb_activate(struct fb_info *info)
 	info->fix.line_length = bpl;
 	info->fix.smem_len = info->fix.mmio_len = size;
 
-	create_ump_ids(data, info->fix.smem_start, info->fix.smem_len);
+//	create_ump_ids(data, info->fix.smem_start, info->fix.smem_len);
 
 	var = &info->var;
 	var->xres = var->xres_virtual = var->width = width;
