@@ -2407,6 +2407,16 @@ static irqreturn_t ixgbe_msix_other(int irq, void *data)
 	 * with the write to EICR.
 	 */
 	eicr = IXGBE_READ_REG(hw, IXGBE_EICS);
+
+	/* The lower 16bits of the EICR register are for the queue interrupts
+	 * which should be masked here in order to not accidently clear them if
+	 * the bits are high when ixgbe_msix_other is called. There is a race
+	 * condition otherwise which results in possible performance loss
+	 * especially if the ixgbe_msix_other interrupt is triggering
+	 * consistently (as it would when PPS is turned on for the X540 device)
+	 */
+	eicr &= 0xFFFF0000;
+
 	IXGBE_WRITE_REG(hw, IXGBE_EICR, eicr);
 
 	if (eicr & IXGBE_EICR_LSC)
@@ -7858,12 +7868,19 @@ static int __init ixgbe_init_module(void)
 	ixgbe_dbg_init();
 #endif /* CONFIG_DEBUG_FS */
 
+	ret = pci_register_driver(&ixgbe_driver);
+	if (ret) {
+#ifdef CONFIG_DEBUG_FS
+		ixgbe_dbg_exit();
+#endif /* CONFIG_DEBUG_FS */
+		return ret;
+	}
+
 #ifdef CONFIG_IXGBE_DCA
 	dca_register_notify(&dca_notifier);
 #endif
 
-	ret = pci_register_driver(&ixgbe_driver);
-	return ret;
+	return 0;
 }
 
 module_init(ixgbe_init_module);
