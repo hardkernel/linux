@@ -409,7 +409,6 @@ void exynos_drm_crtc_finish_pageflip(struct drm_device *dev, int crtc)
 {
 	struct exynos_drm_private *dev_priv = dev->dev_private;
 	struct drm_pending_vblank_event *e, *t;
-	struct timeval now;
 	struct drm_crtc *drm_crtc = dev_priv->crtc[crtc];
 	struct exynos_drm_crtc *exynos_crtc = to_exynos_crtc(drm_crtc);
 	unsigned long flags;
@@ -424,13 +423,8 @@ void exynos_drm_crtc_finish_pageflip(struct drm_device *dev, int crtc)
 		if (crtc != e->pipe)
 			continue;
 
-		do_gettimeofday(&now);
-		e->event.sequence = 0;
-		e->event.tv_sec = now.tv_sec;
-		e->event.tv_usec = now.tv_usec;
-
-		list_move_tail(&e->base.link, &e->base.file_priv->event_list);
-		wake_up_interruptible(&e->base.file_priv->event_wait);
+		list_del(&e->base.link);
+		drm_send_vblank_event(dev, -1, e);
 		drm_vblank_put(dev, crtc);
 		atomic_set(&exynos_crtc->pending_flip, 0);
 		wake_up(&exynos_crtc->pending_flip_queue);
