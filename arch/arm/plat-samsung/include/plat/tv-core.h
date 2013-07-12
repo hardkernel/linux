@@ -27,6 +27,13 @@ static inline void s5p_hdmi_setname(char *name)
 #endif
 }
 
+static inline void s5p_cec_setname(char *name)
+{
+#ifdef CONFIG_S5P_DEV_TV
+	s5p_device_cec.name = name;
+#endif
+}
+
 static inline void s5p_mixer_setname(char *name)
 {
 #ifdef CONFIG_S5P_DEV_TV

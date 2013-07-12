@@ -39,11 +39,18 @@
 #include <plat/mfc.h>
 #include <plat/regs-serial.h>
 #include <plat/sdhci.h>
+#include <plat/hdmi.h>
 
 #include <mach/map.h>
 
 #include <drm/exynos_drm.h>
 #include "common.h"
+
+#if defined(CONFIG_ARCH_EXYNOS4)
+#define HDMI_GPX(_nr)	EXYNOS4_GPX3(_nr)
+#elif defined(CONFIG_ARCH_EXYNOS5)
+#define HDMI_GPX(_nr)	EXYNOS5_GPX3(_nr)
+#endif
 
 /* Following are default values for UCON, ULCON and UFCON UART registers */
 #define SMDK4X12_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
@@ -246,6 +253,12 @@ static struct samsung_keypad_platdata smdk4x12_keypad_data __initdata = {
 	.cols		= 8,
 };
 
+#if defined(CONFIG_S5P_DEV_TV)
+static struct s5p_platform_cec hdmi_cec_data __initdata = {
+
+};
+#endif
+
 #ifdef CONFIG_DRM_EXYNOS_FIMD
 static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 	.panel	= {
@@ -332,6 +345,14 @@ static void __init smdk4x12_reserve(void)
 	s5p_mfc_reserve_mem(0x43000000, 8 << 20, 0x51000000, 8 << 20);
 }
 
+#if defined(CONFIG_S5P_DEV_TV)
+void s5p_cec_cfg_gpio(struct platform_device *pdev)
+{
+	s3c_gpio_cfgpin(HDMI_GPX(6), S3C_GPIO_SFN(0x3));
+	s3c_gpio_setpull(HDMI_GPX(6), S3C_GPIO_PULL_NONE);
+}
+#endif
+
 static void __init smdk4x12_machine_init(void)
 {
 	s3c_i2c0_set_platdata(NULL);
@@ -359,6 +380,10 @@ static void __init smdk4x12_machine_init(void)
 	s3c_sdhci3_set_platdata(&smdk4x12_hsmmc3_pdata);
 
 	s3c_hsotg_set_platdata(&smdk4x12_hsotg_pdata);
+	
+#if defined(CONFIG_S5P_DEV_TV)
+	s5p_hdmi_cec_set_platdata(&hdmi_cec_data);
+#endif
 
 #ifdef CONFIG_DRM_EXYNOS_FIMD
 	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;

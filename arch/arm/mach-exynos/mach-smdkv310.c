@@ -315,6 +315,7 @@ static struct platform_device *smdkv310_devices[] __initdata = {
 	&smdkv310_smsc911x,
 	&exynos4_device_ahci,
 	&s5p_device_hdmi,
+	&s5p_device_cec,
 	&s5p_device_mixer,
 };
 

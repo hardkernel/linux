@@ -36,6 +36,15 @@ config VIDEO_SAMSUNG_S5P_HDMI_DEBUG
 	help
 	  Enables debugging for HDMI driver.
 
+config VIDEO_SAMSUNG_S5P_HDMI_CEC
+	tristate "Enable CEC support for HDMI Driver"
+	depends on VIDEO_SAMSUNG_S5P_HDMI
+	default n
+	help
+	  Enables CEC over the HDMI driver.
+	  CEC enables tv-control, and reception of tv-remote
+	  control commands over the HDMI interface
+
 config VIDEO_SAMSUNG_S5P_HDMIPHY
 	tristate "Samsung HDMIPHY Driver"
 	depends on VIDEO_DEV && VIDEO_V4L2 && I2C

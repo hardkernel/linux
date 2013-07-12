@@ -87,6 +87,7 @@ extern struct platform_device mali_gpu_device;
 
 extern struct platform_device s5p_device_fimd0;
 extern struct platform_device s5p_device_hdmi;
+extern struct platform_device s5p_device_cec;
 extern struct platform_device s5p_device_i2c_hdmiphy;
 extern struct platform_device s5p_device_mfc;
 extern struct platform_device s5p_device_mfc_l;

@@ -705,6 +705,7 @@ static struct platform_device *origen_devices[] __initdata = {
 	&s5p_device_fimd0,
 	&s5p_device_g2d,
 	&s5p_device_hdmi,
+	&s5p_device_cec,
 	&s5p_device_i2c_hdmiphy,
 	&s5p_device_jpeg,
 	&s5p_device_mfc,

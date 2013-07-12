@@ -68,6 +68,8 @@
 #include <plat/regs-serial.h>
 #include <plat/regs-spi.h>
 #include <linux/platform_data/spi-s3c64xx.h>
+#include <plat/hdmi.h>
+
 
 static u64 samsung_device_dma_mask = DMA_BIT_MASK(32);
 
@@ -806,6 +808,7 @@ void __init s5p_hdmi_set_platdata(struct i2c_board_info *hdmiphy_info,
 
 #endif /* CONFIG_S5P_DEV_I2C_HDMIPHY */
 
+
 /* I2S */
 
 #ifdef CONFIG_PLAT_S3C24XX
@@ -1357,6 +1360,18 @@ struct platform_device s5p_device_hdmi = {
 	.resource	= s5p_hdmi_resources,
 };
 
+static struct resource s5p_cec_resources[] = {
+	[0] = DEFINE_RES_MEM(S5P_PA_HDMI_CEC, S5P_SZ_HDMI_CEC),
+	[1] = DEFINE_RES_IRQ(IRQ_CEC),
+};
+
+struct platform_device s5p_device_cec = {
+	.name           = "s5p-cec",
+	.id             = -1,
+	.num_resources  = ARRAY_SIZE(s5p_cec_resources),
+	.resource       = s5p_cec_resources,
+};
+
 static struct resource s5p_sdo_resources[] = {
 	[0] = DEFINE_RES_MEM(S5P_PA_SDO, SZ_64K),
 	[1] = DEFINE_RES_IRQ(IRQ_SDO),
@@ -1385,6 +1400,22 @@ struct platform_device s5p_device_mixer = {
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	}
 };
+
+void __init s5p_hdmi_cec_set_platdata(struct s5p_platform_cec *pd)
+{
+	struct s5p_platform_cec *npd;
+	printk(KERN_INFO "s5p_hdmi_cec_set_platdata()\n");
+
+	npd = kmemdup(pd, sizeof(struct s5p_platform_cec), GFP_KERNEL);
+	if (!npd)
+		printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+	else {
+		if (!npd->cfg_gpio)
+			npd->cfg_gpio = s5p_cec_cfg_gpio;
+
+		s5p_device_cec.dev.platform_data = npd;
+	}
+}
 #endif /* CONFIG_S5P_DEV_TV */
 
 /* USB */
