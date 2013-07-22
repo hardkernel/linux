@@ -435,7 +435,7 @@ static void __init hkdk4412_map_io(void)
 
 static void __init hkdk4412_reserve(void)
 {
-	s5p_mfc_reserve_mem(0x43000000, 8 << 20, 0x51000000, 8 << 20);
+	s5p_mfc_reserve_mem(0x43000000, 16 << 20, 0x51000000, 16 << 20);
 }
 
 #if defined(CONFIG_S5P_DEV_TV)
