@@ -63,8 +63,10 @@ static struct clk  *mali_clock = 0;
 
 static unsigned int GPU_MHZ	= 1000000;
 
-int mali_gpu_clk = 533;//266;
-int mali_gpu_vol = 1075000;//900000
+/* Please take special care lowering these values, specially the voltage
+ * as it can cause system stability problems: random oops, usb hub resets */
+int mali_gpu_clk = 533; /* 533 MHz */
+int mali_gpu_vol = 1125000;/* 1.1125 V */
 
 #ifdef CONFIG_MALI_DVFS
 #define MALI_DVFS_DEFAULT_STEP 0
