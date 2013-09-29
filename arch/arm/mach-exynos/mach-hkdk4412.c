@@ -254,6 +254,15 @@ static struct gpio_keys_button hkdk4412_gpio_keys_tables[] = {
 		.wakeup			= 1,
 		.debounce_interval	= 1,
 	},
+	{
+		.code			= KEY_PROG1,
+		.gpio			= EXYNOS4_GPX2(2),
+		.desc			= "KEY_USER",
+		.type			= EV_KEY,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 1,
+	},
 };
 
 static struct gpio_keys_platform_data hkdk4412_gpio_keys_data = {
