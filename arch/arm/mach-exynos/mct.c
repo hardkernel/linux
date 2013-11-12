@@ -24,6 +24,7 @@
 #include <asm/arch_timer.h>
 #include <asm/hardware/gic.h>
 #include <asm/localtimer.h>
+#include <asm/sched_clock.h>
 
 #include <plat/cpu.h>
 
@@ -162,6 +163,8 @@ static void __init exynos4_clocksource_init(void)
 
 	if (clocksource_register_hz(&mct_frc, clk_rate))
 		panic("%s: can't register clocksource\n", mct_frc.name);
+	
+	setup_sched_clock(exynos4_frc_read, 32, clk_rate);
 }
 
 static void exynos4_mct_comp0_stop(void)
@@ -462,6 +465,8 @@ static void __init exynos4_timer_resources(void)
 	mct_clk = clk_get(NULL, "xtal");
 
 	clk_rate = clk_get_rate(mct_clk);
+	
+	pr_emerg("MCT clocksource init timer with clk_rate=%d hz\n", clk_rate);
 
 #ifdef CONFIG_LOCAL_TIMERS
 	if (mct_int_type == MCT_INT_PPI) {
