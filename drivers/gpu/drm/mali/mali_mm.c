@@ -194,9 +194,7 @@ static drm_local_map_t *mem_reg_init(struct drm_device *dev)
 int mali_idle(struct drm_device *dev)
 {
 	drm_mali_private_t *dev_priv = dev->dev_private;
-	uint32_t idle_reg;
-	unsigned long end;
-	int i;
+	
 	pr_err( "DRM: %s\n", __func__);
 
 	if (dev_priv->idle_fault)
