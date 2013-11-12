@@ -552,6 +552,13 @@ static int code_to_temp(struct exynos_tmu_data *data, u8 temp_code)
 		break;
 	}
 out:
+	/*
+	 * Temperature will never be greater them 123C. 
+	 * At this point the SoC self protection will kick-in.
+	 * This should be sanity checked to prevent noises from killing the board
+	 */
+	if(temp > 123)
+		temp = 50; // HACK: We just return a lower temperature
 	return temp;
 }
 
@@ -688,7 +695,6 @@ static int exynos_tmu_read(struct exynos_tmu_data *data)
 
 	clk_disable(data->clk);
 	mutex_unlock(&data->lock);
-
 	return temp;
 }
 
