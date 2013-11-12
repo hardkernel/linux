@@ -349,7 +349,7 @@ static struct dw_mci_board hkdk4412_dwmci_pdata = {
 static struct resource tmu_resource[] = {
 	[0] = {
 		.start = EXYNOS4_PA_TMU,
-		.end = EXYNOS4_PA_TMU + 0xFFFF - 1,
+		.end = EXYNOS4_PA_TMU + 0x0100,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = { 
