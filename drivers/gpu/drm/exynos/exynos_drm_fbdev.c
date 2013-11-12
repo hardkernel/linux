@@ -94,10 +94,8 @@ static int _disp_get_ump_secure_id(struct fb_info *info, unsigned long arg, int 
         return put_user((unsigned int)secure_id, psecureid);
 }
 
-static int do_hkdk_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg) {
-
-        struct vb2_fb_data *data = info->par;
-        u32 crtc;
+static int do_hkdk_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg) 
+{
         int ret = 0;
 
         switch (cmd) {
