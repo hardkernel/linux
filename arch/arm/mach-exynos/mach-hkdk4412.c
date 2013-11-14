@@ -53,7 +53,6 @@
 #include <mach/map.h>
 #include <mach/regs-pmu.h>
 #include <mach/dwmci.h>
-#include <drm/exynos_drm.h>
 
 #include "common.h"
 #include "pmic-77686.h"
@@ -204,26 +203,33 @@ static struct platform_pwm_backlight_data hkdk4412_bl_data = {
 	.pwm_period_ns	= 1000,
 };
 
-#if defined(CONFIG_LCD_LP101WH1) && defined(CONFIG_DRM_EXYNOS_FIMD)
-static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
-	.panel = {
-		.timing = {
-			.left_margin 	= 80,
-			.right_margin 	= 48,
-			.upper_margin 	= 14,
-			.lower_margin 	= 3,
-			.hsync_len 	= 32,
-			.vsync_len 	= 5,
-			.xres 		= 1366,
-			.yres 		= 768,
-		},
-	},
-	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
-	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
-	.default_win 	= 0,
-	.bpp 		= 32,
+#if defined(CONFIG_LCD_LP101WH1)
+static struct s3c_fb_pd_win hkdk4412_fb_win0 = {
+	.max_bpp	= 32,
+	.default_bpp	= 24,
+	.xres		= 1360,
+	.yres		= 768,
 };
-	
+
+static struct fb_videomode hkdk4412_lcd_timing = {
+	.left_margin	= 80,
+	.right_margin	= 48,
+	.upper_margin	= 14,
+	.lower_margin	= 3,
+	.hsync_len	= 32,
+	.vsync_len	= 5,
+	.xres		= 1360,
+	.yres		= 768,
+};
+
+static struct s3c_fb_platdata hkdk4412_fb_pdata __initdata = {
+	.win[0]		= &hkdk4412_fb_win0,
+	.vtiming	= &hkdk4412_lcd_timing,
+	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
+	.setup_gpio	= exynos4_fimd0_gpio_setup_24bpp,
+};
+
 static void lcd_lp101wh1_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
@@ -243,7 +249,7 @@ static struct platform_device hkdk4412_lcd_lp101wh1 = {
 		.platform_data	= &hkdk4412_lcd_lp101wh1_data,
 	},
 };
-#endif // LCD
+#endif
 
 /* GPIO KEYS */
 static struct gpio_keys_button hkdk4412_gpio_keys_tables[] = {
@@ -537,7 +543,7 @@ static void __init hkdk4412_machine_init(void)
 	s3c_hsotg_set_platdata(&hkdk4412_hsotg_pdata);
 
 #ifdef CONFIG_LCD_LP101WH1
-//        s5p_fimd0_set_platdata(&hkdk4412_fb_pdata);
+        s5p_fimd0_set_platdata(&hkdk4412_fb_pdata);
 #endif
         
 
@@ -552,8 +558,7 @@ static void __init hkdk4412_machine_init(void)
 #endif
 
 #ifdef CONFIG_LCD_LP101WH1
-	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;
-	exynos4_fimd0_gpio_setup_24bpp();
+	s5p_fimd0_set_platdata(&hkdk4412_fb_pdata);
 #endif
 	platform_add_devices(hkdk4412_devices, ARRAY_SIZE(hkdk4412_devices));
 
