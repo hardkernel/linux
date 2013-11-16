@@ -12,7 +12,7 @@ for hdtv_type in `echo $HDTV_TYPE`; do
 		echo "setenv hdtv_type \"$hdtv_type\"" >> ./boot.tmp
 		echo "setenv hdtv_format \"$hdtv_format\"" >> ./boot.tmp
 		echo "setenv bootcmd \"fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; bootm 0x40008000 0x42000000\"" >> ./boot.tmp
-		echo "setenv bootargs \"console=tty1 console=ttySAC1,115200n8 hdtv_type=\${hdtv_type} hdtv_format=\${hdtv_format} root=UUID=e139ce78-9841-40fe-8823-96a304a09859 rootwait ro $RAM\"" >> ./boot.tmp
+		echo "setenv bootargs \"console=tty1 console=ttySAC1,115200n8 hdtv_type=\${hdtv_type} hdtv_format=\${hdtv_format} root=/dev/mmcblk0p2 rootwait ro $RAM\"" >> ./boot.tmp
 		echo "boot" >> ./boot.tmp
 		mkimage -A arm -T script -C none -n "Boot.scr for $hdtv_type at $hdtv_format" -d ./boot.tmp ./boot-$hdtv_type-$hdtv_format.scr
 		rm -rf boot.tmp
