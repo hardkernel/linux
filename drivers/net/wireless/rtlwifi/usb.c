@@ -40,6 +40,22 @@
 
 #define MAX_USBCTRL_VENDORREQ_TIMES		10
 
+#ifdef CONFIG_MACH_HKDK4412
+int _usbctrl_vendorreq_sync_write(struct usb_device *udev, u8 request,
+          u16 value, u16 index, void *pdata,
+          u16 len)
+{
+  unsigned int pipe;
+  int status;
+  u8 reqtype;
+
+  pipe = usb_sndctrlpipe(udev, 0);
+  reqtype =  REALTEK_USB_VENQT_WRITE;
+  status = usb_control_msg(udev, pipe, request, reqtype, value,
+        index, pdata, len, 200); /*max. timeout*/
+  return status;
+}
+#else
 static void usbctrl_async_callback(struct urb *urb)
 {
 	if (urb) {
@@ -59,7 +75,7 @@ static int _usbctrl_vendorreq_async_write(struct usb_device *udev, u8 request,
 	u8 reqtype;
 	struct usb_ctrlrequest *dr;
 	struct urb *urb;
-	const u16 databuf_maxlen = REALTEK_USB_VENQT_MAX_BUF_SIZE;
+	const u16 databuf_maxlen = REALTEK_USB_VENQT_MAX_BUF_SIZE + 2;
 	u8 *databuf;
 
 	if (WARN_ON_ONCE(len > databuf_maxlen))
@@ -103,6 +119,7 @@ static int _usbctrl_vendorreq_async_write(struct usb_device *udev, u8 request,
 	usb_free_urb(urb);
 	return rc;
 }
+#endif
 
 static int _usbctrl_vendorreq_sync_read(struct usb_device *udev, u8 request,
 					u16 value, u16 index, void *pdata,
@@ -119,7 +136,7 @@ static int _usbctrl_vendorreq_sync_read(struct usb_device *udev, u8 request,
 
 	do {
 		status = usb_control_msg(udev, pipe, request, reqtype, value,
-					 index, pdata, len, 0); /*max. timeout*/
+					 index, pdata, len, 200); /*max. timeout*/
 		if (status < 0) {
 			/* firmware download is checksumed, don't retry */
 			if ((value >= FW_8192C_START_ADDRESS &&
@@ -149,7 +166,7 @@ static u32 _usb_read_sync(struct rtl_priv *rtlpriv, u32 addr, u16 len)
 	spin_lock_irqsave(&rtlpriv->locks.usb_lock, flags);
 	if (++rtlpriv->usb_data_index >= RTL_USB_MAX_RX_COUNT)
 		rtlpriv->usb_data_index = 0;
-	data = &rtlpriv->usb_data[rtlpriv->usb_data_index];
+	data = &rtlpriv->usb_data[rtlpriv->usb_data_index * 8];
 	spin_unlock_irqrestore(&rtlpriv->locks.usb_lock, flags);
 	request = REALTEK_USB_VENQT_CMD_REQ;
 	index = REALTEK_USB_VENQT_CMD_IDX; /* n/a */
@@ -186,8 +203,12 @@ static void _usb_write_async(struct usb_device *udev, u32 addr, u32 val,
 	index = REALTEK_USB_VENQT_CMD_IDX; /* n/a */
 	wvalue = (u16)(addr&0x0000ffff);
 	data = cpu_to_le32(val);
-	_usbctrl_vendorreq_async_write(udev, request, wvalue, index, &data,
-				       len);
+#ifdef 	CONFIG_MACH_HKDK4412
+	_usbctrl_vendorreq_sync_write(udev, request, wvalue, index, &data, len);
+#else
+	_usbctrl_vendorreq_async_write(udev, request, wvalue, index, &data, len);
+#endif
+
 }
 
 static void _usb_write8_async(struct rtl_priv *rtlpriv, u32 addr, u8 val)
@@ -229,7 +250,7 @@ static void _usb_writeN_sync(struct rtl_priv *rtlpriv, u32 addr, void *data,
 		return;
 	memcpy(buffer, data, len);
 	usb_control_msg(udev, pipe, request, reqtype, wvalue,
-			index, buffer, len, 50);
+			index, buffer, len, 250);
 
 	kfree(buffer);
 }
@@ -970,7 +991,7 @@ int rtl_usb_probe(struct usb_interface *intf,
 		return -ENOMEM;
 	}
 	rtlpriv = hw->priv;
-	rtlpriv->usb_data = kzalloc(RTL_USB_MAX_RX_COUNT * sizeof(u32),
+	rtlpriv->usb_data = kzalloc(RTL_USB_MAX_RX_COUNT * sizeof(u32) * 8,
 				    GFP_KERNEL);
 	if (!rtlpriv->usb_data)
 		return -ENOMEM;
