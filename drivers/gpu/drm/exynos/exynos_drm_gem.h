@@ -11,6 +11,7 @@
 
 #ifndef _EXYNOS_DRM_GEM_H_
 #define _EXYNOS_DRM_GEM_H_
+#include <ump/ump_kernel_interface_ref_drv.h>
 
 #define to_exynos_gem_obj(x)	container_of(x,\
 			struct exynos_drm_gem_obj, base)
@@ -40,6 +41,7 @@ struct exynos_drm_gem_buf {
 	unsigned int		write;
 	struct page		**pages;
 	struct sg_table		*sgt;
+	ump_dd_handle ump_handle;
 	unsigned long		size;
 	bool			pfnmap;
 };
@@ -91,6 +93,8 @@ struct exynos_drm_gem_obj *exynos_drm_gem_create(struct drm_device *dev,
  * height and bpp.
  */
 int exynos_drm_gem_create_ioctl(struct drm_device *dev, void *data,
+				struct drm_file *file_priv);
+int exynos_drm_gem_create2_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *file_priv);
 
 /*

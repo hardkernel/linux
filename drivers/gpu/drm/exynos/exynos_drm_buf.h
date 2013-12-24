@@ -30,4 +30,5 @@ void exynos_drm_free_buf(struct drm_device *dev,
 				unsigned int flags,
 				struct exynos_drm_gem_buf *buffer);
 
+ump_dd_handle exynos_drm_get_ump_handle(struct exynos_drm_gem_buf *buffer);
 #endif

@@ -13,6 +13,7 @@
 
 #include <linux/shmem_fs.h>
 #include <drm/exynos_drm.h>
+#include <ump/ump_kernel_interface_ref_drv.h>
 
 #include "exynos_drm_drv.h"
 #include "exynos_drm_gem.h"
@@ -259,6 +260,36 @@ int exynos_drm_gem_create_ioctl(struct drm_device *dev, void *data,
 		exynos_drm_gem_destroy(exynos_gem_obj);
 		return ret;
 	}
+
+	return 0;
+}
+
+int exynos_drm_gem_create2_ioctl(struct drm_device *dev, void *data,
+				struct drm_file *file_priv)
+{
+	struct drm_exynos_gem_create2 *args = data;
+	struct exynos_drm_gem_obj *exynos_gem_obj;
+	ump_dd_handle ump_handle;
+	int ret;
+
+	DRM_DEBUG_KMS("%s\n", __FILE__);
+
+	exynos_gem_obj = exynos_drm_gem_create(dev, args->flags, args->size);
+	if (IS_ERR(exynos_gem_obj))
+		return PTR_ERR(exynos_gem_obj);
+
+	ret = exynos_drm_gem_handle_create(&exynos_gem_obj->base, file_priv,
+			&args->handle);
+	if (ret) {
+		exynos_drm_gem_destroy(exynos_gem_obj);
+		return ret;
+	}
+
+	ump_handle = exynos_drm_get_ump_handle(exynos_gem_obj->buffer);
+	if (ump_handle != UMP_DD_HANDLE_INVALID)
+		args->name = ump_dd_secure_id_get(ump_handle);
+	else
+		args->name = 0;
 
 	return 0;
 }

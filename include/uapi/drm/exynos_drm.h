@@ -32,6 +32,13 @@ struct drm_exynos_gem_create {
 	unsigned int handle;
 };
 
+struct drm_exynos_gem_create2 {
+	uint64_t size;
+	unsigned int flags;
+	unsigned int handle;
+	uint32_t name;
+};
+
 /**
  * A structure for getting buffer offset.
  *
@@ -321,6 +328,7 @@ struct drm_exynos_ipp_cmd_ctrl {
 /* Reserved 0x03 ~ 0x05 for exynos specific gem ioctl */
 #define DRM_EXYNOS_GEM_GET		0x04
 #define DRM_EXYNOS_VIDI_CONNECTION	0x07
+#define DRM_EXYNOS_GEM_CREATE2		0x0a
 
 /* G2D */
 #define DRM_EXYNOS_G2D_GET_VER		0x20
@@ -335,6 +343,9 @@ struct drm_exynos_ipp_cmd_ctrl {
 
 #define DRM_IOCTL_EXYNOS_GEM_CREATE		DRM_IOWR(DRM_COMMAND_BASE + \
 		DRM_EXYNOS_GEM_CREATE, struct drm_exynos_gem_create)
+
+#define DRM_IOCTL_EXYNOS_GEM_CREATE2		DRM_IOWR(DRM_COMMAND_BASE + \
+		DRM_EXYNOS_GEM_CREATE2, struct drm_exynos_gem_create2)
 
 #define DRM_IOCTL_EXYNOS_GEM_MAP_OFFSET	DRM_IOWR(DRM_COMMAND_BASE + \
 		DRM_EXYNOS_GEM_MAP_OFFSET, struct drm_exynos_gem_map_off)
