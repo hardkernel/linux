@@ -208,10 +208,17 @@ static int exynos_drm_crtc_page_flip(struct drm_crtc *crtc,
 
 	DRM_DEBUG_KMS("%s\n", __FILE__);
 
-	/* when the page flip is requested, crtc's dpms should be on */
+	/* if the CRTC is off, just save the new framebuffer address for use if
+	 * we get turned on again later, and report to userspace that the flip
+	 * completed. */
 	if (exynos_crtc->dpms > DRM_MODE_DPMS_ON) {
-		DRM_ERROR("failed page flip request.\n");
-		return -EINVAL;
+		crtc->fb = fb;
+		if (event) {
+			spin_lock_irq(&dev->event_lock);
+			drm_send_vblank_event(dev, -1, event);
+			spin_unlock_irq(&dev->event_lock);
+		}
+		return 0;
 	}
 
 	mutex_lock(&dev->struct_mutex);
