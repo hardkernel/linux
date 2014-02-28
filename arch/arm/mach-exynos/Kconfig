@@ -436,6 +436,8 @@ config MACH_HKDK4412
         select EXYNOS_DEV_DMA
         select EXYNOS_DEV_DRM 
         select EXYNOS_DEV_SYSMMU	
+	select EXYNOS4_SETUP_I2C2
+	select S3C_DEV_I2C2
 	select S3C_DEV_HSMMC
 	select S3C_DEV_HSMMC1
 	select S3C_DEV_USB_HSOTG

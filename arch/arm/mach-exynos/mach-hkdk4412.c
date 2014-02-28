@@ -160,24 +160,6 @@ static struct i2c_board_info hkdk4412_i2c_devs1[] __initdata = {
 #endif
 };
 
-/* I2C2 bus GPIO-Bitbanging */
-#define		GPIO_I2C2_SDA	EXYNOS4_GPA0(6)
-#define		GPIO_I2C2_SCL	EXYNOS4_GPA0(7)
-static struct 	i2c_gpio_platform_data 	i2c2_gpio_platdata = {
-	.sda_pin = GPIO_I2C2_SDA,
-	.scl_pin = GPIO_I2C2_SCL,
-	.udelay  = 5,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c2 = {
-	.name 	= "i2c-gpio",
-	.id  	= 2,    // adepter number
-	.dev.platform_data = &i2c2_gpio_platdata,
-};
-
 /* Odroid-O2 schematics show the DDC of the remote HDMI device connected to
  * I2C2. HDMI specs state that DDC always sits at bus address 0x50. */
 static struct i2c_board_info hkdk4412_i2c_devs2[] __initdata = {
@@ -504,7 +486,7 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_hsmmc2,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&gpio_device_i2c2,
+	&s3c_device_i2c2,
 	&s3c_device_i2c3,
 #if defined(CONFIG_ODROID_U2)
 	&gpio_device_i2c4,
@@ -644,6 +626,7 @@ static void __init hkdk4412_machine_init(void)
 	i2c_register_board_info(1, hkdk4412_i2c_devs1,
 				ARRAY_SIZE(hkdk4412_i2c_devs1));
 
+	s3c_i2c2_set_platdata(NULL);
 	i2c_register_board_info(2, hkdk4412_i2c_devs2,
 				ARRAY_SIZE(hkdk4412_i2c_devs2));
 
