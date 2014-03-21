@@ -764,9 +764,16 @@ void fimc_adjust_mplane_format(struct fimc_fmt *fmt, u32 width, u32 height,
 		if (fmt->colplanes == 1 && /* Packed */
 		    (bpl == 0 || ((bpl * 8) / fmt->depth[i]) < pix->width))
 			bpl = (pix->width * fmt->depth[0]) / 8;
-
-		if (i == 0) /* Same bytesperline for each plane. */
+		/*
+		 * Currently bytesperline for each plane is same, except
+		 * V4L2_PIX_FMT_YUV420M format. This calculation may need
+		 * to be changed when other multi-planar formats are added
+		 * to the fimc_formats[] array.
+		 */
+		if (i == 0)
 			bytesperline = bpl;
+		else if (i == 1 && fmt->memplanes == 3)
+			bytesperline /= 2;
 
 		plane_fmt->bytesperline = bytesperline;
 		sizeimage = pix->width * pix->height * fmt->depth[i] / 8;
