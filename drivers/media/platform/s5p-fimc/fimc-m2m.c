@@ -389,8 +389,8 @@ static int fimc_m2m_s_fmt_mplane(struct file *file, void *fh,
 	fimc_alpha_ctrl_update(ctx);
 
 	for (i = 0; i < frame->fmt->colplanes; i++) {
-		frame->payload[i] =
-			(pix->width * pix->height * frame->fmt->depth[i]) / 8;
+		struct v4l2_plane_pix_format *plane_fmt = &pix->plane_fmt[i];
+		frame->payload[i] = plane_fmt->sizeimage;
 	}
 
 	fimc_fill_frame(frame, f);
