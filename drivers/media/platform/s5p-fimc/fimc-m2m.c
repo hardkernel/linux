@@ -388,7 +388,7 @@ static int fimc_m2m_s_fmt_mplane(struct file *file, void *fh,
 	/* Update RGB Alpha control state and value range */
 	fimc_alpha_ctrl_update(ctx);
 
-	for (i = 0; i < frame->fmt->colplanes; i++) {
+	for (i = 0; i < frame->fmt->memplanes; i++) {
 		struct v4l2_plane_pix_format *plane_fmt = &pix->plane_fmt[i];
 		frame->payload[i] = plane_fmt->sizeimage;
 	}
@@ -536,7 +536,7 @@ static int fimc_m2m_try_crop(struct fimc_ctx *ctx, struct v4l2_crop *cr)
 	else
 		halign = ffs(fimc->variant->min_vsize_align) - 1;
 
-	for (i = 0; i < f->fmt->colplanes; i++)
+	for (i = 0; i < f->fmt->memplanes; i++)
 		depth += f->fmt->depth[i];
 
 	v4l_bound_align_image(&cr->c.width, min_size, f->o_width,
