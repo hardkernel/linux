@@ -54,6 +54,7 @@
 #include <video/platform_lcd.h>
 #include <video/samsung_fimd.h>
 #include <linux/platform_data/spi-s3c64xx.h>
+#include <linux/platform_data/i2c-s3c2410.h>
 
 #include <mach/gpio.h>
 #include <mach/map.h>
@@ -236,24 +237,6 @@ static struct 	platform_device 	gpio_device_i2c2 = {
 	.name 	= "i2c-gpio",
 	.id  	= 2,    // adepter number
 	.dev.platform_data = &i2c2_gpio_platdata,
-};
-
-/* I2C2 bus GPIO-Bitbanging */
-#define		GPIO_I2C5_SDA	EXYNOS4_GPB(2)
-#define		GPIO_I2C5_SCL	EXYNOS4_GPB(3)
-static struct 	i2c_gpio_platform_data 	i2c5_gpio_platdata = {
-	.sda_pin = GPIO_I2C5_SDA,
-	.scl_pin = GPIO_I2C5_SCL,
-	.udelay  = 5,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c5 = {
-	.name 	= "i2c-gpio",
-	.id  	= 5,    // adepter number
-	.dev.platform_data = &i2c5_gpio_platdata,
 };
 
 /* Odroid-O2 schematics show the DDC of the remote HDMI device connected to
@@ -565,7 +548,9 @@ static struct platform_device odroid_fan = {
 };
 #endif
 
-// SPI1
+// SPI1 - turn off for CSI testing
+
+#if 0
 static struct s3c64xx_spi_csinfo spi1_csi = {
 		.fb_delay = 0x2,
 		.line = EXYNOS4_GPB(5),
@@ -581,6 +566,7 @@ static struct spi_board_info spi1_board_info[] __initdata = {
 		.controller_data = &spi1_csi,
 	},
 };
+#endif
 
 static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_hsmmc2,
@@ -591,7 +577,7 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &odroidu3_w1_device,
 #endif
-    &gpio_device_i2c5,
+    &s3c_device_i2c5,
 	&s3c_device_i2c7,
 	&s3c_device_rtc,
 	&s3c_device_usb_hsotg,
@@ -640,7 +626,10 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_timer[0],
 	&odroid_fan,
 #endif
+
+#if 0
 	&s3c64xx_device_spi1,
+#endif
 };
 
 #if defined(CONFIG_S5P_DEV_TV)
@@ -740,6 +729,8 @@ static void __init hkdk4412_machine_init(void)
 				ARRAY_SIZE(hkdk4412_i2c_devs4));
 #endif
 
+	s3c_i2c5_set_platdata(NULL);
+	s3c_i2c5_cfg_gpio(&s3c_device_i2c5);
 	i2c_register_board_info(5, hkdk4412_i2c_devs5,
 				ARRAY_SIZE(hkdk4412_i2c_devs5));
 
@@ -760,8 +751,10 @@ static void __init hkdk4412_machine_init(void)
         s5p_fimd0_set_platdata(&hkdk4412_fb_pdata);
 #endif
 
+#if 0
 	s3c64xx_spi1_set_platdata(NULL, 0, 1);
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
+#endif
 
 #if defined(CONFIG_S5P_DEV_TV)
 	s5p_i2c_hdmiphy_set_platdata(NULL);
