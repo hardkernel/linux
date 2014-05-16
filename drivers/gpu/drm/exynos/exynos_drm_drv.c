@@ -221,6 +221,8 @@ static const struct vm_operations_struct exynos_drm_gem_vm_ops = {
 static struct drm_ioctl_desc exynos_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(EXYNOS_GEM_CREATE, exynos_drm_gem_create_ioctl,
 			DRM_UNLOCKED | DRM_AUTH),
+	DRM_IOCTL_DEF_DRV(EXYNOS_GEM_CREATE2, exynos_drm_gem_create2_ioctl,
+			DRM_UNLOCKED | DRM_AUTH),
 	DRM_IOCTL_DEF_DRV(EXYNOS_GEM_MAP_OFFSET,
 			exynos_drm_gem_map_offset_ioctl, DRM_UNLOCKED |
 			DRM_AUTH),

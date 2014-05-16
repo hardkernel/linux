@@ -11,6 +11,7 @@
 
 #include <drm/drmP.h>
 #include <drm/exynos_drm.h>
+#include <ump/ump_kernel_interface_ref_drv.h>
 
 #include "exynos_drm_drv.h"
 #include "exynos_drm_gem.h"
@@ -194,6 +195,23 @@ int exynos_drm_alloc_buf(struct drm_device *dev,
 void exynos_drm_free_buf(struct drm_device *dev,
 		unsigned int flags, struct exynos_drm_gem_buf *buffer)
 {
+	if (buffer->ump_handle)
+		ump_dd_reference_release(buffer->ump_handle);
 
 	lowlevel_buffer_deallocate(dev, flags, buffer);
+}
+
+ump_dd_handle exynos_drm_get_ump_handle(struct exynos_drm_gem_buf *buffer)
+{
+	ump_dd_physical_block ump_mem;
+	int is_cached;
+
+	if (buffer->ump_handle)
+		return buffer->ump_handle;
+
+	ump_mem.addr = buffer->dma_addr;
+	ump_mem.size = buffer->size;
+	is_cached = dma_get_attr(DMA_ATTR_NON_CONSISTENT, &buffer->dma_attrs);
+	buffer->ump_handle = ump_dd_handle_create_from_phys_blocks2(&ump_mem, 1, is_cached);
+	return buffer->ump_handle;
 }

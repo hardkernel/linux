@@ -1050,6 +1050,11 @@ static int hdmi_v14_check_timing(struct fb_videomode *check_timing)
 			(check_timing->vmode & FB_VMODE_INTERLACED) ?
 			true : false);
 
+	/* 800x600 is displayed badly like 1024x768, but I can't find a timing
+	 * hack to make it look OK. */
+	if (check_timing->xres == 800 && check_timing->yres == 600)
+		return -EINVAL;
+
 	for (i = 0; i < ARRAY_SIZE(hdmiphy_v14_configs); i++)
 		if (hdmiphy_v14_configs[i].pixel_clock ==
 			check_timing->pixclock)

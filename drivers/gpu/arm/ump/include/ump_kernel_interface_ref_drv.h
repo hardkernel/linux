@@ -23,6 +23,7 @@ extern "C" {
 
 /** Turn specified physical memory into UMP memory. */
 UMP_KERNEL_API_EXPORT ump_dd_handle ump_dd_handle_create_from_phys_blocks(ump_dd_physical_block * blocks, unsigned long num_blocks);
+UMP_KERNEL_API_EXPORT ump_dd_handle ump_dd_handle_create_from_phys_blocks2(ump_dd_physical_block * blocks, unsigned long num_blocks, int is_cached);
 
 #ifdef __cplusplus
 }
