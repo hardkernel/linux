@@ -54,6 +54,7 @@
 #include <video/platform_lcd.h>
 #include <video/samsung_fimd.h>
 #include <linux/platform_data/spi-s3c64xx.h>
+#include <linux/platform_data/i2c-s3c2410.h>
 
 #include <mach/gpio.h>
 #include <mach/map.h>
@@ -64,6 +65,14 @@
 #include "pmic-77686.h"
 
 #include <linux/w1-gpio.h>
+
+#if defined(CONFIG_VIDEO_S5P_MIPI_CSIS) && ( defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_X))
+#include <linux/platform_data/mipi-csis.h>
+#include <media/s5p_fimc.h>
+#include <media/v4l2-mediabus.h>
+#include <media/s5k4ecgx.h>
+#include <plat/camport.h>
+#endif
 
 extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
 
@@ -137,6 +146,58 @@ static struct max98090_pdata max98090 = {
 };
 #endif
 
+#if defined(CONFIG_VIDEO_S5P_MIPI_CSIS) && ( defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_X))
+static struct s5k4ecgx_platform_data hkdk_s5k4ecgx_platform_data = {
+	.gpio_reset.gpio = EXYNOS4_GPX3(1),
+	.gpio_reset.level = 1,
+};
+
+static struct i2c_board_info s5k4ecgx_i2c_info = {
+        I2C_BOARD_INFO("s5k4ecgx", 0x5A >> 1),
+        .platform_data = &hkdk_s5k4ecgx_platform_data,
+};
+
+static struct s5p_fimc_isp_info hkdk_camera_sensors[] = {
+	{
+
+		.flags		= V4L2_MBUS_PCLK_SAMPLE_FALLING | V4L2_MBUS_VSYNC_ACTIVE_HIGH,
+		.bus_type	= FIMC_MIPI_CSI2,
+		.board_info	= &s5k4ecgx_i2c_info,
+		.clk_frequency	= 24000000UL,
+		.i2c_bus_num	= 5,
+	},
+};
+
+static struct s5p_platform_mipi_csis mipi_csis_platdata = {
+	.clk_rate   = 176000000UL,
+	.wclk_source = 	0,
+	.lanes		= 2,
+	.hs_settle	= 12,
+};
+
+static struct s5p_platform_fimc fimc_md_platdata = {
+	.isp_info	= hkdk_camera_sensors,
+	.num_clients	= ARRAY_SIZE(hkdk_camera_sensors),
+};
+
+static void __init hkdk4412_camera_init(void)
+{
+	s3c_gpio_cfgpin(EXYNOS4_GPX3(1), S3C_GPIO_OUTPUT);
+
+	s3c_set_platdata(&mipi_csis_platdata, sizeof(mipi_csis_platdata), &s5p_device_mipi_csis0);
+	s3c_set_platdata(&fimc_md_platdata, sizeof(fimc_md_platdata), &s5p_device_fimc_md);
+
+	if (exynos4_fimc_setup_gpio(S5P_CAMPORT_B)) {
+		pr_err("%s: Camera port B setup failed\n", __func__);
+		return;
+	}
+	/* Increase drive strength of the sensor clock output */
+	s5p_gpio_set_drvstr(EXYNOS4_GPE1(0), S5P_GPIO_DRVSTR_LV4);
+}
+
+#endif
+
+
 static struct i2c_board_info hkdk4412_i2c_devs0[] __initdata = {
 	{
 		I2C_BOARD_INFO("max77686", (0x12 >> 1)),
@@ -187,6 +248,10 @@ static struct i2c_board_info hkdk4412_i2c_devs2[] __initdata = {
 };
 
 static struct i2c_board_info hkdk4412_i2c_devs3[] __initdata = {
+	/* nothing here yet */
+};
+
+static struct i2c_board_info hkdk4412_i2c_devs5[] __initdata = {
 	/* nothing here yet */
 };
 
@@ -483,7 +548,9 @@ static struct platform_device odroid_fan = {
 };
 #endif
 
-// SPI1
+// SPI1 - turn off for CSI testing
+
+#if 0
 static struct s3c64xx_spi_csinfo spi1_csi = {
 		.fb_delay = 0x2,
 		.line = EXYNOS4_GPB(5),
@@ -499,6 +566,7 @@ static struct spi_board_info spi1_board_info[] __initdata = {
 		.controller_data = &spi1_csi,
 	},
 };
+#endif
 
 static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_hsmmc2,
@@ -509,6 +577,7 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &odroidu3_w1_device,
 #endif
+    &s3c_device_i2c5,
 	&s3c_device_i2c7,
 	&s3c_device_rtc,
 	&s3c_device_usb_hsotg,
@@ -517,11 +586,14 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 #ifdef CONFIG_SND_SAMSUNG_I2S
 	&exynos4_device_i2s0,
 #endif
-	&s5p_device_fimc0,
-	&s5p_device_fimc1,
-	&s5p_device_fimc2,
-	&s5p_device_fimc3,
-	&s5p_device_fimc_md,
+#if defined(CONFIG_VIDEO_S5P_MIPI_CSIS) && ( defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_X))
+	&s5p_device_mipi_csis0,
+    &s5p_device_fimc0,
+    &s5p_device_fimc1,
+    &s5p_device_fimc2,
+    &s5p_device_fimc3,
+    &s5p_device_fimc_md,
+#endif
 	&s5p_device_fimd0,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
@@ -554,7 +626,10 @@ static struct platform_device *hkdk4412_devices[] __initdata = {
 	&s3c_device_timer[0],
 	&odroid_fan,
 #endif
+
+#if 0
 	&s3c64xx_device_spi1,
+#endif
 };
 
 #if defined(CONFIG_S5P_DEV_TV)
@@ -654,6 +729,11 @@ static void __init hkdk4412_machine_init(void)
 				ARRAY_SIZE(hkdk4412_i2c_devs4));
 #endif
 
+	s3c_i2c5_set_platdata(NULL);
+	s3c_i2c5_cfg_gpio(&s3c_device_i2c5);
+	i2c_register_board_info(5, hkdk4412_i2c_devs5,
+				ARRAY_SIZE(hkdk4412_i2c_devs5));
+
 	s3c_i2c7_set_platdata(NULL);
 	i2c_register_board_info(7, hkdk4412_i2c_devs7,
 				ARRAY_SIZE(hkdk4412_i2c_devs7));
@@ -671,8 +751,10 @@ static void __init hkdk4412_machine_init(void)
         s5p_fimd0_set_platdata(&hkdk4412_fb_pdata);
 #endif
 
+#if 0
 	s3c64xx_spi1_set_platdata(NULL, 0, 1);
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
+#endif
 
 #if defined(CONFIG_S5P_DEV_TV)
 	s5p_i2c_hdmiphy_set_platdata(NULL);
@@ -692,6 +774,10 @@ static void __init hkdk4412_machine_init(void)
 	samsung_bl_set(&hkdk4412_bl_gpio_info, &hkdk4412_bl_data);
 
 	register_reboot_notifier(&hkdk4412_reboot_notifier_nb);
+
+#ifdef CONFIG_VIDEO_S5P_MIPI_CSIS
+	hkdk4412_camera_init();
+#endif
 }
 
 #if defined(CONFIG_ODROID_X)

@@ -201,6 +201,8 @@ static struct regulator_init_data max77686_buck8_data = {
 //-----------------------------------------------------------------------------------
 // BUCK9 : IO(1.2V)
 //-----------------------------------------------------------------------------------
+static struct regulator_consumer_supply buck9_consumer =
+	REGULATOR_SUPPLY("vddio", "5-002d");
 static struct regulator_init_data max77686_buck9_data = {
 	.constraints	= {
 		.name		= "BUCK9 1V2",
@@ -219,6 +221,8 @@ static struct regulator_init_data max77686_buck9_data = {
 			.enabled = 1,
 		},
 	},
+	.num_consumer_supplies  = 1,
+	.consumer_supplies  = &buck9_consumer,
 };
 
 //-----------------------------------------------------------------------------------
@@ -374,6 +378,7 @@ static struct regulator_consumer_supply ldo8_consumer_77686[] = {
 	REGULATOR_SUPPLY("vdd", "exynos4-hdmi"),
 	REGULATOR_SUPPLY("vdd_pll", "exynos4-hdmi"),
 	REGULATOR_SUPPLY("vdd8_mipi", NULL),
+	REGULATOR_SUPPLY("vddcore", "s5p-mipi-csis.0"),
 };
 
 static struct regulator_init_data max77686_ldo8_data = {
@@ -422,6 +427,7 @@ static struct regulator_consumer_supply ldo10_consumer_77686[] = {
 	REGULATOR_SUPPLY("vdd_osc", "exynos4-hdmi"),
 	REGULATOR_SUPPLY("vdd10_mipi", NULL),
 	REGULATOR_SUPPLY("vdd_tmu", NULL),
+	REGULATOR_SUPPLY("vddio", "s5p-mipi-csis.0"),
 };
 
 static struct regulator_init_data max77686_ldo10_data = {
@@ -574,8 +580,10 @@ static struct regulator_init_data max77686_ldo16_data = {
 //-----------------------------------------------------------------------------------
 // LDO17 : VDDQ_CAM (1.8V)
 //-----------------------------------------------------------------------------------
-static struct regulator_consumer_supply ldo17_consumer_77686 =
-	REGULATOR_SUPPLY("vddq_cam", NULL);
+static struct regulator_consumer_supply ldo17_consumer_77686[] = {
+	REGULATOR_SUPPLY("vddq_cam", NULL),
+	REGULATOR_SUPPLY("vddreg", "5-002d"),
+};
 
 static struct regulator_init_data max77686_ldo17_data = {
 	.constraints	= {
@@ -590,8 +598,8 @@ static struct regulator_init_data max77686_ldo17_data = {
 			.enabled = 1,
 		},
 	},
-	.num_consumer_supplies  = 1,
-	.consumer_supplies  = &ldo17_consumer_77686,
+	.num_consumer_supplies  = ARRAY_SIZE(ldo17_consumer_77686),
+	.consumer_supplies  = ldo17_consumer_77686,
 };
 
 //-----------------------------------------------------------------------------------
@@ -730,8 +738,10 @@ static struct regulator_init_data max77686_ldo22_data = {
 //-----------------------------------------------------------------------------------
 // LDO23 : TOUCH (2.8V)
 //-----------------------------------------------------------------------------------
-static struct regulator_consumer_supply ldo23_consumer_77686 =
-	REGULATOR_SUPPLY("vdd_touch", NULL);
+static struct regulator_consumer_supply ldo23_consumer_77686[] = {
+	REGULATOR_SUPPLY("vdd_touch", NULL),
+	REGULATOR_SUPPLY("vdda", "5-002d"),
+};
 
 static struct regulator_init_data max77686_ldo23_data = {
 	.constraints	= {
@@ -759,8 +769,8 @@ static struct regulator_init_data max77686_ldo23_data = {
 			.enabled = 1,
 		},
 	},
-	.num_consumer_supplies  = 1,
-	.consumer_supplies  = &ldo23_consumer_77686,
+	.num_consumer_supplies  = ARRAY_SIZE(ldo23_consumer_77686),
+	.consumer_supplies  = ldo23_consumer_77686,
 };
 
 //-----------------------------------------------------------------------------------

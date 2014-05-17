@@ -169,7 +169,7 @@ static const char * const s5k4ecgx_supply_names[] = {
 	 */
 	"vdda",
 	"vddio",
-	"vddcore",
+	/* "vddcore", */
 	"vddreg", /* The internal s5k4ecgx regulator's supply (1.8V) */
 };
 
