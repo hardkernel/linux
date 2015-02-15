@@ -1564,22 +1564,16 @@ static int __init cec_init(void)
     init_waitqueue_head(&hdmitx_device->cec_wait_rx);
     cec_key_init();
     hdmi_print(INF, CEC "CEC init\n");
-    cec_global_info.cec_flag.cec_key_flag = 0; 
-    cec_global_info.cec_flag.cec_fiq_flag = 0;
-    cec_global_info.cec_flag.cec_init_flag = 0;
+
+    memset(&cec_global_info, 0, sizeof(cec_global_info_t));
     
 #if MESON_CPU_TYPE == MESON_CPU_TYPE_MESON6
     hdmi_wr_reg(CEC0_BASE_ADDR+CEC_CLOCK_DIV_H, 0x00 );
     hdmi_wr_reg(CEC0_BASE_ADDR+CEC_CLOCK_DIV_L, 0xf0 );
 #endif
 
-    cec_global_info.cec_rx_msg_buf.rx_write_pos = 0;
-    cec_global_info.cec_rx_msg_buf.rx_read_pos = 0;
     cec_global_info.cec_rx_msg_buf.rx_buf_size = sizeof(cec_global_info.cec_rx_msg_buf.cec_rx_message)/sizeof(cec_global_info.cec_rx_msg_buf.cec_rx_message[0]);
-    memset(cec_global_info.cec_rx_msg_buf.cec_rx_message, 0, sizeof(cec_global_info.cec_rx_msg_buf.cec_rx_message));
 
-    memset(&cec_global_info, 0, sizeof(cec_global_info_t));
-    
     cec_global_info.hdmitx_device = hdmitx_device;
     
     hdmitx_device->task_cec = kthread_run(cec_task, (void*)hdmitx_device, "kthread_cec");
