@@ -142,7 +142,7 @@ static int force_vout_index = 0;
 static int hdmi_prbs_mode = 0xffff; /* 0xffff=disable; 0=PRBS 11; 1=PRBS 15; 2=PRBS 7; 3=PRBS 31*/
 static int hdmi_480p_force_clk = 0; /* 200, 225, 250, 270 */
 
-static int debug_level = INF;     // 1: error  2: important  3: normal  4: detailed
+static int debug_level = ERR;     // 1 (ERR): error  2 (IMP): important  3 (INF): normal  4 (LOW): verbose  5 (DET): detailed
 
 /*****************************
 *    hdmitx attr management :
@@ -860,7 +860,6 @@ static ssize_t show_support_3d(struct device * dev, struct device_attribute *att
 
 void hdmi_print(int dbg_lvl, const char *fmt, ...)
 {
-    return;
     va_list args;
     if(dbg_lvl == OFF)
         return ;
