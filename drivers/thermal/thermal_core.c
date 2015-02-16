@@ -347,7 +347,7 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 	if (trip_type == THERMAL_TRIP_CRITICAL) {
 		dev_emerg(&tz->device,
 			  "critical temperature reached(%d C),shutting down\n",
-			  tz->temperature);
+			  tz->temperature / 1000);
 		orderly_poweroff(true);
 	}
 }
@@ -481,14 +481,7 @@ temp_show(struct device *dev, struct device_attribute *attr, char *buf)
 	if (ret)
 		return ret;
 
-#if defined(CONFIG_MACH_MESON8B_ODROIDC)
-        /* Fake workaround to return the temperature
-         * as millidegree Celsius
-         */
-	return sprintf(buf, "%ld\n", temperature * 1000);
-#else
 	return sprintf(buf, "%ld\n", temperature);
-#endif
 }
 
 static ssize_t

@@ -669,7 +669,7 @@ static int amlogic_get_temp(struct thermal_zone_device *thermal,
     } else if (virtual_thermal_en) {
 	    *temp = aml_cal_virtual_temp(); 
     } else {
-        *temp = 45;                     // fix cpu temperature to 45 if not trimed && disable virtual thermal    
+        *temp = 45000;                  // fix cpu temperature to 45 if not trimed && disable virtual thermal
     }
 #else
 	*temp = (unsigned long)get_cpu_temp();
@@ -865,8 +865,8 @@ static struct amlogic_thermal_platform_data * amlogic_thermal_init_from_dts(stru
 		}
 		descend=get_desend();
 		for (i = 0; i < pdata->temp_trip_count; i++) {
-			printk("temperature=%d on trip point=%d\n",tmp_level[i].temperature,i);
-			pdata->tmp_trip[i].temperature=tmp_level[i].temperature;
+			printk("temperature=%d on trip point=%d\n",tmp_level[i].temperature * 1000,i);
+			pdata->tmp_trip[i].temperature=tmp_level[i].temperature * 1000;
 			printk("fixing high_freq=%d to ",tmp_level[i].cpu_high_freq);
 			tmp_level[i].cpu_high_freq=fix_to_freq(tmp_level[i].cpu_high_freq,descend);
 			pdata->tmp_trip[i].cpu_lower_level=cpufreq_cooling_get_level(0,tmp_level[i].cpu_high_freq);
