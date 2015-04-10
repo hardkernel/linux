@@ -23,11 +23,17 @@ MALI_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP_BETWEEN_APPS ?= 0
 MALI_UPPER_HALF_SCHEDULING ?= 1
 MALI_ENABLE_CPU_CYCLES ?= 0
 
+ifneq ($(KBUILD_SRC),)
+       ifneq ($(wildcard $(KBUILD_SRC)/$(src)),)
+               TOP_KBUILD_SRC := $(KBUILD_SRC)/
+       endif
+endif
+
 # For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
 # The ARM proprietary product will only include the license/proprietary directory
 # The GPL product will only include the license/gpl directory
-ifeq ($(wildcard $(src)/linux/license/gpl/*),)
-    ccflags-y += -I$(src)/linux/license/proprietary
+ifeq ($(wildcard $(TOP_KBUILD_SRC)$(src)/linux/license/gpl/*),)
+    ccflags-y += -I$(TOP_KBUILD_SRC)$(src)/linux/license/proprietary
     ifeq ($(CONFIG_MALI400_PROFILING),y)
         $(error Profiling is incompatible with non-GPL license)
     endif
@@ -39,7 +45,7 @@ ifeq ($(wildcard $(src)/linux/license/gpl/*),)
     endif
     $(error Linux Device integration is incompatible with non-GPL license)
 else
-    ccflags-y += -I$(src)/linux/license/gpl
+    ccflags-y += -I$(TOP_KBUILD_SRC)$(src)/linux/license/gpl
 endif
 
 ifeq ($(USING_GPU_UTILIZATION), 1)
@@ -123,7 +129,7 @@ mali-y += \
 	platform/meson_m450/platform_m8b.o
 
 ccflags-$(CONFIG_SYNC) += -Idrivers/staging/android
-ccflags-y += -I$(src)/../../../../include/ump
+ccflags-y += -I$(TOP_KBUILD_SRC)$(src)/../../../../include/ump
 
 ifneq ($(MALI_PLATFORM_FILES),)
 	mali-y += $(MALI_PLATFORM_FILES:.c=.o)
@@ -133,7 +139,7 @@ mali-$(CONFIG_MALI400_PROFILING) += linux/mali_ukk_profiling.o
 mali-$(CONFIG_MALI400_PROFILING) += linux/mali_osk_profiling.o
 
 mali-$(CONFIG_MALI400_INTERNAL_PROFILING) += linux/mali_profiling_internal.o timestamp-$(TIMESTAMP)/mali_timestamp.o
-ccflags-$(CONFIG_MALI400_INTERNAL_PROFILING) += -I$(src)/timestamp-$(TIMESTAMP)
+ccflags-$(CONFIG_MALI400_INTERNAL_PROFILING) += -I$(TOP_KBUILD_SRC)$(src)/timestamp-$(TIMESTAMP)
 
 mali-$(CONFIG_DMA_SHARED_BUFFER) += linux/mali_memory_dma_buf.o
 mali-$(CONFIG_SYNC) += linux/mali_sync.o
@@ -161,16 +167,16 @@ ifeq ($(MALI_UPPER_HALF_SCHEDULING),1)
 	ccflags-y += -DMALI_UPPER_HALF_SCHEDULING
 endif
 
-ccflags-$(CONFIG_MALI400_UMP) += -I$(src)/../../ump/include/ump
+ccflags-$(CONFIG_MALI400_UMP) += -I$(TOP_KBUILD_SRC)$(src)/../../ump/include/ump
 ccflags-$(CONFIG_MALI400_DEBUG) += -DDEBUG
 
 # Use our defines when compiling
-ccflags-y += -I$(src) -I$(src)/include -I$(src)/common -I$(src)/linux -I$(src)/platform
+ccflags-y += -I$(TOP_KBUILD_SRC)$(src) -I$(TOP_KBUILD_SRC)$(src)/include -I$(TOP_KBUILD_SRC)$(src)/common -I$(TOP_KBUILD_SRC)$(src)/linux -I$(TOP_KBUILD_SRC)$(src)/platform
 
 # Get subversion revision number, fall back to only ${MALI_RELEASE_NAME} if no svn info is available
-MALI_RELEASE_NAME=$(shell cat $(src)/.version 2> /dev/null)
+MALI_RELEASE_NAME=$(shell cat $(TOP_KBUILD_SRC)$(src)/.version 2> /dev/null)
 
-SVN_INFO = (cd $(src); svn info 2>/dev/null)
+SVN_INFO = (cd $$(TOP_KBUILD_SRC)(src); svn info 2>/dev/null)
 
 ifneq ($(shell $(SVN_INFO) 2>/dev/null),)
 # SVN detected
@@ -181,13 +187,13 @@ CHANGED_REVISION := $(shell $(SVN_INFO) | grep '^Last Changed Rev: ' | cut -d: -
 REPO_URL := $(shell $(SVN_INFO) | grep '^URL: ' | cut -d: -f2- | cut -b2-)
 
 else # SVN
-GIT_REV := $(shell cd $(src); git describe --always 2>/dev/null)
+GIT_REV := $(shell cd $(TOP_KBUILD_SRC)$(src); git describe --always 2>/dev/null)
 ifneq ($(GIT_REV),)
 # Git detected
 DRIVER_REV := $(MALI_RELEASE_NAME)-$(GIT_REV)
-CHANGE_DATE := $(shell cd $(src); git log -1 --format="%ci")
+CHANGE_DATE := $(shell cd $(TOP_KBUILD_SRC)$(src); git log -1 --format="%ci")
 CHANGED_REVISION := $(GIT_REV)
-REPO_URL := $(shell cd $(src); git describe --all --always 2>/dev/null)
+REPO_URL := $(shell cd $(TOP_KBUILD_SRC)$(src); git describe --all --always 2>/dev/null)
 
 else # Git
 # No Git or SVN detected
@@ -200,7 +206,7 @@ endif
 ccflags-y += -DSVN_REV_STRING=\"$(DRIVER_REV)\"
 
 VERSION_STRINGS :=
-VERSION_STRINGS += API_VERSION=$(shell cd $(src); grep "\#define _MALI_API_VERSION" $(FILES_PREFIX)include/linux/mali/mali_utgard_uk_types.h | cut -d' ' -f 3 )
+VERSION_STRINGS += API_VERSION=$(shell cd $(TOP_KBUILD_SRC)$(src); grep "\#define _MALI_API_VERSION" $(FILES_PREFIX)include/linux/mali/mali_utgard_uk_types.h | cut -d' ' -f 3 )
 VERSION_STRINGS += REPO_URL=$(REPO_URL)
 VERSION_STRINGS += REVISION=$(DRIVER_REV)
 VERSION_STRINGS += CHANGED_REVISION=$(CHANGED_REVISION)
@@ -224,5 +230,5 @@ VERSION_STRINGS += USING_DVFS=$(CONFIG_MALI_DVFS)
 VERSION_STRINGS += MALI_UPPER_HALF_SCHEDULING=$(MALI_UPPER_HALF_SCHEDULING)
 
 # Create file with Mali driver configuration
-$(src)/__malidrv_build_info.c:
+$(TOP_KBUILD_SRC)$(src)/__malidrv_build_info.c:
 	@echo 'const char *__malidrv_build_info(void) { return "malidrv: $(VERSION_STRINGS)";}' > $(src)/__malidrv_build_info.c
