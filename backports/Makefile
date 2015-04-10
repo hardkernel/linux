@@ -19,7 +19,12 @@ NOSTDINC_FLAGS := \
 
 export backport_srctree = $(M)
 else
-export BACKPORT_DIR = backports
+ifneq ($(KBUILD_SRC),)
+       ifneq ($(wildcard $(KBUILD_SRC)/$(src)),)
+               TOP_KBUILD_SRC := $(KBUILD_SRC)/
+       endif
+endif
+export BACKPORT_DIR = $(TOP_KBUILD_SRC)backports
 export backport_srctree = $(BACKPORT_DIR)
 NOSTDINC_FLAGS := \
 	-I$(BACKPORT_DIR)/backport-include/ \
