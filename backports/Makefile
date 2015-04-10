@@ -19,7 +19,7 @@ NOSTDINC_FLAGS := \
 
 export backport_srctree = $(M)
 else
-export BACKPORT_DIR = backports/
+export BACKPORT_DIR = backports
 export backport_srctree = $(BACKPORT_DIR)
 NOSTDINC_FLAGS := \
 	-I$(BACKPORT_DIR)/backport-include/ \
