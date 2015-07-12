@@ -1220,6 +1220,31 @@ out:
 	return ret;
 }
 
+static void s2mps11_pmic_shutdown(struct platform_device *pdev)
+{
+	struct sec_pmic_dev *iodev = dev_get_drvdata(pdev->dev.parent);
+	unsigned int reg_val, ret;
+
+	ret = regmap_read(iodev->regmap_pmic, S2MPS11_REG_CTRL1, &reg_val);
+	if (ret < 0) {
+		dev_crit(&pdev->dev, "could not read S2MPS11_REG_CTRL1 value\n");
+	} else {
+		/*
+		 * s2mps11-pmic: S2MPS11_REG_CTRL1 reg value
+		 * is 00000000000000000000000000010000
+		 * clear the S2MPS11_REG_CTRL1 0x10 value to shutdown.
+		 */
+		if (reg_val & BIT(4)) {
+			ret = regmap_update_bits(iodev->regmap_pmic,
+						 S2MPS11_REG_CTRL1,
+						 BIT(4), BIT(0));
+			if (ret)
+				dev_crit(&pdev->dev,
+					 "could not write S2MPS11_REG_CTRL1 value\n");
+		}
+	}
+}
+
 static const struct platform_device_id s2mps11_pmic_id[] = {
 	{ "s2mps11-regulator", S2MPS11X},
 	{ "s2mps13-regulator", S2MPS13X},
@@ -1235,6 +1260,7 @@ static struct platform_driver s2mps11_pmic_driver = {
 		.name = "s2mps11-pmic",
 	},
 	.probe = s2mps11_pmic_probe,
+	.shutdown = s2mps11_pmic_shutdown,
 	.id_table = s2mps11_pmic_id,
 };
 
