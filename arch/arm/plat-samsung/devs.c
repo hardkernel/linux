@@ -309,6 +309,8 @@ struct platform_device s5p_device_jpeg = {
 /* FIMD0 */
 static struct mali_gpu_device_data mali_gpu_data = {
         .shared_mem_size = 256*1024*1024,
+        .fb_start = 0x67900000,
+        .fb_size = 0x01800000,
 };
 
 static struct resource mali_gpu_resource[] = {
