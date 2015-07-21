@@ -46,3 +46,7 @@
 &usbdrd_dwc3_1 {
 	dr_mode = "host";
 };
+
+&spi_1 {
+	status = "okay";
+};
