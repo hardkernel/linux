@@ -34,6 +34,7 @@
 #include <linux/mfd/samsung/s2mps14.h>
 #include <linux/mfd/samsung/s2mps15.h>
 #include <linux/mfd/samsung/s2mpu02.h>
+#include <linux/delay.h>
 
 /* The highest number of possible regulators for supported devices. */
 #define S2MPS_REGULATOR_MAX		S2MPS13_REGULATOR_MAX
@@ -1223,7 +1224,8 @@ out:
 static void s2mps11_pmic_shutdown(struct platform_device *pdev)
 {
 	struct sec_pmic_dev *iodev = dev_get_drvdata(pdev->dev.parent);
-	unsigned int reg_val, ret;
+	unsigned int reg_val;
+	int ret;
 
 	ret = regmap_read(iodev->regmap_pmic, S2MPS11_REG_CTRL1, &reg_val);
 	if (ret < 0) {
@@ -1240,9 +1242,44 @@ static void s2mps11_pmic_shutdown(struct platform_device *pdev)
 						 BIT(4), BIT(0));
 			if (ret)
 				dev_crit(&pdev->dev,
-					 "could not write S2MPS11_REG_CTRL1 value\n");
+					 "could not update S2MPS11_REG_CTRL1 value\n");
 		}
 	}
+
+        /* MMC Power Control for MMC UHS Mode */
+        if (regmap_read(iodev->regmap_pmic,
+                                S2MPS11_REG_L19CTRL, &reg_val)) {
+                dev_crit(&pdev->dev,
+                                "could not read S2MPS11_REG_L19CTRL Error!!\n");
+        }
+
+        /* VDDQ_MMC2 OFF */
+        if (regmap_update_bits(iodev->regmap_pmic,
+                                S2MPS11_REG_L13CTRL, 0x00, 0x3F)) {
+                dev_crit(&pdev->dev,
+                                "could not update S2MPS11_REG_L13CTRL Error!!\n");
+        }
+
+        /* VDD_SD_2V8 OFF */
+        if (regmap_update_bits(iodev->regmap_pmic,
+                                S2MPS11_REG_L19CTRL, 0x00, 0x3F)) {
+                dev_crit(&pdev->dev,
+                                "could not update S2MPS11_REG_L19CTRL Error!!\n");
+        }
+
+        mdelay(10);
+
+        if (regmap_update_bits(iodev->regmap_pmic,
+                                S2MPS11_REG_L19CTRL, reg_val, 0x3F)) {
+                dev_crit(&pdev->dev,
+                                "could not update S2MPS11_REG_L19CTRL Error!!\n");
+        }
+
+        if (regmap_update_bits(iodev->regmap_pmic,
+                                S2MPS11_REG_L13CTRL,  0xE8, 0xFF)) {
+                dev_crit(&pdev->dev,
+                                "could not update S2MPS11_REG_L13CTRL Error!!\n");
+        }
 }
 
 static const struct platform_device_id s2mps11_pmic_id[] = {
