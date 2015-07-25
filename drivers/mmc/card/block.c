@@ -133,6 +133,10 @@ enum {
 	MMC_PACKED_NR_SINGLE,
 };
 
+#if defined(CONFIG_MACH_MESON8B_ODROIDC)
+#define	AML_SDHC_RESERVED_IDX	0
+#endif
+
 module_param(perdev_minors, int, 0444);
 MODULE_PARM_DESC(perdev_minors, "Minors numbers to allocate per device");
 
@@ -2205,25 +2209,16 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	 */
 #if defined(CONFIG_MACH_MESON8B_ODROIDC)
     if (strncmp(dev_name(mmc_dev(card->host)), "aml_sdhc.0", 8) == 0) {
-        md->name_idx = 0;
-        __set_bit(md->name_idx, name_use);
-    } else if (strncmp(dev_name(mmc_dev(card->host)), "aml_sdio.0", 8) == 0) {
-        if (!subname) {
-            md->name_idx = find_first_zero_bit(name_use, max_devices);
-            __set_bit(md->name_idx, name_use);
-        } else {
-            md->name_idx = ((struct mmc_blk_data *)
-                            dev_to_disk(parent)->private_data)->name_idx;
-        }
-    }
-#else
+        md->name_idx = AML_SDHC_RESERVED_IDX;
+    } else
+#endif
 	if (!subname) {
 		md->name_idx = find_first_zero_bit(name_use, max_devices);
 		__set_bit(md->name_idx, name_use);
 	} else
 		md->name_idx = ((struct mmc_blk_data *)
 				dev_to_disk(parent)->private_data)->name_idx;
-#endif
+
 	md->area_type = area_type;
 
 	/*
@@ -2659,6 +2654,10 @@ static struct mmc_driver mmc_driver = {
 static int __init mmc_blk_init(void)
 {
 	int res;
+
+#if defined(CONFIG_MACH_MESON8B_ODROIDC)
+	__set_bit(AML_SDHC_RESERVED_IDX, name_use);
+#endif
 
 	if (perdev_minors != CONFIG_MMC_BLOCK_MINORS)
 		pr_info("mmcblk: using %d minors per device\n", perdev_minors);
