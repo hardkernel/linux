@@ -504,6 +504,13 @@
         num_chipselect = <2>;
         cs_gpios = "GPIOX_20", "GPIOX_21";
 
+        mmc-slot@0 {
+            compatible = "mmc-spi-slot";
+            reg = <0x0>;
+            spi-max-frequency = <2000000>;
+            voltage-ranges = <3300 3300>;
+        };
+
         spidev@0 {
             spi-max-frequency = <2000000>;
             compatible = "spidev";
