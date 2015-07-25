@@ -153,6 +153,7 @@ struct mmc_spi_host {
 	dma_addr_t		ones_dma;
 };
 
+static struct mmc_claim mmc_spi_claim;
 
 /****************************************************************************/
 
@@ -1365,6 +1366,9 @@ static int mmc_spi_probe(struct spi_device *spi)
 	if (!mmc)
 		goto nomem;
 
+	spin_lock_init(&mmc_spi_claim.lock);
+	init_waitqueue_head(&mmc_spi_claim.wq);
+	mmc->alldev_claim = &mmc_spi_claim;
 	mmc->ops = &mmc_spi_ops;
 	mmc->max_blk_size = MMC_SPI_BLOCKSIZE;
 	mmc->max_segs = MMC_SPI_BLOCKSATONCE;
