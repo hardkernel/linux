@@ -164,7 +164,9 @@
 #define __PV_BITS_31_24	0x81000000
 
 extern unsigned long __pv_phys_offset;
+#ifndef PHYS_OFFSET
 #define PHYS_OFFSET __pv_phys_offset
+#endif
 
 #define __pv_stub(from,to,instr,type)			\
 	__asm__("@ __pv_stub\n"				\
@@ -190,7 +192,9 @@ static inline unsigned long __phys_to_virt(unsigned long x)
 }
 #else
 
+#ifndef PHYS_OFFSET
 #define PHYS_OFFSET	PLAT_PHYS_OFFSET
+#endif
 
 #define __virt_to_phys(x)	((x) - PAGE_OFFSET + PHYS_OFFSET)
 #define __phys_to_virt(x)	((x) - PHYS_OFFSET + PAGE_OFFSET)
