@@ -985,7 +985,6 @@ static void gpiod_unexport(struct gpio_desc *desc)
 	mutex_unlock(&sysfs_lock);
 
 	if (dev) {
-		device_remove_file(dev, &dev_attr_edge);
 		device_remove_file(dev, &dev_attr_direction);
 		sysfs_remove_group(&dev->kobj, &gpio_attr_group);
 		device_unregister(dev);
