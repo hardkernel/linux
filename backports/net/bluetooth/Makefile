@@ -1,0 +1,21 @@
+#
+# Makefile for the Linux Bluetooth subsystem.
+#
+
+obj-$(CONFIG_BACKPORT_BT)	+= bluetooth.o
+obj-$(CONFIG_BACKPORT_BT_RFCOMM)	+= rfcomm/
+obj-$(CONFIG_BACKPORT_BT_BNEP)	+= bnep/
+obj-$(CONFIG_BACKPORT_BT_CMTP)	+= cmtp/
+obj-$(CONFIG_BACKPORT_BT_HIDP)	+= hidp/
+obj-$(CONFIG_BACKPORT_BT_6LOWPAN) += bluetooth_6lowpan.o
+
+bluetooth_6lowpan-y := 6lowpan.o
+
+bluetooth-y := af_bluetooth.o hci_core.o hci_conn.o hci_event.o mgmt.o \
+	hci_sock.o hci_sysfs.o l2cap_core.o l2cap_sock.o smp.o sco.o lib.o \
+	a2mp.o amp.o ecc.o hci_request.o
+
+bluetooth-$(CONFIG_BACKPORT_BT_DEBUGFS) += hci_debugfs.o
+bluetooth-$(CONFIG_BACKPORT_BT_SELFTEST) += selftest.o
+
+subdir-ccflags-y += -D__CHECK_ENDIAN__

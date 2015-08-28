@@ -47,8 +47,10 @@ struct ioboard_spi_iocreg	{
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 struct ioboard_spi  {
-	struct miscdevice       *misc;
-    struct spi_device       *spi;
+	struct miscdevice           *misc;
+    struct spi_device           *spi;
+    struct s3c64xx_spi_csinfo   *csinfo;
+    unsigned int                wp_gpio;
 };
 
 //[*]--------------------------------------------------------------------------------------------------[*]

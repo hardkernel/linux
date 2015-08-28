@@ -1,0 +1,226 @@
+#
+# Multimedia device configuration
+#
+
+menuconfig BACKPORT_MEDIA_SUPPORT
+	tristate "Multimedia support"
+	depends on !MEDIA_SUPPORT
+	depends on HAS_IOMEM
+	help
+	  If you want to use Webcams, Video grabber devices and/or TV devices
+	  enable this option and other options below.
+	  Additional info and docs are available on the web at
+	  <http://linuxtv.org>
+
+if BACKPORT_MEDIA_SUPPORT
+
+comment "Multimedia core support"
+
+#
+# Multimedia support - automatically enable V4L2 and DVB core
+#
+config BACKPORT_MEDIA_CAMERA_SUPPORT
+	bool "Cameras/video grabbers support"
+	depends on !MEDIA_CAMERA_SUPPORT
+	---help---
+	  Enable support for webcams and video grabbers.
+
+	  Say Y when you have a webcam or a video capture grabber board.
+
+config BACKPORT_MEDIA_ANALOG_TV_SUPPORT
+	bool "Analog TV support"
+	depends on !MEDIA_ANALOG_TV_SUPPORT
+	---help---
+	  Enable analog TV support.
+
+	  Say Y when you have a TV board with analog support or with a
+	  hybrid analog/digital TV chipset.
+
+	  Note: There are several DVB cards that are based on chips that
+		support both analog and digital TV. Disabling this option
+		will disable support for them.
+
+config BACKPORT_MEDIA_DIGITAL_TV_SUPPORT
+	bool "Digital TV support"
+	depends on !MEDIA_DIGITAL_TV_SUPPORT
+	---help---
+	  Enable digital TV support.
+
+	  Say Y when you have a board with digital support or a board with
+	  hybrid digital TV and analog TV.
+
+config BACKPORT_MEDIA_RADIO_SUPPORT
+	bool "AM/FM radio receivers/transmitters support"
+	depends on !MEDIA_RADIO_SUPPORT
+	---help---
+	  Enable AM/FM radio support.
+
+	  Additional info and docs are available on the web at
+	  <http://linuxtv.org>
+
+	  Say Y when you have a board with radio support.
+
+	  Note: There are several TV cards that are based on chips that
+		support radio reception. Disabling this option will
+		disable support for them.
+
+config BACKPORT_MEDIA_SDR_SUPPORT
+	bool "Software defined radio support"
+	depends on !MEDIA_SDR_SUPPORT
+	---help---
+	  Enable software defined radio support.
+
+	  Say Y when you have a software defined radio device.
+
+config BACKPORT_MEDIA_RC_SUPPORT
+	bool "Remote Controller support"
+	depends on !MEDIA_RC_SUPPORT
+	depends on INPUT
+	---help---
+	  Enable support for Remote Controllers on Linux. This is
+	  needed in order to support several video capture adapters,
+	  standalone IR receivers/transmitters, and RF receivers.
+
+	  Enable this option if you have a video capture board even
+	  if you don't need IR, as otherwise, you may not be able to
+	  compile the driver for your adapter.
+
+	  Say Y when you have a TV or an IR device.
+
+#
+# Media controller
+#	Selectable only for webcam/grabbers, as other drivers don't use it
+#
+
+config BACKPORT_MEDIA_CONTROLLER
+	bool "Media Controller API"
+	depends on !MEDIA_CONTROLLER
+	depends on BACKPORT_MEDIA_CAMERA_SUPPORT
+	---help---
+	  Enable the media controller API used to query media devices internal
+	  topology and configure it dynamically.
+
+	  This API is mostly used by camera interfaces in embedded platforms.
+
+#
+# Video4Linux support
+#	Only enables if one of the V4L2 types (ATV, webcam, radio) is selected
+#
+
+config BACKPORT_VIDEO_DEV
+	tristate
+	depends on !VIDEO_DEV
+	depends on BACKPORT_MEDIA_SUPPORT
+	depends on BACKPORT_MEDIA_CAMERA_SUPPORT || MEDIA_ANALOG_TV_SUPPORT || MEDIA_RADIO_SUPPORT || MEDIA_SDR_SUPPORT
+	default y
+
+config BACKPORT_VIDEO_V4L2_SUBDEV_API
+	bool "V4L2 sub-device userspace API"
+	depends on !VIDEO_V4L2_SUBDEV_API
+	depends on VIDEO_DEV && BACKPORT_MEDIA_CONTROLLER
+	---help---
+	  Enables the V4L2 sub-device pad-level userspace API used to configure
+	  video format, size and frame rate between hardware blocks.
+
+	  This API is mostly used by camera interfaces in embedded platforms.
+
+source "$BACKPORT_DIR/drivers/media/v4l2-core/Kconfig"
+
+#
+# DVB Core
+#	Only enables if one of DTV is selected
+#
+
+config BACKPORT_DVB_CORE
+	tristate
+	depends on !DVB_CORE
+	depends on BACKPORT_MEDIA_SUPPORT
+	depends on BACKPORT_MEDIA_DIGITAL_TV_SUPPORT
+	default y
+	depends on CRC32
+
+config BACKPORT_DVB_NET
+	bool "DVB Network Support"
+	depends on !DVB_NET
+	default (NET && INET)
+	depends on NET && INET && BACKPORT_DVB_CORE
+	help
+	  This option enables DVB Network Support which is a part of the DVB
+	  standard. It is used, for example, by automatic firmware updates used
+	  on Set-Top-Boxes. It can also be used to access the Internet via the
+	  DVB card, if the network provider supports it.
+
+	  You may want to disable the network support on embedded devices. If
+	  unsure say Y.
+
+# This Kconfig option is used by both PCI and USB drivers
+config BACKPORT_TTPCI_EEPROM
+	tristate
+	depends on !TTPCI_EEPROM
+	depends on I2C
+	default n
+
+source "$BACKPORT_DIR/drivers/media/dvb-core/Kconfig"
+
+comment "Media drivers"
+source "$BACKPORT_DIR/drivers/media/rc/Kconfig"
+
+#
+# V4L platform/mem2mem drivers
+#
+
+source "$BACKPORT_DIR/drivers/media/usb/Kconfig"
+source "$BACKPORT_DIR/drivers/media/pci/Kconfig"
+source "$BACKPORT_DIR/drivers/media/platform/Kconfig"
+source "$BACKPORT_DIR/drivers/media/mmc/Kconfig"
+source "$BACKPORT_DIR/drivers/media/radio/Kconfig"
+
+comment "Supported FireWire (IEEE 1394) Adapters"
+	depends on BACKPORT_DVB_CORE && FIREWIRE
+source "$BACKPORT_DIR/drivers/media/firewire/Kconfig"
+
+# Common driver options
+source "$BACKPORT_DIR/drivers/media/common/Kconfig"
+
+comment "Media ancillary drivers (tuners, sensors, i2c, frontends)"
+
+#
+# Ancillary drivers (tuners, i2c, frontends)
+#
+
+config BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	bool "Autoselect ancillary drivers (tuners, sensors, i2c, frontends)"
+	depends on !MEDIA_SUBDRV_AUTOSELECT
+	depends on MEDIA_ANALOG_TV_SUPPORT || MEDIA_DIGITAL_TV_SUPPORT || BACKPORT_MEDIA_CAMERA_SUPPORT || MEDIA_SDR_SUPPORT
+	depends on HAS_IOMEM
+	depends on I2C
+	depends on I2C_MUX
+	default y
+	help
+	  By default, a media driver auto-selects all possible ancillary
+	  devices such as tuners, sensors, video encoders/decoders and
+	  frontends, that are used by any of the supported devices.
+
+	  This is generally the right thing to do, except when there
+	  are strict constraints with regards to the kernel size,
+	  like on embedded systems.
+
+	  Use this option with care, as deselecting ancillary drivers which
+	  are, in fact, necessary will result in the lack of the needed
+	  functionality for your device (it may not tune or may not have
+	  the needed demodulators).
+
+	  If unsure say Y.
+
+config BACKPORT_MEDIA_ATTACH
+	bool
+	depends on !MEDIA_ATTACH
+	depends on BACKPORT_MEDIA_ANALOG_TV_SUPPORT || MEDIA_DIGITAL_TV_SUPPORT || MEDIA_RADIO_SUPPORT
+	depends on MODULES
+	default MODULES
+
+source "$BACKPORT_DIR/drivers/media/i2c/Kconfig"
+source "$BACKPORT_DIR/drivers/media/tuners/Kconfig"
+source "$BACKPORT_DIR/drivers/media/dvb-frontends/Kconfig"
+
+endif # BACKPORT_MEDIA_SUPPORT

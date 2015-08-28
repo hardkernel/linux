@@ -29,6 +29,8 @@
 #define ODROID_AUD_PLL_FREQ	196608009
 
 static struct snd_soc_card odroid;
+static bool is_dummy_codec = false;
+
 static int set_aud_pll_rate(unsigned long rate)
 {
 	struct clk *fout_epll;
@@ -148,11 +150,13 @@ static int odroid_hw_params(struct snd_pcm_substream *substream,
 	set_aud_pll_rate(pll);
 
 	/* Set CPU DAI configuration */
-	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S
-			| SND_SOC_DAIFMT_NB_NF
-			| SND_SOC_DAIFMT_CBS_CFS);
-	if (ret < 0)
-		return ret;
+	if(!is_dummy_codec) {
+    	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S
+    			| SND_SOC_DAIFMT_NB_NF
+    			| SND_SOC_DAIFMT_CBS_CFS);
+    	if (ret < 0)
+    		return ret;
+	}
 
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S
 			| SND_SOC_DAIFMT_NB_NF
@@ -179,9 +183,11 @@ static int odroid_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-	ret = snd_soc_dai_set_sysclk(codec_dai, 0, rclk, SND_SOC_CLOCK_IN);
-	if (ret < 0)
-		return ret;
+	if(!is_dummy_codec) {
+    	ret = snd_soc_dai_set_sysclk(codec_dai, 0, rclk, SND_SOC_CLOCK_IN);
+    	if (ret < 0)
+    		return ret;
+    }
 
 	return 0;
 }
@@ -193,17 +199,16 @@ static struct snd_soc_ops odroid_ops = {
 static struct snd_soc_dai_link odroid_dai[] = {
 	{ /* Primary DAI i/f */
 		.name = "MAX98090 AIF1",
-		.stream_name = "Playback",
+		.stream_name = "i2s0-sec",
 		.cpu_dai_name = "samsung-i2s-sec",
-		.codec_dai_name = "HiFi",
 		.platform_name = "samsung-i2s-sec",
+		.codec_dai_name = "HiFi",
 		.ops = &odroid_ops,
+
 	}, { /* Secondary DAI i/f */
 		.name = "MAX98090 AIF2",
-		.stream_name = "Capture",
-		.cpu_dai_name = "samsung-i2s-sec",
+		.stream_name = "i2s0-pri",
 		.codec_dai_name = "HiFi",
-		.platform_name = "samsung-i2s-sec",
 		.ops = &odroid_ops,
 	}
 };
@@ -248,9 +253,34 @@ static int odroid_audio_probe(struct platform_device *pdev)
 	}
 
 	ret = snd_soc_register_card(card);
+	if (ret) { // MAX98090 register failed.
+        dev_err(&pdev->dev, "snd_soc_register_card() failed(max98090): %d\n", ret);
 
-	if (ret)
-		dev_err(&pdev->dev, "snd_soc_register_card() failed:%d\n", ret);
+        odroid_dai[0].name="DUMMY-SEC";
+        odroid_dai[0].stream_name = "i2s0-sec";
+        odroid_dai[0].codec_dai_name="dummy-aif1";
+
+        odroid_dai[1].name="DUMMY-PRI";
+        odroid_dai[1].stream_name = "i2s0-pri";
+        odroid_dai[1].codec_dai_name="dummy-aif2";
+
+    	for (n = 0; np && n < ARRAY_SIZE(odroid_dai); n++) {
+    		odroid_dai[n].codec_name = NULL;
+    		odroid_dai[n].codec_of_node = of_parse_phandle(np,
+    				"samsung,audio-dummy", n);
+    		if (!odroid_dai[n].codec_of_node) {
+    			dev_err(&pdev->dev,
+    			"Property 'samsung,audio-dummy' missing or invalid\n");
+    			ret = -EINVAL;
+    		}
+    	}
+    	ret = snd_soc_register_card(card);
+    	if (ret) {
+            dev_err(&pdev->dev, "snd_soc_register_card() failed(dummy_codec): %d\n", ret);
+            is_dummy_codec=false;
+		}
+		else is_dummy_codec=true;
+	}
 
 	return ret;
 }

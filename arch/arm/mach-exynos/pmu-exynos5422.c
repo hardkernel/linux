@@ -679,7 +679,7 @@ static void odroid_power_off(void)
 {
 	unsigned int value, off_retry = 0;
 	
-	printk("%s : set PS_HOLD low\n", __func__);
+	printk(KERN_EMERG "%s : Set PS_HOLD_CONTROL (PS_HOLD_LOW)\n", __func__);
 
 	local_irq_disable();
 
@@ -696,18 +696,19 @@ static void odroid_power_off(void)
     	*/
     	value = __raw_readl(EXYNOS5422_PS_HOLD_CONTROL);
     	value |= EXYNOS_PS_HOLD_EN;
-    	__raw_writel(value, EXYNOS_PS_HOLD_CONTROL);
+    	__raw_writel(value, EXYNOS5422_PS_HOLD_CONTROL);
     
-    	mdelay(1000);
+    	mdelay(3000);
+
     	if(off_retry++ > 5) {
 			flush_cache_all();
 			outer_flush_all();
 			exynos5_restart(0, 0);
 
-			pr_emerg("%s: waiting for reboot\n", __func__);
+			printk(KERN_EMERG "%s: waiting for reboot\n", __func__);
 			while(1);
     	}
-    	printk("%s : Power OFF error count = %d !!!\n", __func__, off_retry);
+    	printk(KERN_EMERG "%s : Power OFF Error! PS_HOLD = 0x%08X, error retry = %d !!!\n", __func__, value, off_retry);
     }
 }
 #endif

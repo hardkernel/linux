@@ -153,22 +153,22 @@ typedef enum {
 
 #define MALI_T6XX_DEFAULT_CLOCK (MALI_DVFS_START_FREQ*MHZ)
 
-struct exynos_pm_domain *gpu_get_pm_domain(kbase_device *kbdev);
+struct exynos_pm_domain *gpu_get_pm_domain(struct kbase_device *kbdev);
 int get_cpu_clock_speed(u32 *cpu_clock);
 int gpu_is_power_on(void);
-int gpu_power_init(kbase_device *kbdev);
+int gpu_power_init(struct kbase_device *kbdev);
 int gpu_is_clock_on(struct exynos_context *platform);
 int gpu_clock_on(struct exynos_context *platform);
 int gpu_clock_off(struct exynos_context *platform);
 int gpu_set_clock(struct exynos_context *platform, int freq);
-int gpu_clock_init(kbase_device *kbdev);
+int gpu_clock_init(struct kbase_device *kbdev);
 int gpu_set_voltage(struct exynos_context *platform, int vol);
 int gpu_regulator_enable(struct exynos_context *platform);
 int gpu_regulator_disable(struct exynos_context *platform);
 int gpu_regulator_init(struct exynos_context *platform);
 
 int gpu_control_state_set(struct kbase_device *kbdev, gpu_control_state state, int param);
-int gpu_control_module_init(kbase_device *kbdev);
-void gpu_control_module_term(kbase_device *kbdev);
+int gpu_control_module_init(struct kbase_device *kbdev);
+void gpu_control_module_term(struct kbase_device *kbdev);
 
 #endif /* _GPU_CONTROL_H_ */

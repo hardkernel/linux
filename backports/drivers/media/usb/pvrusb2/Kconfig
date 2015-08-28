@@ -1,0 +1,69 @@
+config BACKPORT_VIDEO_PVRUSB2
+	tristate "Hauppauge WinTV-PVR USB2 support"
+	depends on !VIDEO_PVRUSB2
+	depends on BACKPORT_VIDEO_V4L2 && I2C
+	select BACKPORT_VIDEO_TUNER
+	select BACKPORT_VIDEO_TVEEPROM
+	select BACKPORT_VIDEO_CX2341X
+	select BACKPORT_VIDEO_SAA711X
+	select BACKPORT_VIDEO_CX25840
+	select BACKPORT_VIDEO_MSP3400
+	select BACKPORT_VIDEO_WM8775
+	select BACKPORT_VIDEO_CS53L32A
+	---help---
+	  This is a video4linux driver for Conexant 23416 based
+	  usb2 personal video recorder devices.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called pvrusb2
+
+config BACKPORT_VIDEO_PVRUSB2_SYSFS
+	bool "pvrusb2 sysfs support"
+	depends on !VIDEO_PVRUSB2_SYSFS
+	default y
+	depends on BACKPORT_VIDEO_PVRUSB2 && SYSFS
+	---help---
+	  This option enables the operation of a sysfs based
+	  interface for query and control of the pvrusb2 driver.
+
+	  This is not generally needed for v4l applications,
+	  although certain applications are optimized to take
+	  advantage of this feature.
+
+	  If you are in doubt, say Y.
+
+	  Note: This feature is experimental and subject to change.
+
+config BACKPORT_VIDEO_PVRUSB2_DVB
+	bool "pvrusb2 ATSC/DVB support"
+	depends on !VIDEO_PVRUSB2_DVB
+	default y
+	depends on VIDEO_PVRUSB2 && BACKPORT_DVB_CORE
+	select DVB_LGDT330X if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	select DVB_S5H1409 if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	select DVB_S5H1411 if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	select DVB_TDA10048 if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	select MEDIA_TUNER_TDA18271 if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	select MEDIA_TUNER_SIMPLE if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	select MEDIA_TUNER_TDA8290 if BACKPORT_MEDIA_SUBDRV_AUTOSELECT
+	---help---
+
+	  This option enables a DVB interface for the pvrusb2 driver.
+	  If your device does not support digital television, this
+	  feature will have no affect on the driver's operation.
+
+	  If you are in doubt, say Y.
+
+config BACKPORT_VIDEO_PVRUSB2_DEBUGIFC
+	bool "pvrusb2 debug interface"
+	depends on !VIDEO_PVRUSB2_DEBUGIFC
+	depends on BACKPORT_VIDEO_PVRUSB2_SYSFS
+	---help---
+	  This option enables the inclusion of a debug interface
+	  in the pvrusb2 driver, hosted through sysfs.
+
+	  You do not need to select this option unless you plan
+	  on debugging the driver or performing a manual firmware
+	  extraction.
+
+	  If you are in doubt, say N.

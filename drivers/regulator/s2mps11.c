@@ -423,10 +423,49 @@ static int s2mps11_pmic_remove(struct platform_device *pdev)
 static void s2mps11_pmic_shutdown(struct platform_device *pdev)
 {
     struct sec_pmic_dev *iodev = dev_get_drvdata(pdev->dev.parent);
+    unsigned int reg_ctrl1 = 0, retry = 0;
 
-	/* PWR_HOLD bit-clear when power off */
-	sec_reg_update(iodev, S2MPS11_REG_CTRL1, 0x00, 0xff);
-	dev_info(&pdev->dev, "%s : PWR_HOLD Clear Bit.\n",__func__);
+    for(retry = 0; retry < 5; retry++)  {
+    	/* PWR_HOLD bit-clear when power off */
+        if(sec_reg_update(iodev, S2MPS11_REG_CTRL1, 0x00, 0xff))    {
+            printk(KERN_EMERG "%s : S2MPS11 REG CTRL1 Update error! retry %d", __func__, retry);
+            continue;
+        }
+
+        if(sec_reg_read(iodev, S2MPS11_REG_CTRL1, &reg_ctrl1))  {
+            printk(KERN_EMERG "%s : S2MPS11 REG CTRL1 read error! retry %d", __func__, retry);
+            continue;
+        }
+        
+        // PWR_HOLD not clear.
+        if(reg_ctrl1 & 0x10)    {
+            printk(KERN_EMERG "%s : S2MPS11 REG CTRL1 value error!, value = 0x%08X, retry %d", __func__, reg_ctrl1, retry);
+            continue;
+        }
+        else    {
+        	printk(KERN_EMERG "%s : PWR_HOLD Clear Bit. (retry %d)\n", __func__, retry);
+            break;
+        }
+   }
+
+    // MMC Power Control for MMC UHS Mode
+    if(sec_reg_read(iodev, S2MPS11_REG_L19CTRL, &reg_ctrl1))
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL19 Error!!\n", __func__);
+
+    // VDDQ_MMC2 OFF
+    if(sec_reg_update(iodev, S2MPS11_REG_L13CTRL, 0x00, 0x3F))
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL13 Error!!\n", __func__);
+
+    // VDD_SD_2V8 OFF
+    if(sec_reg_update(iodev, S2MPS11_REG_L19CTRL, 0x00, 0x3F))
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL19 Error!!\n", __func__);
+
+    mdelay(10);
+
+    if(sec_reg_update(iodev, S2MPS11_REG_L19CTRL, reg_ctrl1, 0x3F))
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL19 Error!!\n", __func__);
+    if(sec_reg_update(iodev, S2MPS11_REG_L13CTRL, 0xE8, 0xFF))
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL13 Error!!\n", __func__);
 }
 #endif
 

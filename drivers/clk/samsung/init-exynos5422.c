@@ -273,6 +273,12 @@ static void uart_clock_init(void)
 	exynos_set_rate("dout_uart3", 150000000);
 }
 
+static void spi_clock_init(void)
+{
+	exynos_set_parent("mout_spi1", "mout_dpll_ctrl");
+	exynos_set_rate("dout_spi1", 80 * 1000000);
+}
+
 static void mscl_init_clock(void)
 {
 
@@ -457,6 +463,7 @@ void __init exynos5422_clock_init(void)
 	clkout_init_clock();
 	aud_init_clock();
 	uart_clock_init();
+	spi_clock_init();
 	mmc_clock_init();
 	mscl_init_clock();
 	g2d_init_clock();

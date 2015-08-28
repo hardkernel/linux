@@ -17,7 +17,7 @@
 #ifndef _GPU_NOTIFIER_H_
 #define _GPU_NOTIFIER_H_
 
-int gpu_notifier_init(kbase_device *kbdev);
+int gpu_notifier_init(struct kbase_device *kbdev);
 void gpu_notifier_term(void);
 
 #endif /* _GPU_NOTIFIER_H_ */

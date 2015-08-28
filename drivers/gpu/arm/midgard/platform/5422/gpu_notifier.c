@@ -124,7 +124,7 @@ static int gpu_pm_notifier(struct notifier_block *nb, unsigned long event, void 
 	return NOTIFY_OK;
 }
 
-static int gpu_power_on(kbase_device *kbdev)
+static int gpu_power_on(struct kbase_device *kbdev)
 {
 	int ret_val;
 
@@ -138,7 +138,7 @@ static int gpu_power_on(kbase_device *kbdev)
 	return ret_val;
 }
 
-static void gpu_power_off(kbase_device *kbdev)
+static void gpu_power_off(struct kbase_device *kbdev)
 {
 	pm_schedule_suspend(kbdev->dev, RUNTIME_PM_DELAY_TIME);
 }
@@ -158,7 +158,7 @@ static void gpu_device_runtime_disable(struct kbase_device *kbdev)
 	pm_runtime_disable(kbdev->dev);
 }
 
-static int pm_callback_runtime_on(kbase_device *kbdev)
+static int pm_callback_runtime_on(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform = (struct exynos_context *) kbdev->platform_context;
 	if (!platform)
@@ -175,7 +175,7 @@ static int pm_callback_runtime_on(kbase_device *kbdev)
 	return 0;
 }
 
-static void pm_callback_runtime_off(kbase_device *kbdev)
+static void pm_callback_runtime_off(struct kbase_device *kbdev)
 {
 	GPU_LOG(DVFS_INFO, "g3d turn off\n");
 	gpu_control_state_set(kbdev, GPU_CONTROL_CLOCK_OFF, 0);
@@ -198,7 +198,7 @@ kbase_pm_callback_conf pm_callbacks = {
 };
 #endif /* CONFIG_MALI_MIDGARD_RT_PM */
 
-int gpu_notifier_init(kbase_device *kbdev)
+int gpu_notifier_init(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform = (struct exynos_context *)kbdev->platform_context;
 	if (!platform)

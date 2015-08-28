@@ -13,6 +13,9 @@
 #ifndef __GPIO_IR_RECV_H__
 #define __GPIO_IR_RECV_H__
 
+#define GPIO_IR_DRIVER_NAME	"gpio-rc-recv"
+#define GPIO_IR_DEVICE_NAME	"gpio_ir_recv"
+
 struct gpio_ir_recv_platform_data {
 	int		gpio_nr;
 	bool		active_low;

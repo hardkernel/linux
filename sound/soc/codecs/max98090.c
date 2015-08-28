@@ -2164,7 +2164,7 @@ static struct snd_soc_dai_driver max98090_dai[] = {
 	.name = "HiFi",
 		.playback = {
 			.stream_name = "HiFi Playback",
-		.channels_min = 2,
+    		.channels_min = 1,
 			.channels_max = 2,
 			.rates = MAX98090_RATES,
 			.formats = MAX98090_FORMATS,
@@ -2177,7 +2177,7 @@ static struct snd_soc_dai_driver max98090_dai[] = {
 			.formats = MAX98090_FORMATS,
 		},
 	 .ops = &max98090_dai_ops,
-}
+    }
 };
 
 static void max98090_handle_pdata(struct snd_soc_codec *codec)
@@ -2211,8 +2211,11 @@ static int max98090_probe(struct snd_soc_codec *codec)
 	}
 
 	/* Reset the codec, the DSP core, and disable all interrupts */
-	max98090_reset(max98090);
-
+	ret = max98090_reset(max98090);
+	if (ret < 0) {
+		dev_err(codec->dev, "Failed to device reset : %d\n", ret);
+		goto err_access;
+	}
 	/* Initialize private data */
 
 	max98090->sysclk = (unsigned)-1;

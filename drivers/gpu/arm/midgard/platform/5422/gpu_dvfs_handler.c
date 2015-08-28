@@ -107,7 +107,7 @@ static void gpu_dvfs_event_proc(struct work_struct *q)
 }
 static DECLARE_WORK(gpu_dvfs_work, gpu_dvfs_event_proc);
 
-int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation)
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 util_gl_share, u32 util_cl_share[2])
 {
 #ifdef CONFIG_MALI_MIDGARD_DVFS
 	unsigned long flags;

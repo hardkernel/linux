@@ -22,9 +22,6 @@
 #include <media/rc-core.h>
 #include <media/gpio-ir-recv.h>
 
-#define GPIO_IR_DRIVER_NAME	"gpio-rc-recv"
-#define GPIO_IR_DEVICE_NAME	"gpio_ir_recv"
-
 struct gpio_rc_dev {
 	struct rc_dev *rcdev;
 	int gpio_nr;

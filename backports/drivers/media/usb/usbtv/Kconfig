@@ -1,0 +1,12 @@
+config BACKPORT_VIDEO_USBTV
+        tristate "USBTV007 video capture support"
+	depends on !VIDEO_USBTV
+        depends on BACKPORT_VIDEO_V4L2 && SND
+        depends on SND_PCM
+        select BACKPORT_VIDEOBUF2_VMALLOC
+
+        ---help---
+          This is a video4linux2 driver for USBTV007 based video capture devices.
+
+          To compile this driver as a module, choose M here: the
+          module will be called usbtv

@@ -1,0 +1,21 @@
+config BACKPORT_DVB_FIREDTV
+	tristate "FireDTV and FloppyDTV"
+	depends on !DVB_FIREDTV
+	depends on BACKPORT_DVB_CORE && FIREWIRE
+	help
+	  Support for DVB receivers from Digital Everywhere
+	  which are connected via IEEE 1394 (FireWire).
+
+	  These devices don't have an MPEG decoder built in,
+	  so you need an external software decoder to watch TV.
+
+	  To compile this driver as a module, say M here:
+	  the module will be called firedtv.
+
+if BACKPORT_DVB_FIREDTV
+
+config BACKPORT_DVB_FIREDTV_INPUT
+	def_bool INPUT = y || (INPUT = m && DVB_FIREDTV = m)
+	depends on !DVB_FIREDTV_INPUT
+
+endif # BACKPORT_DVB_FIREDTV

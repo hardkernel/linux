@@ -98,6 +98,7 @@ struct int_bus_opp_table {
 
 struct int_bus_opp_table int_bus_opp_list[] = {
 	{LV_0,   600000, 1075000, 0},	/* ISP Special Level */
+#if 0	
 	{LV_1,   500000,  987500, 0},	/* ISP Special Level */
 	{LV_1_1, 480000,  987500, 0},	/* ISP Special Level */
 	{LV_1_2, 460000,  987500, 0},	/* ISP Special Level */
@@ -115,6 +116,7 @@ struct int_bus_opp_table int_bus_opp_list[] = {
 	{LV_4,   222000,  950000, 0},
 	{LV_5,   111000,  950000, 0},
 	{LV_6,    83000,  925000, 0},
+#endif
 #endif
 };
 
@@ -780,7 +782,6 @@ static struct clk *exynos5_change_pll(struct busfreq_data_int *data,
 static void exynos5_int_set_freq(struct busfreq_data_int *data,
 					unsigned long target_freq, unsigned long pre_freq)
 {
-	unsigned int i;
 	int target_idx = -EINVAL;
 	int pre_idx = -EINVAL;
 	struct int_pm_clks *int_clk;
@@ -789,13 +790,8 @@ static void exynos5_int_set_freq(struct busfreq_data_int *data,
 	printk("Set int target: %ld\n", target_freq);
 #endif
 	/* Find setting value with target and previous frequency */
-	for (i = 0; i < LV_END; i++) {
-		if (int_bus_opp_list[i].freq == target_freq)
-			target_idx = int_bus_opp_list[i].idx;
-		if (int_bus_opp_list[i].freq == pre_freq)
-			pre_idx = int_bus_opp_list[i].idx;
-	}
-
+	target_idx = int_bus_opp_list[0].idx;
+	
 	if (target_idx <= LV_2 && !data->spll_enabled) {
 		clk_enable(data->fout_spll);
 		data->spll_enabled = true;
@@ -927,15 +923,6 @@ static void exynos5_int_update_state(unsigned int target_freq)
 	cputime64_t cur_time = get_jiffies_64();
 	cputime64_t tmp_cputime;
 	unsigned int target_idx = LV_0;
-	unsigned int i;
-
-	/*
-	 * Find setting value with target frequency
-	 */
-	for (i = LV_0; i < LV_END; i++) {
-		if (int_bus_opp_list[i].freq == target_freq)
-			target_idx = int_bus_opp_list[i].idx;
-	}
 
 	tmp_cputime = cur_time - int_pre_time;
 
@@ -988,11 +975,6 @@ static int exynos5_int_busfreq_target(struct device *dev,
 	if (data->volt_offset)
 		target_volt = get_limit_voltage(target_volt, data->volt_offset);
 #endif
-
-	for (i = LV_0; i < LV_END; i++) {
-		if (int_bus_opp_list[i].freq == freq)
-			target_idx = int_bus_opp_list[i].idx;
-	}
 
 	/*
 	 * If target freq is higher than old freq
@@ -1089,7 +1071,7 @@ static struct devfreq_simple_ondemand_data exynos5_int_governor_data = {
 #endif
 
 static struct devfreq_dev_profile exynos5_int_devfreq_profile = {
-	.initial_freq	= 400000,
+	.initial_freq	= 600000,
 	.polling_ms	= 100,
 	.target		= exynos5_int_busfreq_target,
 	.get_dev_status	= exynos5_int_bus_get_dev_status,
@@ -1400,10 +1382,8 @@ static int exynos5_devfreq_int_probe(struct platform_device *pdev)
 	volt = opp_get_voltage(opp);
 	rcu_read_unlock();
 	regulator_set_voltage(data->vdd_int, volt, volt + VOLT_STEP);
-	for (i = LV_0; i < LV_END; i++) {
-		if (int_bus_opp_list[i].freq == exynos5_int_devfreq_profile.initial_freq)
-			index = int_bus_opp_list[i].idx;
-	}
+	index = LV_0;
+
 	if (index < 0) {
 		dev_err(dev, "Cannot find index to set abb\n");
 		err = -EINVAL;

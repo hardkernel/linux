@@ -14,6 +14,7 @@
 #include "exynos_drm_dmabuf.h"
 #include "exynos_drm_drv.h"
 #include "exynos_drm_gem.h"
+#include "exynos_drm_iommu.h"
 
 #include <linux/dma-buf.h>
 
@@ -165,7 +166,15 @@ static void exynos_gem_dmabuf_kunmap(struct dma_buf *dma_buf,
 static int exynos_gem_dmabuf_mmap(struct dma_buf *dma_buf,
 	struct vm_area_struct *vma)
 {
-	return -ENOTTY;
+	struct exynos_drm_gem_obj *exynos_gem_obj = dma_buf_to_obj(dma_buf);
+	struct exynos_drm_gem_buf *buffer = exynos_gem_obj->buffer;
+	struct drm_gem_object *obj = &exynos_gem_obj->base;
+	struct drm_device *drm_dev = obj->dev;
+	void *cookie = is_drm_iommu_supported(drm_dev) ?
+			buffer->pages : buffer->kvaddr;
+
+	return dma_mmap_attrs(drm_dev->dev, vma, cookie, buffer->dma_addr,
+			buffer->size, &buffer->dma_attrs);
 }
 
 static struct dma_buf_ops exynos_dmabuf_ops = {

@@ -29,7 +29,7 @@
 extern struct kbase_device *pkbdev;
 
 #ifdef CONFIG_PM_RUNTIME
-struct exynos_pm_domain *gpu_get_pm_domain(kbase_device *kbdev)
+struct exynos_pm_domain *gpu_get_pm_domain(struct kbase_device *kbdev)
 {
 	struct platform_device *pdev = NULL;
 	struct device_node *np = NULL;
@@ -69,7 +69,7 @@ int gpu_is_power_on(void)
 	return ((__raw_readl(EXYNOS5422_G3D_STATUS) & EXYNOS_INT_LOCAL_PWR_EN) == EXYNOS_INT_LOCAL_PWR_EN) ? 1 : 0;
 }
 
-int gpu_power_init(kbase_device *kbdev)
+int gpu_power_init(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform = (struct exynos_context *) kbdev->platform_context;
 
@@ -243,7 +243,7 @@ err:
 	return ret;
 }
 
-static int gpu_get_clock(kbase_device *kbdev)
+static int gpu_get_clock(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform = (struct exynos_context *) kbdev->platform_context;
 	if (!platform)
@@ -309,7 +309,7 @@ static int gpu_get_clock(kbase_device *kbdev)
 	return 0;
 }
 
-int gpu_clock_init(kbase_device *kbdev)
+int gpu_clock_init(struct kbase_device *kbdev)
 {
 	int ret;
 	struct exynos_context *platform = (struct exynos_context *) kbdev->platform_context;

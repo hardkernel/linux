@@ -1,5 +1,5 @@
 #
-# (C) COPYRIGHT 2010-2013 ARM Limited. All rights reserved.
+# (C) COPYRIGHT 2010-2014 ARM Limited. All rights reserved.
 #
 # This program is free software and is provided to you under the terms of the
 # GNU General Public License version 2 as published by the Free Software
@@ -38,6 +38,8 @@ kbase_src = [Glob('#kernel/drivers/gpu/arm/midgard/*.c'),
              Glob('#kernel/drivers/gpu/arm/midgard/*.h'),
              Glob('#kernel/drivers/gpu/arm/midgard/*.h'),
              ]
+
+kbase_src += [Glob('#kernel/drivers/gpu/arm/midgard/internal/*/*.c')]
 
 if Glob('#kernel/drivers/gpu/arm/midgard/tests/internal/src/mock') and env['unit'] == '1':
 	kbase_src += [Glob('#kernel/drivers/gpu/arm/midgard/tests/internal/src/mock/*.c')]
@@ -103,12 +105,10 @@ patterns = ['*.mod.c', '*.o', '*.ko', '*.a', '.*.cmd', 'modules.order', '.tmp_ve
 
 for p in patterns:
 	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/%s' % p))
-	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/%s' % p))
 	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/config/%s' % p))
-	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/%s' % p))
 	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/tests/internal/src/mock/%s' % p))
 	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/platform/%s/%s' % ((env['platform_config']), p) ))
-
+	Clean(cmd, Glob('#kernel/drivers/gpu/arm/midgard/internal/*/%s' % p))
 env.ProgTarget('kbase', cmd)
 
 env.AppendUnique(BASE=['cutils_list'])

@@ -37,7 +37,7 @@ typedef enum {
 	GPU_HANDLER_DVFS_GET_VOLTAGE,
 } gpu_dvfs_handler_command;
 
-int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation);
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 util_gl_share, u32 util_cl_share[2]);
 int gpu_dvfs_handler_init(struct kbase_device *kbdev);
 int gpu_dvfs_handler_deinit(struct kbase_device *kbdev);
 int gpu_dvfs_handler_control(struct kbase_device *kbdev, gpu_dvfs_handler_command command, int param);

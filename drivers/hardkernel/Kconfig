@@ -28,5 +28,20 @@ config ODROID_EXYNOS5_IOBOARD_DEBUG
 	---help---
 		Enables the IOBOARD Debug Message
 
+config ODROID_EXYNOS5_HDMI_PHY_TUNE
+    bool "Enable HDMI-PHY tune functions"
+	depends on MACH_ODROIDXU3
+	default y
+	help
+	    Enables HDMI-PHY tune functions.
+
+config ODROID_EXYNOS5_HDMI_PHY_TUNE_DEBUG
+	depends on MACH_ODROIDXU3 && ODROID_EXYNOS5_HDMI_PHY_TUNE
+    bool "Enable HDMI-PHY tune info display"
+	depends on MACH_ODROIDXU3
+	default n
+	help
+	    Enables HDMI-PHY tune info display.
+
 endmenu
 

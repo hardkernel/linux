@@ -1,0 +1,1 @@
+obj-$(CONFIG_BACKPORT_VIDEO_MEYE) += meye.o

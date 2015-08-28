@@ -27,13 +27,11 @@
 #include <mach/regs-pmu.h>
 #include <plat/gpio-cfg.h>
 
-#if defined(CONFIG_OF)
-    #include <linux/of_gpio.h>
-#endif
-
 //[*]--------------------------------------------------------------------------------------------------[*]
-unsigned char       BoardTestFlag = 1;
-struct hrtimer      BoardTestTimer;		// Board Test Timer
+static  unsigned char           BoardTestFlag = 1;
+static  struct hrtimer          BoardTestTimer;		// Board Test Timer
+static  struct platform_device  *pd;
+
 //[*]--------------------------------------------------------------------------------------------------[*]
 // IOBOARD KEY & LED GPIO Define
 //[*]--------------------------------------------------------------------------------------------------[*]
@@ -51,6 +49,17 @@ enum    {
 };
 
 //[*]--------------------------------------------------------------------------------------------------[*]
+// GPIO Export Number define
+#define GPX2_5_EXPORT_NUM   29
+#define GPX2_6_EXPORT_NUM   30
+#define GPX1_6_EXPORT_NUM   22
+#define GPX1_2_EXPORT_NUM   18
+#define GPX2_7_EXPORT_NUM   31
+#define GPX2_4_EXPORT_NUM   28
+#define GPX1_3_EXPORT_NUM   19
+#define GPB3_2_EXPORT_NUM   209
+#define GPX2_0_EXPORT_NUM   24
+
 static struct {
 	int		gpio_index;		// Control Index
 	int 	gpio;			// GPIO Number
@@ -59,27 +68,15 @@ static struct {
 	int 	value;			// Default Value(only for output)
 	int		pud;			// Pull up/down register setting : S3C_GPIO_PULL_DOWN, UP, NONE
 } sControlGpios[] = {
-#if defined(CONFIG_OF)
-	{	IOBOARD_SW1,  	0xFFFF,  "sw1",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_SW2,  	0xFFFF,  "sw2",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_SW3,  	0xFFFF,  "sw3",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_SW4,  	0xFFFF,  "sw4",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED1,  	0xFFFF,  "led1",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED2,  	0xFFFF,  "led2",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED3,  	0xFFFF,  "led3",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED4,  	0xFFFF,  "led4",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED5,  	0xFFFF,  "led5",	1,	1,	S3C_GPIO_PULL_NONE	},
-#else
-	{	IOBOARD_SW1,  	EXYNOS5410_GPX2(5),  "sw1",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_SW2,  	EXYNOS5410_GPX2(6),  "sw2",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_SW3,  	EXYNOS5410_GPX1(6),  "sw3",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_SW4,  	EXYNOS5410_GPX1(2),  "sw4",		0,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED1,  	EXYNOS5410_GPX2(7),  "led1",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED2,  	EXYNOS5410_GPX2(4),  "led2",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED3,  	EXYNOS5410_GPX1(3),  "led3",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED4,  	EXYNOS5410_GPX1(0),  "led4",	1,	0,	S3C_GPIO_PULL_NONE	},
-	{	IOBOARD_LED5,  	EXYNOS5410_GPX2(0),  "led5",	1,	1,	S3C_GPIO_PULL_NONE	},
-#endif
+	{	IOBOARD_SW1,  	GPX2_5_EXPORT_NUM,  "sw1",	0,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_SW2,  	GPX2_6_EXPORT_NUM,  "sw2",	0,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_SW3,  	GPX1_6_EXPORT_NUM,  "sw3",	0,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_SW4,  	GPX1_2_EXPORT_NUM,  "sw4",	0,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_LED1,  	GPX2_7_EXPORT_NUM,  "led1",	1,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_LED2,  	GPX2_4_EXPORT_NUM,  "led2",	1,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_LED3,  	GPX1_3_EXPORT_NUM,  "led3",	1,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_LED4,  	GPB3_2_EXPORT_NUM,  "led4",	1,	0,	S3C_GPIO_PULL_NONE	},
+	{	IOBOARD_LED5,  	GPX2_0_EXPORT_NUM,  "led5",	1,	1,	S3C_GPIO_PULL_NONE	},
 };
 
 //[*]--------------------------------------------------------------------------------------------------[*]
@@ -209,6 +206,7 @@ static enum hrtimer_restart ioboard_test_timer(struct hrtimer *timer)
 
 	return HRTIMER_NORESTART;
 }
+
 //[*]--------------------------------------------------------------------------------------------------[*]
 static int	ioboard_keyled_resume(struct platform_device *dev)
 {
@@ -230,44 +228,13 @@ static int	ioboard_keyled_suspend(struct platform_device *dev, pm_message_t stat
 }
 
 //[*]--------------------------------------------------------------------------------------------------[*]
-#if defined(CONFIG_OF)
-static int of_ioboard_keyled_get_pins       (struct device_node *np)
-{
-    int cnt, gpio_cnt;
-    
-	if ((gpio_cnt = of_gpio_count(np)) < IOBOARD_MAX)   {
-		pr_err("Invalid GPIO pins. count = %d\n", gpio_cnt);
-		return -ENODEV;
-	}
-
-    for(cnt = 0; cnt < gpio_cnt; cnt++) {
-        sControlGpios[cnt].gpio = of_get_gpio(np, cnt);
-        if(!gpio_is_valid(sControlGpios[cnt].gpio)) {
-    		pr_err("%s: invalid GPIO pins, gpio.name=%s/gpio_no=%d\n",
-    		       np->full_name, sControlGpios[cnt].name, sControlGpios[cnt].gpio);
-    		return -ENODEV;
-        }
-    }
-
-	return 0;
-}
-#endif
-
-//[*]--------------------------------------------------------------------------------------------------[*]
 static	int		ioboard_keyled_probe		(struct platform_device *pdev)	
 {
     int i;
-    
-#if defined(CONFIG_OF)
-	if (pdev->dev.of_node) {
-        if(of_ioboard_keyled_get_pins(pdev->dev.of_node))   return -ENODEV;
-    }
-    else    {
-        return -ENODEV;
-    }
-#endif
+
 	// Control GPIO Init
 	for (i = 0; i < ARRAY_SIZE(sControlGpios); i++) {
+
 		if(sControlGpios[i].gpio)	{
 			if(gpio_request(sControlGpios[i].gpio, sControlGpios[i].name))	{
 				printk("%s : %s gpio reqest err!\n", __FUNCTION__, sControlGpios[i].name);
@@ -296,7 +263,7 @@ static	int		ioboard_keyled_probe		(struct platform_device *pdev)
 static	int		ioboard_keyled_remove		(struct platform_device *pdev)	
 {
 	int	i;
-	
+
 	for (i = 0; i < ARRAY_SIZE(sControlGpios); i++) 	{
 		if(sControlGpios[i].gpio)	gpio_free(sControlGpios[i].gpio);
 	}
@@ -309,21 +276,10 @@ static	int		ioboard_keyled_remove		(struct platform_device *pdev)
 }
 
 //[*]--------------------------------------------------------------------------------------------------[*]
-#if defined(CONFIG_OF)
-static const struct of_device_id ioboard_keyled_dt[] = {
-	{ .compatible = "ioboard-keyled" },
-	{ },
-};
-MODULE_DEVICE_TABLE(of, ioboard_keyled_dt);
-#endif
-
 static struct platform_driver ioboard_keyled_driver = {
 	.driver = {
 		.name = "ioboard-keyled",
 		.owner = THIS_MODULE,
-#if defined(CONFIG_OF)
-		.of_match_table = of_match_ptr(ioboard_keyled_dt),
-#endif
 	},
 	.probe 		= ioboard_keyled_probe,
 	.remove 	= ioboard_keyled_remove,
@@ -333,13 +289,31 @@ static struct platform_driver ioboard_keyled_driver = {
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static int __init ioboard_keyled_init(void)
-{	
-    return platform_driver_register(&ioboard_keyled_driver);
+{
+    int err;
+
+    if((err = platform_driver_register(&ioboard_keyled_driver)))
+        return  err;
+
+    if((pd = platform_device_alloc("ioboard-keyled", -1)) == NULL)  {
+        err = -ENOMEM;
+        goto exit_unregister;
+    }
+
+    if((err = platform_device_add(pd)))
+        goto exit_unregister;
+
+    return  0;
+
+exit_unregister:
+    platform_driver_unregister(&ioboard_keyled_driver);
+    return  err;
 }
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static void __exit ioboard_keyled_exit(void)
 {
+    platform_device_unregister(pd);
     platform_driver_unregister(&ioboard_keyled_driver);
 }
 

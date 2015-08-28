@@ -17,6 +17,7 @@
 #include <linux/exynos_ion.h>
 
 #include <asm/mach/arch.h>
+#include <asm/system_info.h>
 #include <mach/regs-pmu.h>
 
 #include <plat/cpu.h>
@@ -31,6 +32,9 @@ static void __init odroid_dt_map_io(void)
 
 static void __init odroid_dt_machine_init(void)
 {
+    // defined system rev in /proc/cpuinfo for wiringPi library
+    system_rev = 0x100;
+
 	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 }
 

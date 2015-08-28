@@ -1,0 +1,388 @@
+#
+# Intel network device configuration
+#
+
+config BACKPORT_NET_VENDOR_INTEL
+	bool "Intel devices"
+	depends on !NET_VENDOR_INTEL
+	default y
+	---help---
+	  If you have a network (Ethernet) card belonging to this class, say Y
+	  and read the Ethernet-HOWTO, available from
+	  <http://www.tldp.org/docs.html#howto>.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Intel cards. If you say Y, you will be asked for
+	  your specific card in the following questions.
+
+if BACKPORT_NET_VENDOR_INTEL
+
+config BACKPORT_E100
+	depends on n
+	tristate "Intel(R) PRO/100+ support"
+	depends on !E100
+	depends on PCI
+	depends on MII
+	---help---
+	  This driver supports Intel(R) PRO/100 family of adapters.
+	  To verify that your adapter is supported, find the board ID number
+	  on the adapter. Look for a label that has a barcode and a number
+	  in the format 123456-001 (six digits hyphen three digits).
+
+	  Use the above information and the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  to identify the adapter.
+
+	  For the latest Intel PRO/100 network driver for Linux, see:
+
+	  <http://www.intel.com/p/en_US/support/highlights/network/pro100plus>
+
+	  More specific information on configuring the driver is in
+	  <file:Documentation/networking/e100.txt>.
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called e100.
+
+config BACKPORT_E1000
+	depends on n
+	tristate "Intel(R) PRO/1000 Gigabit Ethernet support"
+	depends on !E1000
+	depends on PCI
+	---help---
+	  This driver supports Intel(R) PRO/1000 gigabit ethernet family of
+	  adapters.  For more information on how to identify your adapter, go
+	  to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  More specific information on configuring the driver is in
+	  <file:Documentation/networking/e1000.txt>.
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called e1000.
+
+config BACKPORT_E1000E
+	depends on n
+	tristate "Intel(R) PRO/1000 PCI-Express Gigabit Ethernet support"
+	depends on !E1000E
+	depends on PCI && (!SPARC32 || BROKEN)
+	depends on CRC32
+	depends on PTP_1588_CLOCK
+	---help---
+	  This driver supports the PCI-Express Intel(R) PRO/1000 gigabit
+	  ethernet family of adapters. For PCI or PCI-X e1000 adapters,
+	  use the regular e1000 driver For more information on how to
+	  identify your adapter, go to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called e1000e.
+
+config BACKPORT_IGB
+	tristate "Intel(R) 82575/82576 PCI-Express Gigabit Ethernet support"
+	depends on !IGB
+	depends on PCI
+	depends on PTP_1588_CLOCK
+	depends on I2C
+	depends on I2C_ALGOBIT
+	---help---
+	  This driver supports Intel(R) 82575/82576 gigabit ethernet family of
+	  adapters.  For more information on how to identify your adapter, go
+	  to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  More specific information on configuring the driver is in
+	  <file:Documentation/networking/e1000.txt>.
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called igb.
+
+config BACKPORT_IGB_HWMON
+	bool "Intel(R) PCI-Express Gigabit adapters HWMON support"
+	depends on !IGB_HWMON
+	default y
+	depends on BACKPORT_IGB && HWMON && !(IGB=y && HWMON=m)
+	---help---
+	  Say Y if you want to expose thermal sensor data on Intel devices.
+
+	  Some of our devices contain thermal sensors, both external and internal.
+	  This data is available via the hwmon sysfs interface and exposes
+	  the onboard sensors.
+
+config BACKPORT_IGB_DCA
+	bool "Direct Cache Access (DCA) Support"
+	depends on !IGB_DCA
+	default y
+	depends on BACKPORT_IGB && DCA && !(IGB=y && DCA=m)
+	---help---
+	  Say Y here if you want to use Direct Cache Access (DCA) in the
+	  driver.  DCA is a method for warming the CPU cache before data
+	  is used, with the intent of lessening the impact of cache misses.
+
+config BACKPORT_IGBVF
+	depends on n
+	tristate "Intel(R) 82576 Virtual Function Ethernet support"
+	depends on !IGBVF
+	depends on PCI
+	---help---
+	  This driver supports Intel(R) 82576 virtual functions.  For more
+	  information on how to identify your adapter, go to the Adapter &
+	  Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  More specific information on configuring the driver is in
+	  <file:Documentation/networking/e1000.txt>.
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called igbvf.
+
+config BACKPORT_IXGB
+	depends on n
+	tristate "Intel(R) PRO/10GbE support"
+	depends on !IXGB
+	depends on PCI
+	---help---
+	  This driver supports Intel(R) PRO/10GbE family of adapters for
+	  PCI-X type cards. For PCI-E type cards, use the "ixgbe" driver
+	  instead. For more information on how to identify your adapter, go
+	  to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  More specific information on configuring the driver is in
+	  <file:Documentation/networking/ixgb.txt>.
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called ixgb.
+
+config BACKPORT_IXGBE
+	depends on n
+	tristate "Intel(R) 10GbE PCI Express adapters support"
+	depends on !IXGBE
+	depends on PCI
+	select BACKPORT_MDIO
+	depends on PTP_1588_CLOCK
+	---help---
+	  This driver supports Intel(R) 10GbE PCI Express family of
+	  adapters.  For more information on how to identify your adapter, go
+	  to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called ixgbe.
+
+config BACKPORT_IXGBE_VXLAN
+	bool "Virtual eXtensible Local Area Network Support"
+	depends on !IXGBE_VXLAN
+	default n
+	depends on BACKPORT_IXGBE && VXLAN && !(IXGBE=y && VXLAN=m)
+	---help---
+	  This allows one to create VXLAN virtual interfaces that provide
+	  Layer 2 Networks over Layer 3 Networks. VXLAN is often used
+	  to tunnel virtual network infrastructure in virtualized environments.
+	  Say Y here if you want to use Virtual eXtensible Local Area Network
+	  (VXLAN) in the driver.
+
+config BACKPORT_IXGBE_HWMON
+	bool "Intel(R) 10GbE PCI Express adapters HWMON support"
+	depends on !IXGBE_HWMON
+	default y
+	depends on BACKPORT_IXGBE && HWMON && !(IXGBE=y && HWMON=m)
+	---help---
+	  Say Y if you want to expose the thermal sensor data on some of
+	  our cards, via a hwmon sysfs interface.
+
+config BACKPORT_IXGBE_DCA
+	bool "Direct Cache Access (DCA) Support"
+	depends on !IXGBE_DCA
+	default y
+	depends on BACKPORT_IXGBE && DCA && !(IXGBE=y && DCA=m)
+	---help---
+	  Say Y here if you want to use Direct Cache Access (DCA) in the
+	  driver.  DCA is a method for warming the CPU cache before data
+	  is used, with the intent of lessening the impact of cache misses.
+
+config BACKPORT_IXGBE_DCB
+	bool "Data Center Bridging (DCB) Support"
+	depends on !IXGBE_DCB
+	default n
+	depends on BACKPORT_IXGBE && DCB
+	---help---
+	  Say Y here if you want to use Data Center Bridging (DCB) in the
+	  driver.
+
+	  If unsure, say N.
+
+config BACKPORT_IXGBEVF
+	depends on n
+	tristate "Intel(R) 10GbE PCI Express Virtual Function Ethernet support"
+	depends on !IXGBEVF
+	depends on PCI_MSI
+	---help---
+	  This driver supports Intel(R) PCI Express virtual functions for the
+	  Intel(R) ixgbe driver.  For more information on how to identify your
+	  adapter, go to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/sb/CS-008441.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  More specific information on configuring the driver is in
+	  <file:Documentation/networking/ixgbevf.txt>.
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called ixgbevf.  MSI-X interrupt support is required
+	  for this driver to work correctly.
+
+config BACKPORT_I40E
+	depends on n
+	tristate "Intel(R) Ethernet Controller XL710 Family support"
+	depends on !I40E
+	depends on PTP_1588_CLOCK
+	depends on PCI
+	---help---
+	  This driver supports Intel(R) Ethernet Controller XL710 Family of
+	  devices.  For more information on how to identify your adapter, go
+	  to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/adapter/pro100/21397.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called i40e.
+
+config BACKPORT_I40E_VXLAN
+	bool "Virtual eXtensible Local Area Network Support"
+	depends on !I40E_VXLAN
+	default n
+	depends on BACKPORT_I40E && VXLAN && !(I40E=y && VXLAN=m)
+	---help---
+	  This allows one to create VXLAN virtual interfaces that provide
+	  Layer 2 Networks over Layer 3 Networks. VXLAN is often used
+	  to tunnel virtual network infrastructure in virtualized environments.
+	  Say Y here if you want to use Virtual eXtensible Local Area Network
+	  (VXLAN) in the driver.
+
+config BACKPORT_I40E_DCB
+	bool "Data Center Bridging (DCB) Support"
+	depends on !I40E_DCB
+	default n
+	depends on BACKPORT_I40E && DCB
+	---help---
+	  Say Y here if you want to use Data Center Bridging (DCB) in the
+	  driver.
+
+	  If unsure, say N.
+
+config BACKPORT_I40E_FCOE
+	bool "Fibre Channel over Ethernet (FCoE)"
+	depends on !I40E_FCOE
+	default n
+	depends on BACKPORT_I40E && DCB && FCOE
+	---help---
+	  Say Y here if you want to use Fibre Channel over Ethernet (FCoE)
+	  in the driver. This will create new netdev for exclusive FCoE
+	  use with XL710 FCoE offloads enabled.
+
+	  If unsure, say N.
+
+config BACKPORT_I40EVF
+	depends on n
+	tristate "Intel(R) XL710 X710 Virtual Function Ethernet support"
+	depends on !I40EVF
+	depends on PCI_MSI
+	---help---
+	  This driver supports Intel(R) XL710 and X710 virtual functions.
+	  For more information on how to identify your adapter, go to the
+	  Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/sb/CS-008441.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called i40evf.  MSI-X interrupt support is required
+	  for this driver to work correctly.
+
+config BACKPORT_FM10K
+	depends on n
+	tristate "Intel(R) FM10000 Ethernet Switch Host Interface Support"
+	depends on !FM10K
+	default n
+	depends on PCI_MSI
+	depends on PTP_1588_CLOCK
+	---help---
+	  This driver supports Intel(R) FM10000 Ethernet Switch Host
+	  Interface.  For more information on how to identify your adapter,
+	  go to the Adapter & Driver ID Guide at:
+
+	  <http://support.intel.com/support/network/sb/CS-008441.htm>
+
+	  For general information and support, go to the Intel support
+	  website at:
+
+	  <http://support.intel.com>
+
+	  To compile this driver as a module, choose M here. The module
+	  will be called fm10k.  MSI-X interrupt support is required
+
+config BACKPORT_FM10K_VXLAN
+	bool "Virtual eXtensible Local Area Network Support"
+	depends on !FM10K_VXLAN
+	default n
+	depends on BACKPORT_FM10K && VXLAN && !(FM10K=y && VXLAN=m)
+	---help---
+	  This allows one to create VXLAN virtual interfaces that provide
+	  Layer 2 Networks over Layer 3 Networks. VXLAN is often used
+	  to tunnel virtual network infrastructure in virtualized environments.
+	  Say Y here if you want to use Virtual eXtensible Local Area Network
+	  (VXLAN) in the driver.
+
+endif # BACKPORT_NET_VENDOR_INTEL

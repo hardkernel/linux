@@ -670,7 +670,6 @@ config LIBFCOE
 
 config FCOE
 	tristate "FCoE module"
-	depends on PCI
 	select LIBFCOE
 	---help---
 	  Fibre Channel over Ethernet module

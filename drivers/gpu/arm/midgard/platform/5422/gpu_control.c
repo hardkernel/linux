@@ -209,7 +209,7 @@ static int gpu_set_clk_vol(struct kbase_device *kbdev, int clock, int voltage)
 	return 0;
 }
 
-int gpu_control_module_init(kbase_device *kbdev)
+int gpu_control_module_init(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform = (struct exynos_context *)kbdev->platform_context;
 	if (!platform)
@@ -251,7 +251,7 @@ out:
 	return -EPERM;
 }
 
-void gpu_control_module_term(kbase_device *kbdev)
+void gpu_control_module_term(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform = (struct exynos_context *)kbdev->platform_context;
 	if (!platform)

@@ -1,0 +1,70 @@
+menuconfig BACKPORT_6LOWPAN
+	tristate "6LoWPAN Support"
+	depends on !6LOWPAN
+	depends on IPV6
+	---help---
+	  This enables IPv6 over Low power Wireless Personal Area Network -
+	  "6LoWPAN" which is supported by IEEE 802.15.4 or Bluetooth stacks.
+
+menuconfig BACKPORT_6LOWPAN_NHC
+	tristate "Next Header Compression Support"
+	depends on !6LOWPAN_NHC
+	depends on BACKPORT_6LOWPAN
+	default y
+	---help---
+	  Support for next header compression.
+
+if BACKPORT_6LOWPAN_NHC
+
+config BACKPORT_6LOWPAN_NHC_DEST
+	tristate "Destination Options Header Support"
+	depends on !6LOWPAN_NHC_DEST
+	default y
+	---help---
+	  6LoWPAN IPv6 Destination Options Header compression according to
+	  RFC6282.
+
+config BACKPORT_6LOWPAN_NHC_FRAGMENT
+	tristate "Fragment Header Support"
+	depends on !6LOWPAN_NHC_FRAGMENT
+	default y
+	---help---
+	  6LoWPAN IPv6 Fragment Header compression according to RFC6282.
+
+config BACKPORT_6LOWPAN_NHC_HOP
+	tristate "Hop-by-Hop Options Header Support"
+	depends on !6LOWPAN_NHC_HOP
+	default y
+	---help---
+	  6LoWPAN IPv6 Hop-by-Hop Options Header compression according to
+	  RFC6282.
+
+config BACKPORT_6LOWPAN_NHC_IPV6
+	tristate "IPv6 Header Support"
+	depends on !6LOWPAN_NHC_IPV6
+	default y
+	---help---
+	  6LoWPAN IPv6 Header compression according to RFC6282.
+
+config BACKPORT_6LOWPAN_NHC_MOBILITY
+	tristate "Mobility Header Support"
+	depends on !6LOWPAN_NHC_MOBILITY
+	default y
+	---help---
+	  6LoWPAN IPv6 Mobility Header compression according to RFC6282.
+
+config BACKPORT_6LOWPAN_NHC_ROUTING
+	tristate "Routing Header Support"
+	depends on !6LOWPAN_NHC_ROUTING
+	default y
+	---help---
+	  6LoWPAN IPv6 Routing Header compression according to RFC6282.
+
+config BACKPORT_6LOWPAN_NHC_UDP
+	tristate "UDP Header Support"
+	depends on !6LOWPAN_NHC_UDP
+	default y
+	---help---
+	  6LoWPAN IPv6 UDP Header compression according to RFC6282.
+
+endif

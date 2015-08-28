@@ -1,0 +1,25 @@
+config BACKPORT_NFC_MRVL
+	tristate "Marvell NFC driver support"
+	depends on !NFC_MRVL
+	depends on BACKPORT_NFC_NCI
+	help
+	  The core driver to support Marvell BACKPORT_NFC devices.
+
+	  This driver is required if you want to support
+	  Marvell BACKPORT_NFC device 8897.
+
+	  Say Y here to compile Marvell BACKPORT_NFC driver into the kernel or
+	  say M to compile it as module.
+
+config BACKPORT_NFC_MRVL_USB
+	tristate "Marvell NFC-over-USB driver"
+	depends on !NFC_MRVL_USB
+	depends on BACKPORT_NFC_MRVL && USB
+	help
+	  Marvell BACKPORT_NFC-over-USB driver.
+
+	  This driver provides support for Marvell BACKPORT_NFC-over-USB devices:
+          8897.
+
+	  Say Y here to compile support for Marvell BACKPORT_NFC-over-USB driver
+	  into the kernel or say M to compile it as module.

@@ -42,7 +42,7 @@ int gpu_get_debug_level(void)
 /**
  ** Exynos5 hardware specific initialization
  **/
-static mali_bool kbase_platform_exynos5_init(kbase_device *kbdev)
+static mali_bool kbase_platform_exynos5_init(struct kbase_device *kbdev)
 {
 #ifdef CONFIG_MALI_MIDGARD_DVFS
 	unsigned long flags;
@@ -104,7 +104,7 @@ sysfs_init_fail:
 /**
  ** Exynos5 hardware specific termination
  **/
-static void kbase_platform_exynos5_term(kbase_device *kbdev)
+static void kbase_platform_exynos5_term(struct kbase_device *kbdev)
 {
 	struct exynos_context *platform;
 	platform = (struct exynos_context *) kbdev->platform_context;
@@ -149,15 +149,6 @@ static kbase_attribute config_attributes[] = {
 		(uintptr_t)&platform_funcs
 	},
 	{
-		KBASE_CONFIG_ATTR_GPU_FREQ_KHZ_MAX,
-		G3D_MAX_FREQ
-	},
-
-	{
-		KBASE_CONFIG_ATTR_GPU_FREQ_KHZ_MIN,
-		G3D_MIN_FREQ
-	},
-	{
 		KBASE_CONFIG_ATTR_JS_RESET_TIMEOUT_MS,
 		500 /* 500ms before cancelling stuck jobs */
 	},
@@ -173,7 +164,6 @@ static kbase_attribute config_attributes[] = {
 
 kbase_platform_config platform_config = {
 		.attributes                = config_attributes,
-		.midgard_type              = KBASE_MALI_T604
 };
 
 kbase_platform_config platform_config;
@@ -181,7 +171,6 @@ kbase_platform_config e5422_platform_config;
 
 kbase_platform_config *kbase_get_platform_config(void) {
                 e5422_platform_config.attributes = config_attributes;
-                e5422_platform_config.midgard_type = KBASE_MALI_T604;
                 return &e5422_platform_config;
  
 }

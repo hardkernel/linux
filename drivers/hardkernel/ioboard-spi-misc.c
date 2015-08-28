@@ -87,7 +87,7 @@ int		ioboard_spi_misc_probe(struct spi_device *spi)
 	
     struct ioboard_spi  *ioboard_spi = dev_get_drvdata(&spi->dev);
 
-	if(!(ioboard_spi->misc = kzalloc(sizeof(struct miscdevice), GFP_KERNEL)))	{
+	if(!(ioboard_spi->misc = devm_kzalloc(&spi->dev, sizeof(struct miscdevice), GFP_KERNEL)))	{
 		printk("ioboard-spi misc struct malloc error!\n");
 		return	-ENOMEM;
 	}
@@ -111,9 +111,8 @@ void 	ioboard_spi_misc_remove(struct device *dev)
 {
 	struct ioboard_spi  *ioboard_spi = dev_get_drvdata(dev);
 
-	misc_deregister(ioboard_spi->misc);
-
-    kfree(ioboard_spi->misc);
+    if(ioboard_spi->misc)
+	    misc_deregister(ioboard_spi->misc);
 }
 
 //[*]--------------------------------------------------------------------------------------------------[*]
