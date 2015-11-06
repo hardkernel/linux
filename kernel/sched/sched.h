@@ -711,6 +711,7 @@ struct rq {
 	unsigned long nr_uninterruptible;
 
 #ifdef CONFIG_HPERF_HMP
+	struct task_struct *migrate_task; /* task from this rq for migration */
 	/* shows the amount of accumulated unfairness by tasks of this rq */
 	long druntime_sum;
 	unsigned int nr_hmp_tasks;

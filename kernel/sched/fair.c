@@ -8597,6 +8597,106 @@ static unsigned int try_to_move_task(struct task_struct *migrate_task,
 
 	return migrate_runnable_task(migrate_task, destination_cpu);
 }
+
+/**
+ * swap_tasks(): swaps two tasks from different HMP domains
+ * @sd: Current sched domain
+ * @this_cpu: without NO_HZ same as smp_processor_id().
+ *
+ * Returns weight of migrated tasks.
+ */
+static unsigned int swap_tasks(struct sched_domain *sd, int this_cpu)
+{
+	unsigned int ld_moved = 0;
+	int local_stopper = 0;
+	int foreign_stopper = 0;
+	struct rq *local_rq = cpu_rq(this_cpu);
+	struct rq *foreign_rq = NULL;
+	struct task_struct *local_task = NULL;
+	struct task_struct *foreign_task = NULL;
+	unsigned long local_flags;
+
+	local_irq_save(local_flags);
+	foreign_rq = get_unfair_rq(sd, this_cpu);
+
+	if (!foreign_rq) {
+		local_irq_restore(local_flags);
+		return 0;
+	}
+
+	double_lock_balance(foreign_rq, local_rq);
+
+	/* rq's waiting for stopper execution, return */
+	if (foreign_rq->active_balance)
+		goto unlock;
+
+	if (local_rq->active_balance)
+		goto unlock;
+
+	foreign_task = get_migration_candidate(sd, foreign_rq, 0, this_cpu);
+
+	if (!foreign_task)
+		goto unlock;
+
+	/* Get local task for migration */
+	local_task = get_migration_candidate(sd, local_rq, 0, foreign_rq->cpu);
+
+	if (!local_task) {
+		foreign_task->se.migrate_candidate = 0;
+		goto unlock;
+	}
+	/* First try to push local task */
+	ld_moved = try_to_move_task(local_task, foreign_rq->cpu,
+					&local_stopper);
+
+	/* If failed to move, then return, don't try to move foreign task */
+	if (!ld_moved) {
+		local_task->se.migrate_candidate = 0;
+		foreign_task->se.migrate_candidate = 0;
+		goto unlock;
+	}
+
+	/*
+	 * Migration is possible, but task is running,
+	 * so mark rq to run stopper.
+	 */
+	if (local_stopper) {
+		local_rq->push_cpu = foreign_rq->cpu;
+		local_rq->migrate_task = local_task;
+		local_rq->active_balance = 1;
+	}
+
+	/* Now try to pull task from another cpu */
+	ld_moved = try_to_move_task(foreign_task, this_cpu,
+					&foreign_stopper);
+
+	/* Failed to move foreign_task */
+	if (!ld_moved)
+		foreign_task->se.migrate_candidate = 0;
+
+	/* Migration is possible, mark rq to run stopper */
+	if (foreign_stopper) {
+		foreign_rq->push_cpu = this_cpu;
+		foreign_rq->migrate_task = foreign_task;
+		foreign_rq->active_balance = 1;
+	}
+
+unlock:
+	double_rq_unlock(local_rq, foreign_rq);
+	local_irq_restore(local_flags);
+
+	if (local_stopper)
+		stop_one_cpu_nowait(local_rq->cpu,
+				    active_load_balance_cpu_stop, local_rq,
+				    &local_rq->active_balance_work);
+
+	if (foreign_stopper)
+		stop_one_cpu_nowait(foreign_rq->cpu,
+				    active_load_balance_cpu_stop, foreign_rq,
+				    &foreign_rq->active_balance_work);
+
+	return ld_moved;
+}
 #endif /* CONFIG_HPERF_HMP */
 
 /*
