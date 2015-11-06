@@ -99,6 +99,11 @@ unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
 
 const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
 
+#ifdef CONFIG_HPERF_HMP
+extern void hmp_set_cpu_masks(struct cpumask *, struct cpumask *);
+static unsigned int freq_scale_cpu_power[CONFIG_NR_CPUS];
+#endif /* CONFIG_HPERF_HMP */
+
 #ifdef CONFIG_SMP
 /*
  * For asym packing, by default the lower numbered cpu has higher priority.
@@ -9588,8 +9593,38 @@ void show_numa_stats(struct task_struct *p, struct seq_file *m)
 #endif /* CONFIG_NUMA_BALANCING */
 #endif /* CONFIG_SCHED_DEBUG */
 
+#ifdef CONFIG_HPERF_HMP
+static unsigned long default_fast_mask = 0x0F;
+static unsigned long default_slow_mask = 0xF0;
+
+void hmp_set_cpu_masks(struct cpumask *fast_mask, struct cpumask *slow_mask)
+{
+	cpumask_clear(fast_mask);
+	cpumask_clear(slow_mask);
+
+	/* try to parse CPU masks from config */
+	if (strlen(CONFIG_HMP_FAST_CPU_MASK) &&
+	    strlen(CONFIG_HMP_SLOW_CPU_MASK)) {
+		if (cpumask_parse(CONFIG_HMP_FAST_CPU_MASK, fast_mask) ||
+		    cpumask_parse(CONFIG_HMP_SLOW_CPU_MASK, slow_mask))
+			pr_err("hperf_hmp: Failed to get CPU masks from config!\n");
+		else
+			return;
+	}
+
+	pr_err("hperf_hmp: Fast mask will be: %08lX, slow mask: %08lX\n",
+	       default_fast_mask, default_slow_mask);
+
+	fast_mask->bits[0] = default_fast_mask;
+	slow_mask->bits[0] = default_slow_mask;
+}
+#endif
+
 __init void init_sched_fair_class(void)
 {
+#ifdef CONFIG_HPERF_HMP
+	int cpu;
+#endif
 #ifdef CONFIG_SMP
 	open_softirq(SCHED_SOFTIRQ, run_rebalance_domains);
 
@@ -9597,6 +9632,17 @@ __init void init_sched_fair_class(void)
 	nohz.next_balance = jiffies;
 	zalloc_cpumask_var(&nohz.idle_cpus_mask, GFP_NOWAIT);
 #endif
+
+#ifdef CONFIG_HPERF_HMP
+	for_each_possible_cpu(cpu)
+		freq_scale_cpu_power[cpu] = SCHED_CAPACITY_SCALE;
+	hmp_set_cpu_masks(cpu_fastest_mask, cpu_slowest_mask);
+	pr_info("hperf_hmp: fast CPUs mask: %08X\n",
+		(unsigned int)cpumask_bits(cpu_fastest_mask)[0]);
+	pr_info("hperf_hmp: slow CPUs mask: %08X\n",
+		(unsigned int)cpumask_bits(cpu_slowest_mask)[0]);
+#endif
+
 #endif /* SMP */
 
 }
