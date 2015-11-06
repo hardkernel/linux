@@ -1339,6 +1339,27 @@ config SCHED_MC
 	  making when dealing with multi-core CPU chips at a cost of slightly
 	  increased overhead in some places. If unsure say N here.
 
+config HPERF_HMP
+	bool "HPERF_HMP load balancing enhancements for ARM big.LITTLE"
+	select SCHED_MC
+	help
+	  Uses HPERF_HMP load balancing algorithm between A7 and A15 CPU domains.
+
+config HPERF_HMP_DEBUG
+	bool "Additional HPERF_HMP runtime debug checks"
+	depends on HPERF_HMP
+	default n
+
+config HMP_FAST_CPU_MASK
+	string "Fast (Cortex-A15) CPU mask for HPERF_HMP"
+	default ""
+	depends on HPERF_HMP
+
+config HMP_SLOW_CPU_MASK
+	string "Slow (Cortex-A7) CPU mask for HPERF_HMP"
+	default ""
+	depends on HPERF_HMP
+
 config SCHED_SMT
 	bool "SMT scheduler support"
 	depends on ARM_CPU_TOPOLOGY
