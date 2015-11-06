@@ -103,9 +103,21 @@ const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
 extern void hmp_set_cpu_masks(struct cpumask *, struct cpumask *);
 static atomic_t a15_nr_hmp_busy = ATOMIC_INIT(0);
 static atomic_t a7_nr_hmp_busy = ATOMIC_INIT(0);
+
+/* Total weight of all running tasks on A15 and A7 CPU domains */
+static atomic_long_t a15_total_weight = ATOMIC_LONG_INIT(0);
+static atomic_long_t a7_total_weight = ATOMIC_LONG_INIT(0);
+
 static atomic_t hmp_imbalance = ATOMIC_INIT(0);
 
 static unsigned int freq_scale_cpu_power[CONFIG_NR_CPUS];
+
+enum hmp_balance_actions {
+	SWAP_TASKS,
+	A15_TO_A7,
+	A7_TO_A15,
+	SKIP_REBALANCE,
+};
 #endif /* CONFIG_HPERF_HMP */
 
 #ifdef CONFIG_SMP
@@ -8194,6 +8206,97 @@ static int should_we_balance(struct lb_env *env)
 	 */
 	return balance_cpu == env->dst_cpu;
 }
+#ifdef CONFIG_HPERF_HMP
+/**
+ * is_hmp_imbalance(): Calculates imbalance between HMP domains.
+ * @sd: Current sched domain.
+ *
+ * Returns migration direction(see SWAP_TASKS, A15_TO_A7, A7_TO_A15,
+ * SKIP_REBALANCE).
+ *
+ * Imbalance depends on load of tasks on A15 cores and A7 cores,
+ * current CPU's frequencies, and A7 slowdown coefficient which is about 2.4.
+ */
+static int is_hmp_imbalance(struct sched_domain *sd)
+{
+	int imbalance, cpu;
+	int a15_group_power = 0, a7_group_power = 0,
+				hmp_imbalance_min_threshold;
+	int a15_group_load, a7_group_load, a15_a7_group_power;
+	unsigned int a7_balanced_num;
+	int reminder, divisor;
+	unsigned int a15_balanced_num;
+	long long int hmp_imbalance_threshold;
+
+	if (!sd->a15_group) {
+		return SKIP_REBALANCE;
+	}
+
+	if (!sd->a7_group) {
+		return SKIP_REBALANCE;
+	}
+	for_each_online_cpu(cpu) {
+		if (cpu_is_fastest(cpu))
+			a15_group_power += freq_scale_cpu_power[cpu];
+		else
+			a7_group_power += freq_scale_cpu_power[cpu];
+	}
+
+	if (a15_group_power == 0 || a7_group_power == 0) {
+		return SKIP_REBALANCE;
+	}
+
+	a15_balanced_num = 0;
+	a7_balanced_num = 0;
+
+	for_each_online_cpu(cpu) {
+		if (cpu_rq(cpu)->cfs.h_nr_running <= 1) {
+			if (cpu_is_fastest(cpu))
+				a15_balanced_num++;
+			else
+				a7_balanced_num++;
+		}
+	}
+
+	a7_group_load = atomic_long_read(&a7_total_weight);
+
+	if (atomic_long_read(&a7_total_weight) == 0 &&
+	    (a15_balanced_num == sd->a15_group->group_weight)) {
+		return SKIP_REBALANCE;
+	}
+
+	a15_group_load = atomic_long_read(&a15_total_weight);
+	a15_a7_group_power = a15_group_power + a7_group_power;
+
+	imbalance = (a15_group_load * 1024) / (a15_group_power) -
+		    (a7_group_load * 1024) / (a7_group_power);
+	hmp_imbalance_threshold = ((long long int)NICE_0_LOAD *
+				   1024 * a15_a7_group_power);
+	divisor = 2 * a15_group_power * a7_group_power;
+	hmp_imbalance_threshold = div_s64_rem(hmp_imbalance_threshold,
+						divisor, &reminder);
+	hmp_imbalance_min_threshold = hmp_imbalance_threshold >> 3;
+
+	if (imbalance < hmp_imbalance_min_threshold &&
+	    imbalance > -hmp_imbalance_min_threshold) {
+		atomic_set(&hmp_imbalance, 0);
+		return SKIP_REBALANCE;
+	}
+
+	if (imbalance > hmp_imbalance_threshold) {
+		return A15_TO_A7;
+	} else {
+		if (imbalance < -hmp_imbalance_threshold) {
+			if (a7_balanced_num == sd->a7_group->group_weight)
+				return SWAP_TASKS;
+			else
+				return A7_TO_A15;
+		} else {
+			return SWAP_TASKS;
+		}
+	}
+}
+#endif /* CONFIG_HPERF_HMP */
 
 /*
  * Check this_cpu to ensure it is balanced within domain. Attempt to move
