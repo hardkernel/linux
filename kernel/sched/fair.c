@@ -8599,6 +8599,72 @@ static unsigned int try_to_move_task(struct task_struct *migrate_task,
 }
 
 /**
+ * hmp_idle_pull(): Pulls task from opposite domain of this_cpu to this_cpu.
+ * @sd: Current sched domain.
+ * @this_cpu: without NO_HZ same as smp_processor_id().
+ *
+ * Returns moved weight.
+ *
+ * Chooses task by its druntime. Ignores task's druntime and
+ * time of last HMP migration. Also A7 can't pulls task from A15
+ * if A15 become idle.
+ */
+static unsigned int hmp_idle_pull(struct sched_domain *sd, int this_cpu)
+{
+	unsigned int ld_moved = 0;
+	struct task_struct *task_to_pull;
+	unsigned long local_flags;
+	int idle_stopper = 0;
+	struct rq *local_rq;
+	struct rq *rq;
+
+	local_irq_save(local_flags);
+	local_rq = cpu_rq(this_cpu);
+	rq = get_unfair_rq(sd, this_cpu);
+
+	if (!rq) {
+		local_irq_restore(local_flags);
+		return 0;
+	}
+	double_lock_balance(rq, local_rq);
+
+	if (rq->active_balance)
+		goto unlock;
+
+	if (local_rq->active_balance)
+		goto unlock;
+
+	/* Forbids secondary CPUs to pull alone task from primary CPUs */
+	if (!cpu_is_fastest(this_cpu) && rq->cfs.h_nr_running <= 1)
+		goto unlock;
+
+	/* Get task to pull from opposite domain to this_cpu */
+	task_to_pull = get_migration_candidate(sd, rq, 1, this_cpu);
+
+	if (!task_to_pull)
+		goto unlock;
+
+	ld_moved = try_to_move_task(task_to_pull, this_cpu, &idle_stopper);
+
+	if (idle_stopper) {
+		rq->push_cpu = this_cpu;
+		rq->active_balance = 1;
+		rq->migrate_task = task_to_pull;
+	}
+
+unlock:
+	double_rq_unlock(local_rq, rq);
+	local_irq_restore(local_flags);
+
+	if (idle_stopper)
+		stop_one_cpu_nowait(rq->cpu, active_load_balance_cpu_stop,
+				    rq, &rq->active_balance_work);
+
+	return ld_moved;
+}
+
+
+/**
  * swap_tasks(): swaps two tasks from different HMP domains
  * @sd: Current sched domain
  * @this_cpu: without NO_HZ same as smp_processor_id().
