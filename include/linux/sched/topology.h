@@ -109,6 +109,10 @@ struct sched_domain {
 
 	u64 avg_scan_cost;		/* select_idle_sibling */
 
+#ifdef CONFIG_HPERF_HMP
+	struct sched_group *a15_group;
+	struct sched_group *a7_group;
+#endif
 #ifdef CONFIG_SCHEDSTATS
 	/* load_balance() stats */
 	unsigned int lb_count[CPU_MAX_IDLE_TYPES];
