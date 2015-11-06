@@ -8296,6 +8296,307 @@ static int is_hmp_imbalance(struct sched_domain *sd)
 		}
 	}
 }
+
+/**
+ * hmp_can_migrate_task(): Checks whether specified task could be migrated.
+ * @p: task to check.
+ * @env: migration parameters.
+ *
+ * Returns 1 if migration possible, else 0.
+ */
+static int hmp_can_migrate_task(struct task_struct *p, struct lb_env *env)
+{
+	if (!cpumask_test_cpu(env->dst_cpu, tsk_cpus_allowed(p))) {
+		schedstat_inc(p, se.statistics.nr_failed_migrations_affine);
+		return 0;
+	}
+	env->flags &= ~LBF_ALL_PINNED;
+
+	if (task_running(env->src_rq, p)) {
+		schedstat_inc(p, se.statistics.nr_failed_migrations_running);
+		return 0;
+	}
+	return 1;
+}
+
+/**
+ * detach_specified_task(): Detaches specified task.
+ * @pm: Task to move.
+ * @env: Migration parameters.
+ *
+ * Returns moved task.
+ */
+static struct task_struct *
+detach_specified_task(struct task_struct *p, struct lb_env *env)
+{
+	lockdep_assert_held(&env->src_rq->lock);
+
+	/* If task to move falls asleep, so don't scan runqueue and return */
+	if (p->se.migrate_candidate == 0)
+		return 0;
+
+	if (throttled_lb_pair(task_group(p), env->src_rq->cpu, env->dst_cpu))
+		goto exit;
+
+	if (!hmp_can_migrate_task(p, env))
+		goto exit;
+
+	detach_task(p, env);
+	/*
+	 * Right now, this is only the third place move_task()
+	 * is called, so we can safely collect move_task()
+	 * stats here rather than inside move_task().
+	 */
+	schedstat_inc(env->sd, lb_gained[env->idle]);
+	return p;
+exit:
+	p->se.migrate_candidate = 0;
+
+	return NULL;
+}
+
+/**
+ * migrate_runnable_task(): Moves task that isn't running to destination CPU.
+ * @migrate_task: Task to migrate.
+ * @destination_cpu: Destination CPU.
+ *
+ * Returns moved weight.
+ *
+ * Runqueue's of @migrate_task and @destination_cpu must be locked.
+ */
+static unsigned migrate_runnable_task(struct task_struct *migrate_task,
+				      int destination_cpu)
+{
+	struct sched_domain *sd = NULL;
+	int src_cpu = task_cpu(migrate_task);
+	struct rq *src_rq = task_rq(migrate_task);
+	int dst_cpu = destination_cpu;
+	struct rq *dst_rq = cpu_rq(dst_cpu);
+	unsigned int ld_moved = 0;
+	struct task_struct *p = NULL;
+
+#ifdef CONFIG_HPERF_HMP_DEBUG
+	BUG_ON(src_rq == dst_rq);
+#else
+	if (WARN_ON(src_rq == dst_rq))
+		return 0;
+#endif
+
+	rcu_read_lock();
+	for_each_domain(dst_cpu, sd) {
+		if (cpumask_test_cpu(src_cpu, sched_domain_span(sd)))
+			break;
+	}
+	if (likely(sd)) {
+		struct lb_env env = {
+			.sd		= sd,
+			.dst_cpu	= dst_cpu,
+			.dst_rq		= dst_rq,
+			.src_cpu	= src_cpu,
+			.src_rq		= src_rq,
+			.idle		= CPU_NOT_IDLE,
+		};
+
+		schedstat_inc(sd, alb_count);
+		p = detach_specified_task(migrate_task, &env);
+		if (p) {
+			migrate_task->se.last_migration = jiffies;
+			schedstat_inc(sd, alb_pushed);
+			ld_moved = migrate_task->se.load.weight;
+		} else
+			schedstat_inc(sd, alb_failed);
+	}
+	rcu_read_unlock();
+
+	if (p)
+		attach_task(dst_rq, p);
+
+	if (migrate_task->se.migrate_candidate)
+		migrate_task->se.migrate_candidate = 0;
+	return ld_moved;
+}
+
+/* A task can't be migrated more often than 4 ms between A7 and A15 CPUs */
+static int se_is_old(struct sched_entity *se)
+{
+	const unsigned int migration_delay = 4; /* ms */
+
+	return time_after(jiffies,
+			se->last_migration + msecs_to_jiffies(migration_delay));
+}
+
+/**
+ * get_opposite_group(): Gets A15 of A7 group of domain.
+ * @sd: Current sched domain.
+ * @domain: Flag, which group is needed.
+ *
+ * Returns pointer to sched group.
+ */
+static struct sched_group *get_opposite_group(struct sched_domain *sd,
+					      int domain)
+{
+	if (!domain)
+		return sd->a15_group;
+	else
+		return sd->a7_group;
+}
+
+/**
+ * get_unfair_rq(): Returns runqueue which most fits for HMP migration.
+ * @sd: Current sched_domain.
+ * @this_cpu: without NO_HZ same as smp_processor_id().
+ *
+ * Returns struct rq*.
+ *
+ * Returned runqueue will be locked.
+ */
+static struct rq *get_unfair_rq(struct sched_domain *sd, int this_cpu)
+{
+	struct rq *unfair_rq = NULL;
+	struct sched_group *opposite_sg;
+	struct cpumask *opposite_mask;
+	int druntime;
+	int cpu;
+
+	opposite_sg = get_opposite_group(sd, cpu_is_fastest(this_cpu));
+
+	if (!opposite_sg)
+		return NULL;
+
+	opposite_mask = sched_group_cpus(opposite_sg);
+	druntime = cpu_is_fastest(this_cpu) ? INT_MIN : INT_MAX;
+
+	/* Check rq's of opposite domain */
+	for_each_cpu_and(cpu, opposite_mask, cpu_online_mask) {
+		struct rq *rq = cpu_rq(cpu);
+		long tmp_druntime;
+
+		/*
+		 * Note: the value is read without a spinlock and can be
+		 *       outdated. But it is fine in the long run.
+		 */
+		tmp_druntime = rq->druntime_sum;
+
+		/* Skip empty rqs or rqs waiting for stopper */
+		if (rq->active_balance || !rq->cfs.h_nr_running)
+			continue;
+
+		if (cpu_is_fastest(cpu)) {
+			if (tmp_druntime < druntime) {
+				druntime = tmp_druntime;
+				unfair_rq = rq;
+			}
+		} else {
+			if (tmp_druntime > druntime) {
+				druntime = tmp_druntime;
+				unfair_rq = rq;
+			}
+		}
+	}
+
+	if (unfair_rq) {
+		raw_spin_lock(&unfair_rq->lock);
+		if (!unfair_rq->cfs.h_nr_running || unfair_rq->active_balance) {
+			raw_spin_unlock(&unfair_rq->lock);
+			return NULL;
+		}
+	}
+
+	return unfair_rq;
+}
+
+/**
+ * get_migration_candidate(): Get task which most fits for HMP migration.
+ * @sd: Current sched domain.
+ * @unfair_rq: Runqueue to scan for migration task.
+ * @idle_flag: Determines unfair_rq is idle for not. If 1, then ignore task's
+ * @destination_cpu: Destination CPU for task from @unfair_rq
+ * druntime and last migration time.
+ *
+ * Returns struct task_struct*.
+ *
+ * @unfair_rq must be locked. @sd must have SD_HMP_BALANCE flag.
+ */
+static struct task_struct *get_migration_candidate(struct sched_domain *sd,
+						   struct rq *unfair_rq,
+						   int idle_flag,
+						   int destination_cpu)
+{
+	long druntime;
+	struct task_struct *p;
+	struct list_head *tasks;
+	struct task_struct *candidate = NULL;
+	unsigned int count = sched_nr_migrate_break;
+
+	if (unfair_rq->cfs.h_nr_running < count)
+		count = unfair_rq->cfs.h_nr_running;
+
+	tasks = &unfair_rq->cfs_tasks;
+	druntime = cpu_is_fastest(unfair_rq->cpu) ? LONG_MAX : LONG_MIN;
+
+	while (!list_empty(tasks)) {
+		p = list_first_entry(tasks, struct task_struct, se.group_node);
+
+		if (!count)
+			break;
+
+		count--;
+		/* this task pinned by someone else for HMP migration */
+		if (p->se.migrate_candidate)
+			goto next;
+
+		/* if task can't run on destination cpu, skip */
+		if (!cpumask_test_cpu(destination_cpu, tsk_cpus_allowed(p)))
+			goto next;
+
+		/* check for 4ms timestamp, if idle_pull then don't care*/
+		if (!se_is_old(&p->se) && !idle_flag)
+			goto next;
+
+		if (cpu_is_fastest(unfair_rq->cpu)) {
+			if (p->se.druntime < druntime &&
+			    (p->se.druntime < 0 || idle_flag)) {
+				candidate = p;
+				druntime = p->se.druntime;
+			}
+		} else {
+			if (p->se.druntime > druntime &&
+			    (p->se.druntime > 0 || idle_flag)) {
+				candidate = p;
+				druntime = p->se.druntime;
+			}
+		}
+
+next:
+		list_move_tail(&p->se.group_node, tasks);
+	}
+
+	if (candidate)
+		candidate->se.migrate_candidate = 1;
+
+	return candidate;
+}
+
+/**
+ * try_to_move_task(): Migrates task if it isn't running.
+ * @migrate_task: Task to migrate.
+ * @destination_cpu: Destination cpu for @migrate_task.
+ * @stopper_needed: Flag which show that stopper thread needed to migrate task.
+ *
+ * Returns moved weight and flag that stopper needed or not.
+ *
+ * Runqueues of @migrate_task and @destination_cpu must be locked.
+ */
+static unsigned int try_to_move_task(struct task_struct *migrate_task,
+				int destination_cpu, int *stopper_needed)
+{
+	if (task_running(task_rq(migrate_task), migrate_task)) {
+		*stopper_needed = 1;
+		return migrate_task->se.load.weight;
+	}
+
+	return migrate_runnable_task(migrate_task, destination_cpu);
+}
 #endif /* CONFIG_HPERF_HMP */
 
 /*
