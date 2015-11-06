@@ -101,6 +101,10 @@ const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
 
 #ifdef CONFIG_HPERF_HMP
 extern void hmp_set_cpu_masks(struct cpumask *, struct cpumask *);
+static atomic_t a15_nr_hmp_busy = ATOMIC_INIT(0);
+static atomic_t a7_nr_hmp_busy = ATOMIC_INIT(0);
+static atomic_t hmp_imbalance = ATOMIC_INIT(0);
+
 static unsigned int freq_scale_cpu_power[CONFIG_NR_CPUS];
 #endif /* CONFIG_HPERF_HMP */
 
@@ -709,6 +713,115 @@ static u64 sched_vslice(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	return calc_delta_fair(sched_slice(cfs_rq, se), se);
 }
 
+#ifdef CONFIG_HPERF_HMP
+static bool
+is_task_hmp(struct task_struct *task, const struct cpumask *task_cpus)
+{
+	if (!task_cpus)
+		task_cpus = tsk_cpus_allowed(task);
+
+	/*
+	 * Check if a task has cpus_allowed only for one CPU domain (A15 or A7)
+	 */
+	return !(cpumask_intersects(task_cpus, cpu_fastest_mask) ^
+		 cpumask_intersects(task_cpus, cpu_slowest_mask));
+}
+
+#ifdef CONFIG_HPERF_HMP_DEBUG
+static inline void check_druntime_sum(struct rq *rq, long druntime_sum)
+{
+	BUG_ON(rq->cfs.h_nr_running == 0 && druntime_sum != 0);
+
+	if (cpu_is_fastest(rq->cpu))
+		BUG_ON(druntime_sum > 0);
+	else
+		BUG_ON(druntime_sum < 0);
+}
+#else
+static inline void check_druntime_sum(struct rq *rq, long druntime_sum)
+{
+}
+#endif
+
+static inline void add_druntime_sum(struct rq *rq, long delta)
+{
+	rq->druntime_sum += delta;
+	check_druntime_sum(rq, rq->druntime_sum);
+}
+/* Updates druntime for a task */
+static inline void
+update_hmp_stat(struct cfs_rq *cfs_rq, struct sched_entity *curr,
+		unsigned long delta_exec)
+{
+	long to_add;
+	unsigned int hmp_fairness_threshold = 240;
+	struct rq *rq = rq_of(cfs_rq);
+	int a7_nr_hmp_busy_tmp;
+
+	if (atomic_read(&hmp_imbalance) == 0)
+		return;
+
+	if (!curr->on_rq)
+		return;
+
+	if (!entity_is_task(curr))
+		return;
+
+	if (!task_of(curr)->on_rq)
+		return;
+
+	if (!cfs_rq->h_nr_running)
+		return;
+
+	if (!is_task_hmp(task_of(curr), NULL))
+		return;
+
+	delta_exec = delta_exec >> 10;
+
+	if (cpu_is_fastest(rq->cpu))
+		to_add = -delta_exec;
+	else
+		to_add = delta_exec;
+
+	to_add -= curr->druntime;
+
+	/* Avoid values with the different sign */
+	if ((cpu_is_fastest(rq->cpu) && to_add >= 0) ||
+	    (!cpu_is_fastest(rq->cpu) && to_add <= 0))
+		return;
+
+	to_add /= (long)(2 + 4 * hmp_fairness_threshold /
+			(cfs_rq->h_nr_running + 1));
+
+	a7_nr_hmp_busy_tmp = atomic_read(&a7_nr_hmp_busy);
+	/* druntime balancing between the domains */
+	if (!cpu_is_fastest(rq->cpu) && a7_nr_hmp_busy_tmp) {
+		to_add *= atomic_read(&a15_nr_hmp_busy);
+		to_add /= a7_nr_hmp_busy_tmp;
+	}
+
+	if (cpu_is_fastest(rq->cpu)) {
+		if (curr->druntime < 0)
+			add_druntime_sum(rq, to_add);
+		else if ((curr->druntime + to_add) < 0)
+			add_druntime_sum(rq, curr->druntime + to_add);
+	} else {
+		if (curr->druntime > 0)
+			add_druntime_sum(rq, to_add);
+		else if ((curr->druntime + to_add) > 0)
+			add_druntime_sum(rq, curr->druntime + to_add);
+	}
+
+	curr->druntime += to_add;
+}
+#else
+static inline void
+update_hmp_stat(struct cfs_rq *cfs_rq, struct sched_entity *curr,
+	      unsigned long delta_exec)
+{
+}
+#endif /* CONFIG_HPERF_HMP */
+
 #ifdef CONFIG_SMP
 
 #include "sched-pelt.h"
@@ -861,6 +974,8 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	}
 
 	account_cfs_rq_runtime(cfs_rq, delta_exec);
+
+	update_hmp_stat(cfs_rq, curr, delta_exec);
 }
 
 static void update_curr_fair(struct rq *rq)

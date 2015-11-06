@@ -380,6 +380,9 @@ struct sched_entity {
 	struct list_head		group_node;
 	unsigned int			on_rq;
 
+#ifdef CONFIG_HPERF_HMP
+	long			druntime;
+#endif
 	u64				exec_start;
 	u64				sum_exec_runtime;
 	u64				vruntime;
