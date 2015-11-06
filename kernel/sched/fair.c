@@ -5569,6 +5569,62 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p,
 	return affine;
 }
 
+#ifdef CONFIG_HPERF_HMP
+/**
+ * hmp_select_task_rq_fair(): selects cpu for task.
+ * @p: task which needs cpu
+ *
+ * Returns cpu for task.
+ *
+ * Selects idlest cpu for task @p.
+ */
+static int
+hmp_select_task_rq_fair(struct task_struct *p)
+{
+	int cpu;
+	int new_cpu;
+	unsigned long load;
+	unsigned long scaled_load;
+
+	new_cpu = task_cpu(p);
+
+	load = ULONG_MAX;
+	/* First check primary cpus */
+	for_each_cpu_and(cpu, cpu_online_mask, cpu_fastest_mask) {
+		if (cpumask_test_cpu(cpu, tsk_cpus_allowed(p))) {
+			/* Select idle cpu if it exists */
+			if (idle_cpu(cpu))
+				return cpu;
+			/* Otherwise select the least loaded cpu */
+			scaled_load = (weighted_cpuload(cpu) *
+				       SCHED_CAPACITY_SCALE) /
+				       freq_scale_cpu_power[cpu];
+			if (scaled_load < load) {
+				new_cpu = cpu;
+				load = scaled_load;
+			}
+		}
+	}
+
+	/* Then check secondary cpus */
+	for_each_cpu_and(cpu, cpu_online_mask, cpu_slowest_mask) {
+		if (cpumask_test_cpu(cpu, tsk_cpus_allowed(p))) {
+			if (idle_cpu(cpu))
+				return cpu;
+			scaled_load = (weighted_cpuload(cpu) *
+				       SCHED_CAPACITY_SCALE) /
+				       freq_scale_cpu_power[cpu];
+			if (scaled_load < load) {
+				new_cpu = cpu;
+				load = scaled_load;
+			}
+		}
+	}
+
+	return new_cpu;
+}
+
+#else /* CONFIG_HPERF_HMP */
 static inline int task_util(struct task_struct *p);
 static int cpu_util_wake(int cpu, struct task_struct *p);
 
@@ -5761,6 +5817,7 @@ find_idlest_cpu(struct sched_group *group, struct task_struct *p, int this_cpu)
 	return shallowest_idle_cpu != -1 ? shallowest_idle_cpu : least_loaded_cpu;
 }
 
+#endif /* CONFIG_HPERF_HMP */
 #ifdef CONFIG_SCHED_SMT
 
 static inline void set_idle_cores(int cpu, int val)
@@ -6077,6 +6134,11 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 	int want_affine = 0;
 	int sync = wake_flags & WF_SYNC;
 
+#ifdef CONFIG_HPERF_HMP
+	if (!(sd_flag & SD_BALANCE_WAKE) || !sync)
+		return hmp_select_task_rq_fair(p);
+#endif
+
 	if (sd_flag & SD_BALANCE_WAKE) {
 		record_wakee(p);
 		want_affine = !wake_wide(p) && !wake_cap(p, cpu, prev_cpu)
@@ -6116,41 +6178,49 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 	if (!sd) {
  pick_cpu:
 		if (sd_flag & SD_BALANCE_WAKE) /* XXX always ? */
-			new_cpu = select_idle_sibling(p, prev_cpu, new_cpu);
+			if (IS_ENABLED(CONFIG_HPERF_HMP) && sync)
+				new_cpu = prev_cpu;
+			else
+				new_cpu = select_idle_sibling(p, prev_cpu);
+	} else {
+#ifdef CONFIG_HPERF_HMP
+		new_cpu = hmp_select_task_rq_fair(p);
+#else
+		while (sd) {
+			struct sched_group *group;
+			int weight;
 
-	} else while (sd) {
-		struct sched_group *group;
-		int weight;
+			if (!(sd->flags & sd_flag)) {
+				sd = sd->child;
+				continue;
+			}
 
-		if (!(sd->flags & sd_flag)) {
-			sd = sd->child;
-			continue;
-		}
+			group = find_idlest_group(sd, p, cpu, sd_flag);
+			if (!group) {
+				sd = sd->child;
+				continue;
+			}
 
-		group = find_idlest_group(sd, p, cpu, sd_flag);
-		if (!group) {
-			sd = sd->child;
-			continue;
-		}
+			new_cpu = find_idlest_cpu(group, p, cpu);
+			if (new_cpu == -1 || new_cpu == cpu) {
+				/* Now try balancing at a lower domain level of cpu */
+				sd = sd->child;
+				continue;
+			}
 
-		new_cpu = find_idlest_cpu(group, p, cpu);
-		if (new_cpu == -1 || new_cpu == cpu) {
-			/* Now try balancing at a lower domain level of cpu */
-			sd = sd->child;
-			continue;
-		}
-
-		/* Now try balancing at a lower domain level of new_cpu */
-		cpu = new_cpu;
-		weight = sd->span_weight;
-		sd = NULL;
-		for_each_domain(cpu, tmp) {
-			if (weight <= tmp->span_weight)
-				break;
-			if (tmp->flags & sd_flag)
-				sd = tmp;
-		}
-		/* while loop will break here if sd == NULL */
+			/* Now try balancing at a lower domain level of new_cpu */
+			cpu = new_cpu;
+			weight = sd->span_weight;
+			sd = NULL;
+			for_each_domain(cpu, tmp) {
+				if (weight <= tmp->span_weight)
+					break;
+				if (tmp->flags & sd_flag)
+					sd = tmp;
+			}
+			/* while loop will break here if sd == NULL */
+	}
+#endif
 	}
 	rcu_read_unlock();
 
