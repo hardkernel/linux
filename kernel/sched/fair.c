@@ -726,6 +726,16 @@ static u64 sched_vslice(struct cfs_rq *cfs_rq, struct sched_entity *se)
 }
 
 #ifdef CONFIG_HPERF_HMP
+static void hmp_calculate_imbalance(void)
+{
+	if (atomic_long_read(&a7_total_weight) == 0) {
+		atomic_set(&hmp_imbalance, 0);
+		return;
+	}
+
+	atomic_set(&hmp_imbalance, 1);
+}
+
 static bool
 is_task_hmp(struct task_struct *task, const struct cpumask *task_cpus)
 {
@@ -760,6 +770,13 @@ static inline void add_druntime_sum(struct rq *rq, long delta)
 	rq->druntime_sum += delta;
 	check_druntime_sum(rq, rq->druntime_sum);
 }
+
+static inline void sub_druntime_sum(struct rq *rq, long delta)
+{
+	rq->druntime_sum -= delta;
+	check_druntime_sum(rq, rq->druntime_sum);
+}
+
 /* Updates druntime for a task */
 static inline void
 update_hmp_stat(struct cfs_rq *cfs_rq, struct sched_entity *curr,
@@ -987,7 +1004,9 @@ static void update_curr(struct cfs_rq *cfs_rq)
 
 	account_cfs_rq_runtime(cfs_rq, delta_exec);
 
+#ifdef	CONFIG_HPERF_HMP
 	update_hmp_stat(cfs_rq, curr, delta_exec);
+#endif
 }
 
 static void update_curr_fair(struct rq *rq)
@@ -5001,6 +5020,66 @@ static inline void hrtick_update(struct rq *rq)
 }
 #endif
 
+#ifdef CONFIG_HPERF_HMP
+#ifdef CONFIG_HPERF_HMP_DEBUG
+static void check_nr_hmp_tasks(struct rq *rq)
+{
+	if (rq->nr_hmp_tasks > rq->cfs.h_nr_running) {
+		pr_emerg("HMP BUG: rq->nr_hmp_tasks = %u, "
+			 "rq->cfs.h_nr_running = %u\n", rq->nr_hmp_tasks,
+			 rq->cfs.h_nr_running);
+		BUG();
+	}
+}
+#else
+static void check_nr_hmp_tasks(struct rq *rq) { }
+#endif
+
+static void nr_hmp_tasks_inc(struct rq *rq)
+{
+	if (!rq->nr_hmp_tasks) {
+		if (cpu_is_fastest(rq->cpu))
+			atomic_inc(&a15_nr_hmp_busy);
+		else
+			atomic_inc(&a7_nr_hmp_busy);
+	}
+
+	rq->nr_hmp_tasks++;
+	check_nr_hmp_tasks(rq);
+}
+
+static void nr_hmp_tasks_dec(struct rq *rq)
+{
+	rq->nr_hmp_tasks--;
+
+	if (!rq->nr_hmp_tasks) {
+		if (cpu_is_fastest(rq->cpu))
+			atomic_dec(&a15_nr_hmp_busy);
+		else
+			atomic_dec(&a7_nr_hmp_busy);
+	}
+	check_nr_hmp_tasks(rq);
+}
+
+static void
+set_cpus_allowed_hmp(struct task_struct *p, const struct cpumask *new_mask)
+{
+	bool is_hmp_before, is_hmp_after;
+
+	cpumask_copy(&p->cpus_allowed, new_mask);
+	p->nr_cpus_allowed = cpumask_weight(new_mask);
+	is_hmp_before = is_task_hmp(p, NULL);
+	is_hmp_after  = is_task_hmp(p, new_mask);
+
+	if (!p->on_cpu && p->se.on_rq && (is_hmp_before != is_hmp_after)) {
+		if (is_hmp_after)
+			nr_hmp_tasks_inc(rq_of(cfs_rq_of(&p->se)));
+		else
+			nr_hmp_tasks_dec(rq_of(cfs_rq_of(&p->se)));
+	}
+}
+#endif
+
 /*
  * The enqueue_task method is called before nr_running is
  * increased. Here we update the fair scheduling stats and
@@ -5050,8 +5129,24 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		update_cfs_shares(se);
 	}
 
-	if (!se)
+	if (!se) {
 		add_nr_running(rq, 1);
+#ifdef CONFIG_HPERF_HMP
+		if (is_task_hmp(p, NULL))
+			nr_hmp_tasks_inc(rq);
+
+		if (cpu_is_fastest(rq->cpu)) {
+			atomic_long_add(p->se.load.weight, &a15_total_weight);
+			if (p->se.druntime < 0)
+				add_druntime_sum(rq, p->se.druntime);
+		} else {
+			atomic_long_add(p->se.load.weight, &a7_total_weight);
+			if (p->se.druntime > 0)
+				add_druntime_sum(rq, p->se.druntime);
+		}
+		hmp_calculate_imbalance();
+#endif
+	}
 
 	hrtick_update(rq);
 }
@@ -5109,8 +5204,30 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		update_cfs_shares(se);
 	}
 
-	if (!se)
+	if (!se) {
 		sub_nr_running(rq, 1);
+#ifdef CONFIG_HPERF_HMP
+		if (is_task_hmp(p, NULL))
+			nr_hmp_tasks_dec(rq);
+
+		/*
+		 * Set this field to 0 because if task selected for migration
+		 * fall asleep it will never be selected again for migration.
+		 */
+		p->se.migrate_candidate = 0;
+
+		if (cpu_is_fastest(rq->cpu)) {
+			atomic_long_sub(p->se.load.weight, &a15_total_weight);
+			if (p->se.druntime < 0)
+				sub_druntime_sum(rq, p->se.druntime);
+		} else {
+			atomic_long_sub(p->se.load.weight, &a7_total_weight);
+			if (p->se.druntime > 0)
+				sub_druntime_sum(rq, p->se.druntime);
+		}
+		hmp_calculate_imbalance();
+#endif
+	}
 
 	hrtick_update(rq);
 }
@@ -6964,6 +7081,11 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 	}
 
 	schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
+
+#ifdef CONFIG_HPERF_HMP
+	if (env->src_rq->migrate_task) /*idle pull*/
+		return 1;
+#endif
 	return 0;
 }
 
@@ -6995,6 +7117,10 @@ static struct task_struct *detach_one_task(struct lb_env *env)
 		if (!can_migrate_task(p, env))
 			continue;
 
+#ifdef CONFIG_HPERF_HMP
+		if (p->se.migrate_candidate)
+			continue;
+#endif
 		detach_task(p, env);
 
 		/*
@@ -7062,6 +7188,10 @@ static int detach_tasks(struct lb_env *env)
 		if ((load / 2) > env->imbalance)
 			goto next;
 
+#ifdef CONFIG_HPERF_HMP
+		if (p->se.migrate_candidate)
+			goto next;
+#endif
 		detach_task(p, env);
 		list_add(&p->se.group_node, &env->tasks);
 
@@ -9087,6 +9217,44 @@ unlock:
 
 	return ld_moved;
 }
+
+/**
+ * hmp_do_rebalance(): Checks imbalance in HMP domain and performs balancing.
+ *
+ * @sd: Current sched domain.
+ * @this_cpu: without NO_HZ same as smp_processor_id().
+ *
+ * Returns moved weight.
+ */
+static unsigned int hmp_do_rebalance(struct sched_domain *sd, int this_cpu)
+{
+	unsigned int ld_moved = 0;
+	switch (is_hmp_imbalance(sd)) {
+	case SWAP_TASKS:
+		ld_moved = swap_tasks(sd, this_cpu);
+		break;
+	case A15_TO_A7:
+		ld_moved = move_a15_to_a7(sd, this_cpu);
+		break;
+	case A7_TO_A15:
+		ld_moved = move_a7_to_a15(sd, this_cpu);
+		break;
+	case SKIP_REBALANCE:
+	default:
+		break;
+	}
+	return ld_moved;
+}
+
+/* HMP balancing entry point */
+static unsigned int hmp_load_balance(struct sched_domain *sd,
+				     enum cpu_idle_type idle, int this_cpu)
+{
+	if (idle == CPU_NEWLY_IDLE || idle == CPU_IDLE)
+		return hmp_idle_pull(sd, this_cpu);
+	else
+		return hmp_do_rebalance(sd, this_cpu);
+}
 #endif /* CONFIG_HPERF_HMP */
 
 /*
@@ -9116,6 +9284,11 @@ static int load_balance(int this_cpu, struct rq *this_rq,
 		.tasks		= LIST_HEAD_INIT(env.tasks),
 	};
 
+#ifdef CONFIG_HPERF_HMP
+	/* It is HMP domain, so branch to HPERF_HMP logic */
+	if (sd->flags & SD_HMP_BALANCE)
+		return hmp_load_balance(sd, idle, this_cpu);
+#endif
 	cpumask_and(cpus, sched_domain_span(sd), cpu_active_mask);
 
 	schedstat_inc(sd->lb_count[idle]);
@@ -9514,6 +9687,14 @@ static int active_load_balance_cpu_stop(void *data)
 	struct task_struct *p = NULL;
 	struct rq_flags rf;
 
+#ifdef CONFIG_HPERF_HMP_DEBUG
+	if (!cpumask_test_cpu(target_cpu, cpu_fastest_mask) &&
+	    !cpumask_test_cpu(target_cpu, cpu_slowest_mask)) {
+		pr_emerg("hperf_hmp: %s: for CPU#%i target_cpu is invalid: %i!\n",
+		       __func__, busiest_cpu, target_cpu);
+		BUG();
+	}
+#endif
 	rq_lock_irq(busiest_rq, &rf);
 	/*
 	 * Between queueing the stop-work and running it is a hole in which
@@ -9548,6 +9729,9 @@ static int active_load_balance_cpu_stop(void *data)
 	}
 
 	if (likely(sd)) {
+#ifdef CONFIG_HPERF_HMP
+		struct task_struct *migrate_task;
+#endif
 		struct lb_env env = {
 			.sd		= sd,
 			.dst_cpu	= target_cpu,
@@ -9567,7 +9751,19 @@ static int active_load_balance_cpu_stop(void *data)
 		schedstat_inc(sd->alb_count);
 		update_rq_clock(busiest_rq);
 
+#ifdef CONFIG_HPERF_HMP
+		if (env.src_rq->migrate_task) {
+			migrate_task = env.src_rq->migrate_task;
+			p = detach_specified_task(migrate_task, &env);
+			if (p)
+				migrate_task->se.last_migration = jiffies;
+			env.src_rq->migrate_task = NULL;
+		} else {
+			p = detach_one_task(&env);
+		}
+#else
 		p = detach_one_task(&env);
+#endif
 		if (p) {
 			schedstat_inc(sd->alb_pushed);
 			/* Active balancing done, reset the failure counter. */
@@ -10550,7 +10746,11 @@ const struct sched_class fair_sched_class = {
 	.rq_offline		= rq_offline_fair,
 
 	.task_dead		= task_dead_fair,
+#ifdef CONFIG_HPERF_HMP
+	.set_cpus_allowed	= set_cpus_allowed_hmp,
+#else
 	.set_cpus_allowed	= set_cpus_allowed_common,
+#endif
 #endif
 
 	.set_curr_task          = set_curr_task_fair,
