@@ -8697,6 +8697,260 @@ unlock:
 
 	return ld_moved;
 }
+
+/* Get idlest cpu from opposite domain of this_cpu */
+static int get_idlest_cpu(struct sched_domain *sd, int this_cpu)
+{
+	struct sched_group *opposite_sg;
+	struct cpumask *opposite_mask;
+	unsigned long load = ULONG_MAX;
+	int idlest_cpu = -1;
+	int cpu;
+
+	opposite_sg = get_opposite_group(sd, cpu_is_fastest(this_cpu));
+	opposite_mask = sched_group_cpus(opposite_sg);
+
+	for_each_cpu_and(cpu, opposite_mask, cpu_online_mask) {
+		if (cpu_rq(cpu)->load.weight < load) {
+			load = cpu_rq(cpu)->load.weight;
+			idlest_cpu = cpu;
+		}
+	}
+	return idlest_cpu;
+}
+
+/**
+ * move_a15_to_a7(): Moves one task from A15 to A7.
+ * @sd: Current sched domain.
+ * @this_cpu: without NO_HZ same as smp_processor_id().
+ *
+ * Returns moved weight.
+ *
+ * Chooses task to migrate by druntime.
+ */
+static unsigned int move_a15_to_a7(struct sched_domain *sd, int this_cpu)
+{
+	struct task_struct *task_to_move;
+	struct rq *local_rq = NULL;
+	struct rq *foreign_rq = NULL;
+	int local_stopper_flag = 0;
+	int foreign_stopper_flag = 0;
+	unsigned long local_flags;
+	unsigned int ld_moved = 0;
+
+	local_rq = cpu_rq(this_cpu);
+	local_irq_save(local_flags);
+
+	if (!cpu_is_fastest(this_cpu)) {
+		/* this A7 pulls task from A15 */
+		foreign_rq = get_unfair_rq(sd, this_cpu);
+
+		if (!foreign_rq) {
+			local_irq_restore(local_flags);
+			return 0;
+		}
+
+		double_lock_balance(foreign_rq, local_rq);
+
+		if (foreign_rq->active_balance)
+			goto unlock;
+
+		if (local_rq->active_balance)
+			goto unlock;
+
+		if (foreign_rq->cfs.h_nr_running <= 1)
+			goto unlock;
+
+		task_to_move = get_migration_candidate(sd, foreign_rq, 0,
+						       this_cpu);
+
+		if (!task_to_move)
+			goto unlock;
+
+		ld_moved = try_to_move_task(task_to_move, this_cpu,
+						&foreign_stopper_flag);
+
+		if (!ld_moved) {
+			task_to_move->se.migrate_candidate = 0;
+			goto unlock;
+		}
+
+		if (foreign_stopper_flag) {
+			foreign_rq->active_balance = 1;
+			foreign_rq->push_cpu = this_cpu;
+			foreign_rq->migrate_task = task_to_move;
+		}
+	} else {
+		/* this A15 push task to A7 */
+		int dst_cpu = get_idlest_cpu(sd, this_cpu);
+
+		if (dst_cpu == -1) {
+			local_irq_restore(local_flags);
+			return 0;
+		}
+
+		foreign_rq = cpu_rq(dst_cpu);
+		raw_spin_lock(&foreign_rq->lock);
+		double_lock_balance(foreign_rq, local_rq);
+
+		if (local_rq->cfs.h_nr_running <= 1)
+			goto unlock;
+
+		if (foreign_rq->active_balance)
+			goto unlock;
+
+		if (local_rq->active_balance)
+			goto unlock;
+
+		task_to_move = get_migration_candidate(sd, local_rq, 0,
+						       foreign_rq->cpu);
+
+		if (!task_to_move)
+			goto unlock;
+
+		ld_moved = try_to_move_task(task_to_move, dst_cpu,
+						&local_stopper_flag);
+
+		if (!ld_moved) {
+			task_to_move->se.migrate_candidate = 0;
+			goto unlock;
+		}
+
+		if (local_stopper_flag) {
+			local_rq->active_balance = 1;
+			local_rq->push_cpu = dst_cpu;
+			local_rq->migrate_task = task_to_move;
+		}
+	}
+unlock:
+	double_rq_unlock(local_rq, foreign_rq);
+	local_irq_restore(local_flags);
+
+	if (foreign_stopper_flag)
+		stop_one_cpu_nowait(foreign_rq->cpu,
+				    active_load_balance_cpu_stop, foreign_rq,
+				    &foreign_rq->active_balance_work);
+
+	if (local_stopper_flag)
+		stop_one_cpu_nowait(local_rq->cpu,
+				    active_load_balance_cpu_stop, local_rq,
+				    &local_rq->active_balance_work);
+
+	return ld_moved;
+}
+
+/**
+ * move_a7_to_a15(): Moves one task from A7 to A15.
+ * @sd: Current sched domain.
+ * @this_cpu: without NO_HZ same as smp_processor_id().
+ *
+ * Returns moved weight.
+ *
+ * Chooses task to migrate by druntime.
+ */
+static unsigned int move_a7_to_a15(struct sched_domain *sd, int this_cpu)
+{
+	struct task_struct *task_to_move;
+	struct rq *local_rq = NULL;
+	struct rq *foreign_rq = NULL;
+	int local_stopper_flag = 0;
+	int foreign_stopper_flag = 0;
+	unsigned long local_flags;
+	unsigned int ld_moved = 0;
+
+	local_rq = cpu_rq(this_cpu);
+	local_irq_save(local_flags);
+
+	if (cpu_is_fastest(this_cpu)) {
+		/* this A15 pulls task from A7 */
+		foreign_rq = get_unfair_rq(sd, this_cpu);
+
+		if (!foreign_rq) {
+			local_irq_restore(local_flags);
+			return 0;
+		}
+		double_lock_balance(foreign_rq, local_rq);
+
+		if (local_rq->active_balance)
+			goto unlock;
+
+		if (foreign_rq->active_balance)
+			goto unlock;
+
+		task_to_move = get_migration_candidate(sd, foreign_rq, 0,
+						       this_cpu);
+
+		if (!task_to_move)
+			goto unlock;
+
+		ld_moved = try_to_move_task(task_to_move, this_cpu,
+						&foreign_stopper_flag);
+
+		if (!ld_moved) {
+			task_to_move->se.migrate_candidate = 0;
+			goto unlock;
+		}
+
+		if (foreign_stopper_flag) {
+			foreign_rq->active_balance = 1;
+			foreign_rq->push_cpu = this_cpu;
+			foreign_rq->migrate_task = task_to_move;
+		}
+	} else {
+		/* this A7 push task to A15*/
+		int dst_cpu = get_idlest_cpu(sd, this_cpu);
+
+		if (dst_cpu == -1) {
+			local_irq_restore(local_flags);
+			return 0;
+		}
+
+		foreign_rq = cpu_rq(dst_cpu);
+		raw_spin_lock(&foreign_rq->lock);
+		double_lock_balance(foreign_rq, local_rq);
+
+		if (foreign_rq->active_balance)
+			goto unlock;
+
+		if (local_rq->active_balance)
+			goto unlock;
+
+		task_to_move = get_migration_candidate(sd, local_rq, 0,
+						       foreign_rq->cpu);
+
+		if (!task_to_move)
+			goto unlock;
+
+		ld_moved = try_to_move_task(task_to_move, dst_cpu,
+						&local_stopper_flag);
+
+		if (!ld_moved) {
+			task_to_move->se.migrate_candidate = 0;
+			goto unlock;
+		}
+
+		if (local_stopper_flag) {
+			local_rq->active_balance = 1;
+			local_rq->push_cpu = dst_cpu;
+			local_rq->migrate_task = task_to_move;
+		}
+	}
+unlock:
+	double_rq_unlock(local_rq, foreign_rq);
+	local_irq_restore(local_flags);
+
+	if (foreign_stopper_flag)
+		stop_one_cpu_nowait(foreign_rq->cpu,
+				    active_load_balance_cpu_stop, foreign_rq,
+				    &foreign_rq->active_balance_work);
+
+	if (local_stopper_flag)
+		stop_one_cpu_nowait(local_rq->cpu,
+				    active_load_balance_cpu_stop, local_rq,
+				    &local_rq->active_balance_work);
+
+	return ld_moved;
+}
 #endif /* CONFIG_HPERF_HMP */
 
 /*
