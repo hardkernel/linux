@@ -35,6 +35,10 @@
 
 #include <trace/events/sched.h>
 
+#ifdef CONFIG_HPERF_HMP
+#include <linux/cpufreq.h>
+#endif
+
 #include "sched.h"
 
 /*
@@ -100,6 +104,11 @@ unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
 const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
 
 #ifdef CONFIG_HPERF_HMP
+/*
+ * Log level of hperf_hmp messages. Bigger means more messages.
+ * Maximum level is 3.
+ */
+unsigned int sysctl_sched_hperf_hmp_log_level;
 extern void hmp_set_cpu_masks(struct cpumask *, struct cpumask *);
 static atomic_t a15_nr_hmp_busy = ATOMIC_INIT(0);
 static atomic_t a7_nr_hmp_busy = ATOMIC_INIT(0);
@@ -8407,6 +8416,73 @@ static int should_we_balance(struct lb_env *env)
 	return balance_cpu == env->dst_cpu;
 }
 #ifdef CONFIG_HPERF_HMP
+static void hperf_hmp_vprint(unsigned int log_level, const char *format,
+			  va_list ap)
+{
+	if (sysctl_sched_hperf_hmp_log_level < log_level)
+		return;
+	vprintk(format, ap);
+}
+
+static void hperf_hmp_print(unsigned int log_level, const char *format, ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	hperf_hmp_vprint(log_level, format, ap);
+	va_end(ap);
+}
+
+/* Called when frequency is changed */
+static int hmp_cpufreq_callback(struct notifier_block *nb,
+				unsigned long event, void *data)
+{
+	struct cpufreq_freqs *new_freq = data;
+
+	/* recount power only after change of frequency */
+	if (event != CPUFREQ_POSTCHANGE)
+		return NOTIFY_DONE;
+
+	if (!new_freq)
+		return NOTIFY_DONE;
+
+	freq_scale_cpu_power[new_freq->cpu] = (new_freq->new >> 10);
+
+	/* Apply slowdown coefficient of 1.9 for A7 CPUs */
+	if (!cpu_is_fastest(new_freq->cpu)) {
+		freq_scale_cpu_power[new_freq->cpu] *= 10;
+		freq_scale_cpu_power[new_freq->cpu] /= 19;
+	}
+
+	hperf_hmp_print(2, KERN_INFO "hperf_hmp: CPU#%i new frequency is: %u MHz\n",
+		     new_freq->cpu, new_freq->new / 1000);
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block cpufreq_notifier = {
+	.notifier_call = hmp_cpufreq_callback
+};
+
+static int __init register_sched_cpufreq_notifier(void)
+{
+	int err = 0;
+	int cpu;
+
+	for_each_online_cpu(cpu)
+		freq_scale_cpu_power[cpu] = capacity_of(cpu);
+
+	err = cpufreq_register_notifier(&cpufreq_notifier,
+					CPUFREQ_TRANSITION_NOTIFIER);
+	if (!err)
+		pr_info("hperf_hmp: registered cpufreq transition notifier\n");
+	else
+		pr_info("hperf_hmp: failed to register cpufreq notifier!\n");
+
+	return err;
+}
+core_initcall(register_sched_cpufreq_notifier);
+
 /**
  * is_hmp_imbalance(): Calculates imbalance between HMP domains.
  * @sd: Current sched domain.
