@@ -18,6 +18,7 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/exynos_drm.h>
 #include <linux/dma-buf.h>
+#include <linux/fb.h>
 
 #include "exynos_drm_drv.h"
 #include "exynos_drm_fb.h"
@@ -28,7 +29,7 @@
 #define IOCTL_GET_FB_DMA_BUF _IOWR('m',0xF9, __u32 )
 #define FBIOGET_DMABUF       _IOR('F', 0x21, struct fb_dmabuf_export)
 
-#define NUM_BUFFERS 1
+#define NUM_BUFFERS 2
 
 #define MAX_CONNECTOR		4
 #define PREFERRED_BPP		32
@@ -117,6 +118,62 @@ static int fb_ioctl(struct fb_info *info, unsigned int cmd,
         ret = put_user(buf_fd, out_ptr);
         break;
     }
+
+   case FBIOPAN_DISPLAY:
+   {
+   	void __user *argp = (void __user *)arg;
+   	struct fb_var_screeninfo var;
+
+        if (copy_from_user(&var, argp, sizeof(var)))
+        {
+                ret = -EFAULT;
+        }
+        else
+        {
+        	ret = drm_fb_helper_pan_display(&var, info);
+        }
+
+        if (ret == 0 && copy_to_user(argp, &var, sizeof(var)))
+        {
+                ret = -EFAULT;
+        }
+    }
+        break;
+
+    case FBIO_WAITFORVSYNC:
+    {
+	struct drm_fb_helper *helper = info->par;
+    	struct drm_device *dev = helper->dev;
+
+    	/* drm_wait_one_vblank(dev, 0);
+    	Backported from Kernel 3.18
+    	*/
+    	int crtc = 0;
+    	//int ret;
+        u32 last;
+ 
+        ret = drm_vblank_get(dev, crtc);
+        if (WARN(ret, "vblank not available on crtc %i, ret=%i\n", crtc, ret))
+        {
+        	ret = -EFAULT;
+        }
+        else
+        {
+	        last = drm_vblank_count(dev, crtc);
+	 
+	        ret = wait_event_timeout(dev->vblank[crtc].queue,
+	                                 last != drm_vblank_count(dev, crtc),
+	                                 msecs_to_jiffies(100));
+	 
+	        WARN(ret == 0, "vblank wait timed out on crtc %i\n", crtc);
+	 
+	        drm_vblank_put(dev, crtc);
+
+			ret = 0;
+	}
+    }
+	break;
+
     default:
         ret = -ENOTTY;
     }
@@ -148,7 +205,11 @@ static int exynos_drm_fbdev_update(struct drm_fb_helper *helper,
 	unsigned long offset;
 
 	drm_fb_helper_fill_fix(fbi, fb->pitches[0], fb->depth);
-	drm_fb_helper_fill_var(fbi, helper, fb->width, fb->height / NUM_BUFFERS); 
+	drm_fb_helper_fill_var(fbi, helper, fb->width, fb->height); 
+
+	/* fixup the virtual size */
+	fbi->var.yres_virtual *= NUM_BUFFERS;
+
 
 	/* RGB formats use only one buffer */
 	buffer = exynos_drm_fb_buffer(fb, 0);
@@ -208,7 +269,7 @@ static int exynos_drm_fbdev_create(struct drm_fb_helper *helper,
 			sizes->surface_bpp);
 
 	mode_cmd.width = sizes->surface_width;
-	mode_cmd.height = sizes->surface_height * NUM_BUFFERS;
+	mode_cmd.height = sizes->surface_height;
 	mode_cmd.pitches[0] = sizes->surface_width * (sizes->surface_bpp >> 3);
 	mode_cmd.pixel_format = drm_mode_legacy_fb_format(sizes->surface_bpp,
 							  sizes->surface_depth);
@@ -222,7 +283,7 @@ static int exynos_drm_fbdev_create(struct drm_fb_helper *helper,
 		goto out;
 	}
 
-	size = mode_cmd.pitches[0] * mode_cmd.height;
+	size = mode_cmd.pitches[0] * mode_cmd.height * NUM_BUFFERS;
 
 	exynos_gem_obj = exynos_drm_gem_create(dev, EXYNOS_BO_CONTIG, size);
 	/*
