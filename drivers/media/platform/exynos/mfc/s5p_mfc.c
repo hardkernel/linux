@@ -2105,6 +2105,7 @@ static struct video_device s5p_mfc_enc_videodev = {
 	.release = video_device_release,
 };
 
+#ifndef CONFIG_MACH_ODROIDXU3
 static struct video_device s5p_mfc_dec_drm_videodev = {
 	.name = S5P_MFC_DEC_DRM_NAME,
 	.fops = &s5p_mfc_fops,
@@ -2118,6 +2119,7 @@ static struct video_device s5p_mfc_enc_drm_videodev = {
 	.minor = -1,
 	.release = video_device_release,
 };
+#endif
 
 static void *mfc_get_drv_data(struct platform_device *pdev);
 
@@ -2336,8 +2338,9 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 
 	video_set_drvdata(vfd, dev);
 
+#ifndef CONFIG_MACH_ODROIDXU3
 	/* secure decoder */
-/*	vfd = video_device_alloc();
+	vfd = video_device_alloc();
 	if (!vfd) {
 		v4l2_err(&dev->v4l2_dev, "Failed to allocate video device\n");
 		ret = -ENOMEM;
@@ -2363,10 +2366,10 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 								vfd->num);
 	dev->vfd_dec_drm = vfd;
 
-	video_set_drvdata(vfd, dev); */
+	video_set_drvdata(vfd, dev);
 
 	/* secure encoder */
-/*	vfd = video_device_alloc();
+	vfd = video_device_alloc();
 	if (!vfd) {
 		v4l2_err(&dev->v4l2_dev, "Failed to allocate video device\n");
 		ret = -ENOMEM;
@@ -2391,8 +2394,9 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 								vfd->num);
 	dev->vfd_enc_drm = vfd;
 
-	video_set_drvdata(vfd, dev); */
+	video_set_drvdata(vfd, dev);
 	/* end of node setting*/
+#endif
 
 	platform_set_drvdata(pdev, dev);
 

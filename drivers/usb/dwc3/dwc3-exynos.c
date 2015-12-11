@@ -31,6 +31,7 @@
 #include <linux/of_gpio.h>
 #include <linux/io.h>
 #include <linux/pinctrl/consumer.h>
+#include <linux/regulator/consumer.h>
 
 #include "../phy/phy-fsm-usb.h"
 
@@ -49,6 +50,8 @@ struct dwc3_exynos {
 	struct clk		*clk;
 
 	struct dwc3_exynos_rsw	rsw;
+	struct regulator        *vdd33;
+	struct regulator        *vdd10;
 };
 
 void dwc3_otg_run_sm(struct otg_fsm *fsm);
@@ -461,20 +464,46 @@ static int dwc3_exynos_probe(struct platform_device *pdev)
 
 	dwc3_exynos_rsw_init(exynos);
 
+	exynos->vdd33 = devm_regulator_get(dev, "vdd33");
+	if (IS_ERR(exynos->vdd33)) {
+		ret = PTR_ERR(exynos->vdd33);
+		goto err2;
+	}
+	ret = regulator_enable(exynos->vdd33);
+	if (ret) {
+		dev_err(dev, "Failed to enable VDD33 supply\n");
+		goto err2;
+	}
+
+	exynos->vdd10 = devm_regulator_get(dev, "vdd10");
+	if (IS_ERR(exynos->vdd10)) {
+		ret = PTR_ERR(exynos->vdd10);
+		goto err3;
+	}
+	ret = regulator_enable(exynos->vdd10);
+	if (ret) {
+		dev_err(dev, "Failed to enable VDD10 supply\n");
+		goto err3;
+	}
+
 	if (node) {
 		ret = of_platform_populate(node, NULL, NULL, dev);
 		if (ret) {
 			dev_err(dev, "failed to add dwc3 core\n");
-			goto err2;
+			goto err4;
 		}
 	} else {
 		dev_err(dev, "no device node, failed to add dwc3 core\n");
 		ret = -ENODEV;
-		goto err2;
+		goto err4;
 	}
 
 	return 0;
 
+err4:
+	regulator_disable(exynos->vdd10);
+err3:
+	regulator_disable(exynos->vdd33);
 err2:
 	pm_runtime_disable(&pdev->dev);
 	clk_disable_unprepare(clk);
@@ -507,6 +536,8 @@ static int dwc3_exynos_runtime_suspend(struct device *dev)
 	struct dwc3_exynos *exynos = dev_get_drvdata(dev);
 
 	dev_dbg(dev, "%s\n", __func__);
+	regulator_disable(exynos->vdd33);
+	regulator_disable(exynos->vdd10);
 
 	clk_disable(exynos->clk);
 
@@ -537,14 +568,28 @@ static int dwc3_exynos_suspend(struct device *dev)
 
 	clk_disable(exynos->clk);
 
+	regulator_disable(exynos->vdd33);
+	regulator_disable(exynos->vdd10);
+
 	return 0;
 }
 
 static int dwc3_exynos_resume(struct device *dev)
 {
 	struct dwc3_exynos *exynos = dev_get_drvdata(dev);
+	int ret;
 
 	dev_dbg(dev, "%s\n", __func__);
+	ret = regulator_enable(exynos->vdd33);
+	if (ret) {
+		dev_err(dev, "Failed to enable VDD33 supply\n");
+		return ret;
+	}
+	ret = regulator_enable(exynos->vdd10);
+	if (ret) {
+		dev_err(dev, "Failed to enable VDD10 supply\n");
+		return ret;
+	}
 
 	clk_enable(exynos->clk);
 

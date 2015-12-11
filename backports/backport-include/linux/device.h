@@ -12,6 +12,8 @@
  */
 #include <linux/string.h>
 
+struct device;
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)
 /* backport
  * commit 9f3b795a626ee79574595e06d1437fe0c7d51d29

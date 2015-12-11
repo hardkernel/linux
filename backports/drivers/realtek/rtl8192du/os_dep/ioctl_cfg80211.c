@@ -1228,15 +1228,9 @@ static int cfg80211_rtw_set_default_key(struct wiphy *wiphy,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 14,0))
 static int cfg80211_rtw_get_station(struct wiphy *wiphy,
 				    struct net_device *ndev,
 				    const u8 *mac, struct station_info *sinfo)
-#else
-static int cfg80211_rtw_get_station(struct wiphy *wiphy,
-				    struct net_device *ndev,
-				    u8 *mac, struct station_info *sinfo)
-#endif
 {
 	int ret = 0;
 	struct rtw_adapter *padapter = wiphy_to_adapter(wiphy);
@@ -2963,29 +2957,16 @@ static int cfg80211_rtw_stop_ap(struct wiphy *wiphy, struct net_device *ndev)
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) */
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 14,0))
 static int cfg80211_rtw_add_station(struct wiphy *wiphy, struct net_device *ndev,
 			       const u8 *mac, struct station_parameters *params)
-#else
-static int cfg80211_rtw_add_station(struct wiphy *wiphy, struct net_device *ndev,
-			       u8 *mac, struct station_parameters *params)
-#endif
 {
 	DBG_8192D(FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
 
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
-				    struct station_del_parameters *params)
-#elif (LINUX_VERSION_CODE > KERNEL_VERSION(3, 14, 0))
-static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
-			       const u8 *mac)
-#else
-static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
-			       u8 *mac)
-#endif
+				struct station_del_parameters *params)
 {
 	int ret=0;
 	struct list_head *phead, *plist;
@@ -2994,9 +2975,7 @@ static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 	struct rtw_adapter *padapter = (struct rtw_adapter *)rtw_netdev_priv(ndev);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	struct sta_priv *pstapriv = &padapter->stapriv;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0))
 	const u8 *mac = params->mac;
-#endif
 
 	DBG_8192D("+"FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
 
@@ -3070,13 +3049,8 @@ static int cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 14, 0))
 static int cfg80211_rtw_change_station(struct wiphy *wiphy, struct net_device *ndev,
 				  const u8 *mac, struct station_parameters *params)
-#else
-static int cfg80211_rtw_change_station(struct wiphy *wiphy, struct net_device *ndev,
-				  u8 *mac, struct station_parameters *params)
-#endif
 {
 	DBG_8192D(FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
 
@@ -3506,18 +3480,8 @@ int rtw_cfg80211_set_mgnt_wpsp2pie(struct net_device *net, char *buf, int len,
 	return ret;
 }
 
-        int     (*mgmt_tx)(struct wiphy *wiphy, struct wireless_dev *wdev,
-                          struct ieee80211_channel *chan, bool offchan,
-                          unsigned int wait, const u8 *buf, size_t len,
-                          bool no_cck, bool dont_wait_for_ack, u64 *cookie);
 static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
-				struct ieee80211_channel *chan, bool offchan,
-				unsigned int wait, const u8 *buf, size_t len,
-				bool no_cck, bool dont_wait_for_ack,
-#else
 				struct cfg80211_mgmt_tx_params *params,
-#endif
 				u64 *cookie)
 {
 	struct rtw_adapter *padapter =
@@ -3529,11 +3493,9 @@ static int cfg80211_rtw_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	bool ack = true;
 	u8 category, action;
 	unsigned long start = jiffies;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 	size_t len = params->len;
 	struct ieee80211_channel *chan = params->chan;
 	const u8 *buf = params->buf;
-#endif
 	struct ieee80211_mgmt *hdr = (struct ieee80211_mgmt *)buf;
 	u8 tx_ch = (u8) ieee80211_frequency_to_channel(chan->center_freq);
 

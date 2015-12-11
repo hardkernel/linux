@@ -30,17 +30,18 @@ struct rfkill_regulator_data {
 static int rfkill_regulator_set_block(void *data, bool blocked)
 {
 	struct rfkill_regulator_data *rfkill_data = data;
+	int ret = 0;
 
 	pr_debug("%s: blocked: %d\n", __func__, blocked);
 
 	if (blocked) {
 		if (rfkill_data->reg_enabled) {
-			regulator_disable(rfkill_data->vcc);
+			ret = regulator_disable(rfkill_data->vcc);
 			rfkill_data->reg_enabled = false;
 		}
 	} else {
 		if (!rfkill_data->reg_enabled) {
-			regulator_enable(rfkill_data->vcc);
+			ret = regulator_enable(rfkill_data->vcc);
 			rfkill_data->reg_enabled = true;
 		}
 	}
@@ -48,7 +49,7 @@ static int rfkill_regulator_set_block(void *data, bool blocked)
 	pr_debug("%s: regulator_is_enabled after set_block: %d\n", __func__,
 		regulator_is_enabled(rfkill_data->vcc));
 
-	return 0;
+	return ret;
 }
 
 static struct rfkill_ops rfkill_regulator_ops = {

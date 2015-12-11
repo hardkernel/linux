@@ -715,7 +715,7 @@ static int lpass_proc_show(struct seq_file *m, void *v) {
 	}
 	list_for_each_entry(ar, &reg_list, node) {
 		seq_printf(m, "reg_list: 0x%08x (0x%08x)\n",
-				ar->reg, ar->val);
+				(u32)ar->reg, ar->val);
 	}
 	return 0;
 }

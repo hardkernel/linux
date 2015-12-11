@@ -54,6 +54,8 @@ static  struct  ioboard_spi     *ioboard_spi;
 #define CMD_HIGH_SPEED_READ     0x0B
 #define CMD_READ_STATUS_REG     0x05
 
+#define SPI_READ_HIGHSPEED
+
 // Erase memory
 #define CMD_ERASE_4KB           0x20
 #define CMD_ERASE_32KB          0x52
@@ -196,7 +198,7 @@ static int ioboard_spi_byte_write   (struct spi_device *spi, unsigned int addr, 
 
     return  0;
 }
-
+#ifdef SPI_READ_HIGHSPEED
 //[*]--------------------------------------------------------------------------------------------------[*]
 static int ioboard_spi_read_memory_highspeed    (struct spi_device *spi, unsigned int addr, unsigned char *rdata, unsigned int size)
 {
@@ -218,7 +220,7 @@ static int ioboard_spi_read_memory_highspeed    (struct spi_device *spi, unsigne
 
     return  0;
 }
-
+#else
 //[*]--------------------------------------------------------------------------------------------------[*]
 static int ioboard_spi_read_memory              (struct spi_device *spi, unsigned int addr, unsigned char *rdata, unsigned int size)
 {
@@ -239,6 +241,7 @@ static int ioboard_spi_read_memory              (struct spi_device *spi, unsigne
 
     return  0;
 }
+#endif
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 int ioboard_spi_read    (struct spi_device *spi, unsigned int addr, unsigned char *rdata, unsigned int size)
@@ -249,12 +252,20 @@ int ioboard_spi_read    (struct spi_device *spi, unsigned int addr, unsigned cha
     na      = size % SPI_MAX_BUFFER_SIZE;
     
     while(mok)  {
+#ifdef SPI_READ_HIGHSPEED
         ioboard_spi_read_memory_highspeed(spi, addr + offset, &rdata[offset], SPI_MAX_BUFFER_SIZE);
+#else
+        ioboard_spi_read_memory(spi, addr + offset, &rdata[offset], SPI_MAX_BUFFER_SIZE);
+#endif
         offset += SPI_MAX_BUFFER_SIZE;      mok = mok - 1;
     }
     
     if(na)  {
+#ifdef SPI_READ_HIGHSPEED
         ioboard_spi_read_memory_highspeed(spi, addr + offset, &rdata[offset], na);
+#else
+        ioboard_spi_read_memory(spi, addr + offset, &rdata[offset], na);
+#endif
     }
     
     return  0;
@@ -326,6 +337,7 @@ static void ioboard_spi_wp_disable   (unsigned char disable)
 }
 
 //[*]--------------------------------------------------------------------------------------------------[*]
+#ifdef CONFIG_ODROID_EXYNOS5_IOBOARD_DEBUG
 static void ioboard_spi_test        (struct spi_device *spi)
 {
     unsigned char   wdata[64], rdata[64];
@@ -367,6 +379,7 @@ static void ioboard_spi_test        (struct spi_device *spi)
         pr_info("[0x%02X] ", rdata[i]);
     }
 }
+#endif
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static int ioboard_spi_probe        (struct spi_device *spi)
@@ -396,7 +409,7 @@ static int ioboard_spi_probe        (struct spi_device *spi)
         goto    err;
     }
 
-#if defined(CONFIG_ODROID_EXYNOS5_IOBOARD_DEBUG)    
+#if defined(CONFIG_ODROID_EXYNOS5_IOBOARD_DEBUG)
     ioboard_spi_test(spi);
 #endif
 

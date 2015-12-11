@@ -349,6 +349,53 @@ static int s2mps11_pmic_dt_parse_pdata(struct sec_pmic_dev *iodev,
 	return 0;
 }
 #endif /* CONFIG_OF */
+//////////////////////////////////////
+struct sec_pmic_dev *g_iodev = NULL;
+
+int s2mps11_pmic_ethonoff(unsigned char status)
+{
+    unsigned int ldo15 = 0, ldo17 = 0;
+
+    if(sec_reg_read(g_iodev, S2MPS11_REG_L15CTRL, &ldo15)) {
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL15 read Error!!\n", __func__);
+        return  -1;
+    }
+
+    if(sec_reg_read(g_iodev, S2MPS11_REG_L17CTRL, &ldo17)) {
+        printk(KERN_EMERG "%s : S2MPS11 LDO CTRL17 read Error!!\n", __func__);
+        return  -1;
+    }
+
+    if(status) {
+        // ETH VDD0 ON
+        if(sec_reg_update(g_iodev, S2MPS11_REG_L15CTRL, 0x72, 0xFF)) {
+            printk(KERN_EMERG "%s : S2MPS11 LDO CTRL15 Error!!\n", __func__);
+            return  -1;
+        }
+
+        // ETH VDD1 ON
+        if(sec_reg_update(g_iodev, S2MPS11_REG_L17CTRL, 0x72, 0xFF)) {
+            printk(KERN_EMERG "%s : S2MPS11 LDO CTRL17 Error!!\n", __func__);
+            return  -1;
+        }
+    } else {
+        // ETH VDD0 OFF
+        if(sec_reg_update(g_iodev, S2MPS11_REG_L15CTRL, 0x00, 0x3F))  {
+            printk(KERN_EMERG "%s : S2MPS11 LDO CTRL15 Error!!\n", __func__);
+            return  -1;
+        }
+
+        // ETH VDD1 OFF
+        if(sec_reg_update(g_iodev, S2MPS11_REG_L17CTRL, 0x00, 0x3F)) {
+            printk(KERN_EMERG "%s : S2MPS11 LDO CTRL17 Error!!\n", __func__);
+            return  -1;
+        }
+    }
+    return  0;
+}
+
+EXPORT_SYMBOL(s2mps11_pmic_ethonoff);
+//////////////////////////////////////
 
 static int s2mps11_pmic_probe(struct platform_device *pdev)
 {
@@ -357,6 +404,8 @@ static int s2mps11_pmic_probe(struct platform_device *pdev)
 	struct regulator_config config = { };
 	struct s2mps11_info *s2mps11;
 	int i, ret;
+
+	g_iodev = dev_get_drvdata(pdev->dev.parent);
 
 	ret = sec_reg_read(iodev, S2MPS11_REG_ID, &iodev->rev_num);
 	if (ret < 0)

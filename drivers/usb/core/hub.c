@@ -43,6 +43,10 @@
 #define USB_VENDOR_GENESYS_LOGIC		0x05e3
 #define HUB_QUIRK_CHECK_PORT_AUTOSUSPEND	0x01
 
+#if defined(CONFIG_MACH_ODROIDXU3)
+extern  int s2mps11_pmic_ethonoff(unsigned char status);
+#endif //CONFIG_MACH_ODROIDXU3
+
 static inline int hub_is_superspeed(struct usb_device *hdev)
 {
 	return (hdev->descriptor.bDeviceProtocol == USB_HUB_PR_SS);
@@ -4875,6 +4879,10 @@ static void hub_events(void)
 					status = usb_reset_device(udev);
 					usb_unlock_device(udev);
 					connect_change = 0;
+#if defined(CONFIG_MACH_ODROIDXU3)
+					s2mps11_pmic_ethonoff(0);
+					s2mps11_pmic_ethonoff(1);
+#endif //CONFIG_MACH_ODROIDXU3
 				}
 			}
 

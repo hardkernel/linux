@@ -765,8 +765,10 @@ static int exynos_drm_init(void)
 
 	return 0;
 
+#ifdef CONFIG_DRM_EXYNOS_VIDI
 err_unregister_pd:
 	platform_device_unregister(exynos_drm_pdev);
+#endif
 
 err_remove_vidi:
 #ifdef CONFIG_DRM_EXYNOS_VIDI

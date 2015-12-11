@@ -28,15 +28,15 @@
 		mshc0 = &dwmmc_0;
 		mshc1 = &dwmmc_1;
 		mshc2 = &dwmmc_2;
+		mfc0 = &mfc_0;
 		gsc0 = &gsc_0;
 		gsc1 = &gsc_1;
-		mfc0 = &mfc_0;
 		mdev0 = &mdev_0;
+		jpeg0 = &jpeg_0;
+		jpeg1 = &jpeg_1;
 		spi0 = &spi_0;
 		spi1 = &spi_1;
 		spi2 = &spi_2;
-		jpeg0 = &jpeg_0;
-		jpeg1 = &jpeg_1;
 		spi3 = &spi_3;
 		spi4 = &spi_4;
 		scaler0 = &scaler_0;
@@ -100,7 +100,6 @@
 		timeout-sec = <30>;
 		pmu_wdt_reset_type = <1>;
 	};
-
 
 	firmware@02073000 {
 		compatible = "samsung,secure-firmware";
@@ -292,7 +291,7 @@
 		clocks = <&clock 1320>, <&clock 1324>;
 		mmu-masters = <&mixer>;
 		qos = <15>;
-	}; 
+	};
 
 	sysmmu_gscl0: sysmmu@0x13E80000 {
 		compatible = "samsung,exynos4210-sysmmu";
@@ -429,21 +428,21 @@
 		mmu-masters = <&mfc_0>;
 	};
 
-    sysmmu_fimd0x: sysmmu@0x14640000 {
-        compatible = "samsung,exynos4210-sysmmu";
-        reg = <0x14640000 0x1000>;
-        interrupt-parent = <&combiner>;  
-        interrupts = <3 2>;
-        clock-names = "sysmmu", "master";
-        clocks = <&clock 1322>, <&clock 1329>;
-        qos = <15>;
-        mmu-masters = <&fimd>;
-			prop-map {
-				winmap = <0x11>;  
-            };
+	sysmmu_fimd0x: sysmmu@0x14640000 {
+		compatible = "samsung,exynos4210-sysmmu";
+		reg = <0x14640000 0x1000>;
+		interrupt-parent = <&combiner>;
+		interrupts = <3 2>;
+		clock-names = "sysmmu", "master";
+		clocks = <&clock 1322>, <&clock 1329>;
+		qos = <15>;
+		mmu-masters = <&fimd>;
+		prop-map {
+			winmap = <0x11>;
+		};
 	};
 
-    sysmmu_fimd1x: sysmmu@0x14680000 {
+	sysmmu_fimd1x: sysmmu@0x14680000 {
 		compatible = "samsung,exynos4210-sysmmu";
 		reg = <0x14680000 0x1000>;
 		interrupt-parent = <&combiner>;
@@ -452,11 +451,11 @@
 		clocks = <&clock 1321>, <&clock 1329>;
 		qos = <15>;
 		mmu-masters = <&fimd>;
-			prop-map {
-				winmap = <0xe>;   
-			};
+		prop-map {
+			winmap = <0xe>;
+		};
 	};
-	
+
 	dwmmc_0: dwmmc0@12200000 {
 		compatible = "samsung,exynos5422-dw-mshc";
 		reg = <0x12200000 0x2000>;
@@ -467,7 +466,7 @@
 		clock-names = "biu", "gate_ciu", "dout_mmc_a";
 		status = "disabled";
 	};
-	
+
 	dwmmc_1: dwmmc1@12210000 {
 		compatible = "samsung,exynos5422-dw-mshc";
 		reg = <0x12210000 0x2000>;
@@ -786,7 +785,7 @@
 		interrupts = <0 106 0>;
 		#io-channel-cells = <1>;
 		io-channel-ranges;
-		clocks = <&clock 1485>; 
+		clocks = <&clock 1485>;
 		clock-names = "gate_adcif";
 	};
 
@@ -875,7 +874,7 @@
                 pinctrl-names = "default";
                 pinctrl-0 = <&spi2_bus>;
 	};
-	
+
 	mfc_0: mfc@11000000 {
 		compatible = "samsung,mfc-v6";
 		reg = <0x11000000 0x10000>;
@@ -1130,7 +1129,7 @@
 		pinctrl-1 = <&pcm2_bus>;
 		status = "disabled";
 	};
-	
+
 	pmu_system_controller: system-controller@10040000 {
 		compatible = "samsung,exynos5420-pmu", "syscon";
 		reg = <0x10040000 0x5000>;
@@ -1149,7 +1148,7 @@
 		clocks = <&clock 1324>, <&clock 1059>;
 		clock-names = "clk_mixer", "sclk_hdmi";
 	};
-	
+
 	hdmi: hdmi@14530000 {
 		compatible = "samsung,exynos5420-hdmi";
 		reg = <0x14530000 0x80000>;
@@ -1170,62 +1169,62 @@
                 pinctrl-names = "hdmi_cec";
                 pinctrl-0 = <&hdmi_cec>;
 
-                clock-names = "pclk_hdmi_cec";
+		clock-names = "pclk_hdmi_cec";
                 clocks = <&clock 966>;
 
-                #address-cells = <1>;
-                #size-cells = <1>;
-                ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
 
                 hdmiphy-sys {
                         reg = <0x10040700 0x4>;
                 };
         };
-	
+
 	hdmiphy: hdmiphy@145D0000 {
 		reg = <0x145D0000 0x20>;
 	};
 
-    dp_phy: video-phy@10040728 {
-        compatible = "samsung,exynos5250-dp-video-phy";
-        reg = <0x10040728 4>;
-        #phy-cells = <0>;
-    };
+	dp_phy: video-phy@10040728 {
+		compatible = "samsung,exynos5250-dp-video-phy";
+		reg = <0x10040728 4>;
+		#phy-cells = <0>;
+	};
 
-    dp: dp-controller@145B0000 { 
+	dp: dp-controller@145B0000 {
 		status = "disabled";
-        reg = <0x145b0000 0x10000>;
-        interrupts = <10 3>;
+		reg = <0x145b0000 0x10000>;
+		interrupts = <10 3>;
 		interrupt-parent = <&combiner>;
 		compatible = "samsung,exynos5-dp";
-        clocks = <&clock 1325>;
-        clock-names = "clk_dp1";   
-        phys = <&dp_phy>;
-        phy-names = "dp";
-		samsung,power-domain = <&spd_dp>; 
-    };
+		clocks = <&clock 1325>;
+		clock-names = "clk_dp1";
+		phys = <&dp_phy>;
+		phy-names = "dp";
+		samsung,power-domain = <&spd_dp>;
+	};
 
-    fimd: fimd@14400000 {   
+	fimd: fimd@14400000 {
 		compatible = "samsung,exynos5250-fimd";
-        clocks = <&clock 1061>, <&clock 1329>;
-        clock-names = "sclk_fimd1", "clk_fimd1";
-        reg = <0x14400000 0x40000>, <0x14500000 0x8000>;
-        samsung,power-domain = <&spd_fimd>;
-        interrupt-controller;
-        #interrups-cells = <2>;
-        interrupt-parent = <&fimd_fb_int_map>;
-        interrupts = <0 0>, <1 0>, <2 0>, <3 0>;        
-        
-                 fimd_fb_int_map: fimd_fb_int_map {
-                        #interrupt-cells = <2>;
-                        #address-cells = <0>;
-                        #size-cells = <0>;
-                        interrupt-map = <0 0 &combiner 18 5>,
-                                        <1 0 &combiner 18 4>,
-                                        <2 0 &combiner 18 6>,
-                                        <3 0 &gic 0 82 0>;
-                };
-    };
+		clocks = <&clock 1061>, <&clock 1329>;
+		clock-names = "sclk_fimd1", "clk_fimd1";
+		reg = <0x14400000 0x40000>, <0x14500000 0x8000>;
+		samsung,power-domain = <&spd_fimd>;
+		interrupt-controller;
+		#interrups-cells = <2>;
+		interrupt-parent = <&fimd_fb_int_map>;
+		interrupts = <0 0>, <1 0>, <2 0>, <3 0>;
+
+		fimd_fb_int_map: fimd_fb_int_map {
+			#interrupt-cells = <2>;
+			#address-cells = <0>;
+			#size-cells = <0>;
+			interrupt-map = <0 0 &combiner 18 5>,
+				 <1 0 &combiner 18 4>,
+				 <2 0 &combiner 18 6>,
+				 <3 0 &gic 0 82 0>;
+		};
+	};
 
 	spi_3: spi@131a0000 {
 		compatible = "samsung,exynos5410-spi";
@@ -1429,5 +1428,4 @@
 		secmem = <&gsc_0>,
 			 <&gsc_1>;
 	};
-
 };

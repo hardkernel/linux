@@ -4,6 +4,8 @@
 #include <linux/version.h>
 #include <generated/utsrelease.h>
 
+struct device;
+
 #if defined(CONFIG_DEBUG_FS)
 struct dentry *debugfs_create_devm_seqfile(struct device *dev, const char *name,
 					   struct dentry *parent,

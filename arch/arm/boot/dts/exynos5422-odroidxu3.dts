@@ -77,6 +77,8 @@
 	dwmmc2@12220000 {
 		status = "okay";
 		num-slots = <1>;
+		extra_tuning;
+		use-fine-tuning;
 		supports-highspeed;
 		cd-type = <1>;
 		sw_data_timeout;
@@ -91,7 +93,7 @@
 		clk_pin = "gpc2-0";
 		clk_addr = "13410000.pinctrl";
 		clk_val = <0x3>;
-		clk_str_num = <4>;
+		clk_str_num = <3>;
 		num-ref-clks = <8>;
 		ciu_clkin = <20812500 41625000 41625000 83250000 166500000 83250000 166500000 333000000>;
 		pinctrl-names = "default";
@@ -198,11 +200,11 @@
 
 				buck10_reg: BUCK10 {
 					regulator-name = "vddf_2v85";
-					regulator-min-microvolt = <2850000>;
-					regulator-max-microvolt = <2850000>;
+					regulator-min-microvolt = <3300000>;
+					regulator-max-microvolt = <3300000>;
 					regulator-always-on;
 					regulator-boot-on;
-					regulator-ramp-delay = <12000>;
+					regulator-ramp-delay = <24000>;
 					regulator-initial-mode = <1>;
 				};
 
@@ -258,6 +260,7 @@
 					regulator-max-microvolt = <3300000>;
 					regulator-always-on;
 					regulator-boot-on;
+					regulator-ramp-delay = <24000>;
 					regulator-initial-mode = <1>;
 				};
 
@@ -284,7 +287,7 @@
 					regulator-min-microvolt = <1800000>;
 					regulator-max-microvolt = <3300000>;
 					regulator-boot-on;
-					regulator-ramp-delay = <12000>;
+					regulator-ramp-delay = <24000>;
 					regulator-initial-mode = <1>;
 				};
 
@@ -306,18 +309,20 @@
 
 				ldo18_reg: LDO18 {
 					regulator-name = "vdd_ldo18";
-					regulator-min-microvolt = <1800000>;
-					regulator-max-microvolt = <1800000>;
+					regulator-min-microvolt = <1850000>;
+					regulator-max-microvolt = <1850000>;
 					regulator-always-on;
 					regulator-boot-on;
+					regulator-ramp-delay = <24000>;
 					regulator-initial-mode = <1>;
 				};
 
 				ldo19_reg: LDO19 {
 					regulator-name = "vdd_ldo19";
-					regulator-min-microvolt = <2850000>;
-					regulator-max-microvolt = <2850000>;
+					regulator-min-microvolt = <2800000>;
+					regulator-max-microvolt = <3300000>;
 					regulator-always-on;
+					regulator-ramp-delay = <24000>;
 					regulator-initial-mode = <1>;
 				};
 
@@ -418,7 +423,7 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&audio_irq>;
 		};
-		};
+	};
 
 	pinctrl@13400000 {
 		b_sess0_irq: b-sess0-irq {
@@ -459,6 +464,8 @@
 
 	usb@12000000 {
 		dwc3-vbus-supply = <&dwc3_vbus>;
+		vdd33-supply = <&ldo9_reg>;
+		vdd10-supply = <&ldo11_reg>;
 		samsung,bsess-gpio = <&gpx3 5 0xf>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&b_sess0_irq>;
@@ -475,6 +482,8 @@
 
 	usb@12400000 {
 		dwc3-vbus-supply = <&dwc3_vbus>;
+		vdd33-supply = <&ldo9_reg>;
+		vdd10-supply = <&ldo11_reg>;
 		samsung,bsess-gpio = <&gpx3 4 0xf>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&b_sess1_irq>;
@@ -504,9 +513,9 @@
 	};
 
 	spi_1: spi@12d30000 {
-	    status = "okay";
-	    cs-gpios = <&gpa2 5 0>;
-    };
+		status = "okay";
+		cs-gpios = <&gpa2 5 0>;
+	};
 
 	spi_2: spi@12d40000 {
 		status = "disabled";
@@ -535,22 +544,22 @@
 		status = "okay";
 	};
 
-    i2s_dummy: dummy-i2s {
-         compatible = "samsung,dummy-i2s";
-         status = "okay";
-    };
+	i2s_dummy: dummy-i2s {
+		compatible = "samsung,dummy-i2s";
+		status = "okay";
+	};
 
 	sound {
 		compatible = "hardkernel,odroid-max98090";
 		clocks = <&clock 6>;		/* fout_epll */
 		clock-names = "fout_epll";
 		samsung,audio-cpu = <&i2s0		/* primary */
-				     &i2s0>;		/* secondary */
+					&i2s0>;		/* secondary */
 		samsung,audio-cpu-spdif = <&spdif>;	/* spdif */
 		samsung,audio-codec = <&audio_codec
-				       &audio_codec>;
+					&audio_codec>;
 		samsung,audio-dummy = <&audio_codec_dummy
-				       &audio_codec_dummy>;
+					&audio_codec_dummy>;
 		status = "okay";
 	};
 
@@ -570,16 +579,16 @@
         compatible = "odroid-fan";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pwm0_out>;
-	
+
 		pwm_id = <0>;
 		pwm_periode_ns = <20972>;	/* 22kHz */
 		pwm_duty = <200>;			/* initial value : 0 to 255 */
 
 		fan_mode = <1>; 			/* 0:manual, 1:auto */
 
-		tmu_level_0 = <57>;
-		tmu_level_1 = <63>;
-		tmu_level_2 = <68>;
+		tmu_level_0 = <68>;
+		tmu_level_1 = <73>;
+		tmu_level_2 = <85>;
 
 		fan_speed_0 = <1>;
 		fan_speed_1 = <51>;
@@ -587,86 +596,87 @@
 		fan_speed_3 = <91>;
 	};
 
-    leds {
-        compatible = "gpio-leds";
-        /* Blue LED */
-        hearbeat {
-            label = "blue:heartbeart";    
-            gpios = <&gpb2 2 0>;
-            default-state = "off";
-            linux,default-trigger = "heartbeat";
-        };
+	leds {
+		compatible = "gpio-leds";
+		/* Blue LED */
+		hearbeat {
+			label = "blue:heartbeart";
+			gpios = <&gpb2 2 0>;
+			default-state = "off";
+			linux,default-trigger = "heartbeat";
+		};
 
-        /* Green LED */
-        eMMC {
-            label = "green:activity";
-            gpios = <&gpb2 1 0>;
-            default-state = "off";
-            linux,default-trigger = "mmc0";
-        };
+		/* Green LED */
+		eMMC {
+			label = "green:activity";
+			gpios = <&gpb2 1 0>;
+			default-state = "off";
+			linux,default-trigger = "mmc0";
+		};
 
-        /* Red LED */
-        microSD {
-            label = "red:activity";
-            gpios = <&gpx2 3 0>;
-            default-state = "off";
-            linux,default-trigger = "mmc1";
-        };
-    };
+		/* Red LED */
+		microSD {
+			label = "red:activity";
+			gpios = <&gpx2 3 0>;
+			default-state = "off";
+			linux,default-trigger = "mmc1";
+		};
+	};
 
-    /* i2c0 INA231 Sensors */
-    /*
-        - include/linux/platform_data/ina231.h
-        
-        config         = INA231_CONFIG(VSH_CT(eVSH_CT_8244uS)      | \
+	/* i2c0 INA231 Sensors */
+	/*
+	- include/linux/platform_data/ina231.h
+
+	config         = INA231_CONFIG(VSH_CT(eVSH_CT_8244uS)      | \
                                         VBUS_CT(eVBUS_CT_8244uS)   | \
                                         AVG_BIT(eAVG_16)           | \
                                         eSHUNT_BUS_VOLT_CONTINUOUS),
         update_period  = CONVERSION_DELAY(eVSH_CON_8244uS, eVBUS_CON_8244uS, eAVG_CON_16),   // unit = usec
-    */
+	*/
+
 	i2c@12C60000 {
 		status = "okay";
-        clock-frequency = <400000>;
-        ina231@40  {
+		clock-frequency = <400000>;
+		ina231@40  {
 			compatible = "hardkernel,INA231";
 			reg = <0x40>;
-    		sensor-name = "sensor_arm";
-    		enable = <0>;
-    		max_A = <9>;
-    		shunt_R_mohm = <10>;
-    		config = <0x45FF>;
-    		update_period = <263808>;
-        };
-        ina231@41  {
+			sensor-name = "sensor_arm";
+			enable = <0>;
+			max_A = <9>;
+			shunt_R_mohm = <10>;
+			config = <0x45FF>;
+			update_period = <263808>;
+		};
+		ina231@41  {
 			compatible = "hardkernel,INA231";
 			reg = <0x41>;
-    		sensor-name = "sensor_mem";
-    		enable = <0>;
-    		max_A = <3>;
-    		shunt_R_mohm = <10>;
-    		config = <0x45FF>;
-    		update_period = <263808>;
-        };
-        ina231@44  {
+			sensor-name = "sensor_mem";
+			enable = <0>;
+			max_A = <3>;
+			shunt_R_mohm = <10>;
+			config = <0x45FF>;
+			update_period = <263808>;
+		};
+		ina231@44  {
 			compatible = "hardkernel,INA231";
 			reg = <0x44>;
-    		sensor-name = "sensor_g3d";
-    		enable = <0>;
-    		max_A = <5>;
-    		shunt_R_mohm = <10>;
-    		config = <0x45FF>;
-    		update_period = <263808>;
-        };
-        ina231@45  {
+			sensor-name = "sensor_g3d";
+			enable = <0>;
+			max_A = <5>;
+			shunt_R_mohm = <10>;
+			config = <0x45FF>;
+			update_period = <263808>;
+		};
+		ina231@45  {
 			compatible = "hardkernel,INA231";
 			reg = <0x45>;
-    		sensor-name = "sensor_kfc";
-    		enable = <0>;
-    		max_A = <2>;
-    		shunt_R_mohm = <10>;
-    		config = <0x45FF>;
-    		update_period = <263808>;
-        };
+			sensor-name = "sensor_kfc";
+			enable = <0>;
+			max_A = <2>;
+			shunt_R_mohm = <10>;
+			config = <0x45FF>;
+			update_period = <263808>;
+		};
 	};
 
 	regulators {
@@ -697,46 +707,46 @@
 		vdd-supply = <&ldo8_reg>;
 		hdmi-en-supply = <&reg_hdmi_en>;
 	};
-	
+
 	/* AOC 22" DP Config */
 	dp-controller@145B0000 {
 		status = "disabled";
-		samsung,hpd-gpio = <&gpx0 7 3>; 
-        pinctrl-names = "default";
-        pinctrl-0 = <&dp_hpd_gpio>;
+		samsung,hpd-gpio = <&gpx0 7 3>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&dp_hpd_gpio>;
 
 		hsync-active-high = <0>;
 		vsync-active-high = <0>;
 		interlaced = <0>;
 
 		samsung,color-space = <0>;
-        samsung,dynamic-range = <0>;
-        samsung,ycbcr-coeff = <0>;
-        samsung,color-depth = <1>;
-        samsung,link-rate = <0x0a>;
-        samsung,lane-count = <4>;
+		samsung,dynamic-range = <0>;
+		samsung,ycbcr-coeff = <0>;
+		samsung,color-depth = <1>;
+		samsung,link-rate = <0x0a>;
+		samsung,lane-count = <4>;
 
-        display-timings {
-            native-mode = <&timing1>;  
+		display-timings {
+			native-mode = <&timing1>;
 
-            timing1: timing@1 {
-                    clock-frequency = <266000000>;
-                    hactive = <1920>;
-                    vactive = <1080>;
-                    hfront-porch = <88>;  
-                    hback-porch = <44>;
-                    hsync-len = <148>;
-                    vback-porch = <4>;
-                    vfront-porch = <5>;
-                    vsync-len = <36>;
-            };
-        };		
+			timing1: timing@1 {
+				clock-frequency = <266000000>;
+				hactive = <1920>;
+				vactive = <1080>;
+				hfront-porch = <88>;
+				hback-porch = <44>;
+				hsync-len = <148>;
+				vback-porch = <4>;
+				vfront-porch = <5>;
+				vsync-len = <36>;
+			};
+		};
 	};
-	
+
 	fimd {
-        status = "okay";
+	        status = "okay";
 	};
-	
+
 	ion {
 		compatible = "samsung,exynos5430-ion";
 		contig-names = "common", "mfc_sh", "g2d_wfd", "video", "mfc_input",

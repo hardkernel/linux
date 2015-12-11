@@ -17,6 +17,14 @@
 
 #include "xhci.h"
 
+#ifdef CONFIG_MACH_ODROIDXU3
+#define USB3_PORT0_IRQ  104
+#define USB3_PORT1_IRQ  105
+
+// function defined at drivers/usb/phy/phy-samsung-usb3.c
+extern void samsung_usb3phy_retune(int);
+#endif
+
 static void xhci_plat_quirks(struct device *dev, struct xhci_hcd *xhci)
 {
 	/*
@@ -148,15 +156,11 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	ret = usb_add_hcd(xhci->shared_hcd, irq, IRQF_SHARED);
 	if (ret)
 		goto put_usb3_hcd;
-#if defined(CONFIG_MACH_ODROIDXU3)
-    #define USB3_PORT0_IRQ  104
-    #define USB3_PORT1_IRQ  105
-
-    // function defined at drivers/usb/phy/phy-samsung-usb3.c
-   extern void samsung_usb3phy_retune(int);
-    
-    if(irq == USB3_PORT0_IRQ)   samsung_usb3phy_retune(0);
-    else                        samsung_usb3phy_retune(1);
+#ifdef CONFIG_MACH_ODROIDXU3
+	if(irq == USB3_PORT0_IRQ)
+		samsung_usb3phy_retune(0);
+	else
+		samsung_usb3phy_retune(1);
 #endif
 
 	return 0;

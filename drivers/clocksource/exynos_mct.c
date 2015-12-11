@@ -413,6 +413,22 @@ static irqreturn_t exynos4_mct_tick_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static const char *irq_names[] = {
+	"mct_tick0",
+	"mct_tick1",
+	"mct_tick2",
+	"mct_tick3",
+	"mct_tick4",
+	"mct_tick5",
+	"mct_tick6",
+	"mct_tick7",
+};
+
+static DEFINE_PER_CPU(struct irqaction, percpu_mct_irq) = {
+	.flags          = IRQF_TIMER | IRQF_NOBALANCING,
+	.handler        = exynos4_mct_tick_isr,
+};
+
 static int __cpuinit exynos4_local_timer_setup(struct clock_event_device *evt)
 {
 	struct mct_clock_event_device *mevt;
@@ -433,15 +449,12 @@ static int __cpuinit exynos4_local_timer_setup(struct clock_event_device *evt)
 	exynos4_mct_write(TICK_BASE_CNT, mevt->base + MCT_L_TCNTB_OFFSET);
 
 	if (mct_int_type == MCT_INT_SPI) {
+		struct irqaction *mct_irq = this_cpu_ptr(&percpu_mct_irq);
+
+		mct_irq->dev_id = mevt;
 		evt->irq = mct_irqs[MCT_L0_IRQ + cpu];
-		if (request_irq(evt->irq, exynos4_mct_tick_isr,
-				IRQF_TIMER | IRQF_NOBALANCING,
-				evt->name, mevt)) {
-			pr_err("exynos-mct: cannot register IRQ %d\n",
-				evt->irq);
-			return -EIO;
-		}
 		irq_set_affinity(evt->irq, cpumask_of(cpu));
+		enable_irq(evt->irq);
 	} else {
 		enable_percpu_irq(mct_irqs[MCT_L0_IRQ], 0);
 	}
@@ -456,7 +469,7 @@ static void exynos4_local_timer_stop(struct clock_event_device *evt)
 {
 	evt->set_mode(CLOCK_EVT_MODE_UNUSED, evt);
 	if (mct_int_type == MCT_INT_SPI)
-		free_irq(evt->irq, this_cpu_ptr(&percpu_mct_tick));
+		disable_irq(evt->irq);
 	else
 		disable_percpu_irq(mct_irqs[MCT_L0_IRQ]);
 }
@@ -465,6 +478,21 @@ static struct local_timer_ops exynos4_mct_tick_ops __cpuinitdata = {
 	.setup	= exynos4_local_timer_setup,
 	.stop	= exynos4_local_timer_stop,
 };
+
+static void __init exynos4_local_timer_init(void)
+{
+	int cpu;
+
+	if (mct_int_type == MCT_INT_SPI) {
+		for (cpu = 0; cpu < num_possible_cpus(); cpu++) {
+			struct irqaction *mct_irq
+					= per_cpu_ptr(&percpu_mct_irq, cpu);
+			mct_irq->name = irq_names[cpu];
+			setup_irq(mct_irqs[MCT_L0_IRQ + cpu], mct_irq);
+			disable_irq(mct_irqs[MCT_L0_IRQ + cpu]);
+		}
+	}
+}
 #endif /* CONFIG_LOCAL_TIMERS */
 
 static void __init exynos4_timer_resources(struct device_node *np, void __iomem *base)
@@ -551,6 +579,9 @@ static void __init mct_init_dt(struct device_node *np, unsigned int int_type)
 		mct_irqs[i] = irq_of_parse_and_map(np, i);
 
 	exynos4_timer_resources(np, of_iomap(np, 0));
+#ifdef CONFIG_LOCAL_TIMERS
+	exynos4_local_timer_init();
+#endif
 	exynos4_clocksource_init();
 	exynos4_clockevent_init();
 	exynos4_timer_delay_init();

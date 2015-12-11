@@ -942,7 +942,7 @@ static int exynos5_int_busfreq_target(struct device *dev,
 	unsigned long freq;
 	unsigned long old_freq;
 	unsigned long target_volt;
-	int i, target_idx = LV_0;
+	int target_idx = LV_0;
 	bool set_abb_first_than_volt;
 
 	mutex_lock(&data->lock);
@@ -1117,7 +1117,7 @@ static ssize_t int_show_state(struct device *dev, struct device_attribute *attr,
 	ssize_t len = 0;
 	ssize_t write_cnt = (ssize_t)((PAGE_SIZE / LV_END) - 2);
 
-	for (i = LV_0; i < LV_END; i++)
+	for (i = LV_0; i < ARRAY_SIZE(int_bus_opp_list); i++)
 		len += snprintf(buf + len, write_cnt, "%ld %llu\n", int_bus_opp_list[i].freq,
 				(unsigned long long)int_bus_opp_list[i].time_in_state);
 
@@ -1238,7 +1238,7 @@ static int exynos5_devfreq_int_probe(struct platform_device *pdev)
 	struct clk *tmp_clk = NULL, *tmp_parent_clk = NULL, *tmp_p_parent_clk = NULL;
 	struct int_pm_clks *int_clk;
 	unsigned long volt;
-	int i, index = -1;
+	int index = -1;
 
 	data = kzalloc(sizeof(struct busfreq_data_int), GFP_KERNEL);
 

@@ -1600,7 +1600,7 @@ out:
 	mci_send_cmd(slot, SDMMC_CMD_UPD_CLK | SDMMC_CMD_PRV_DAT_WAIT, 0);
 
 	if (host->vqmmc) {
-		ret = regulator_set_voltage(host->vqmmc, 1800000, 1800000);
+		ret = regulator_set_voltage(host->vqmmc, 2000000, 2000000);
 		if (ret) {
 			dev_warn(host->dev, "Switching to 1.8V signalling "
 					"voltage failed\n");
