@@ -65,10 +65,10 @@ config ODROID_EXYNOS5_HDMI_PHY_TUNE_DEBUG
 	    Enables HDMI-PHY tune info display.
 
 config ODROID_USBIO_SENSOR
-    tristate "Enable the USBIO-Sensor Board Driver(Accelermeter)"
+    tristate "Enable the USBIO-Sensor Board Driver (Accelerometer)"
 	depends on MACH_ODROIDXU3
 	default	n
 	help
-	    Enable USBIO Board + Accelermeter Sensor Board driver.
+	    Enable USBIO Board + Accelerometer Sensor Board driver.
 endmenu
 
