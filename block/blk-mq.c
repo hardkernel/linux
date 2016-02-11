@@ -1303,7 +1303,7 @@ struct request_queue *blk_mq_init_queue(struct blk_mq_reg *reg,
 		goto err_map;
 
 	setup_timer(&q->timeout, blk_mq_rq_timer, (unsigned long) q);
-	blk_queue_rq_timeout(q, 30000);
+	blk_queue_rq_timeout(q, 30 * HZ);
 
 	q->nr_queues = nr_cpu_ids;
 	q->nr_hw_queues = reg->nr_hw_queues;
