@@ -67,6 +67,7 @@
 #define AML_UART_TX_FULL		BIT(21)
 #define AML_UART_TX_EMPTY		BIT(22)
 #define AML_UART_RX_FIFO_OVERFLOW	BIT(24)
+#define AML_UART_XMIT_BUSY BIT(25)
 #define AML_UART_ERR			(AML_UART_PARITY_ERR | \
 					 AML_UART_FRAME_ERR  | \
 					 AML_UART_RX_FIFO_OVERFLOW)
@@ -279,7 +280,8 @@ static unsigned int meson_uart_tx_empty(struct uart_port *port)
 	u32 val;
 
 	val = readl(port->membase + AML_UART_STATUS);
-	return (val & AML_UART_TX_EMPTY) ? TIOCSER_TEMT : 0;
+	val &= (AML_UART_TX_EMPTY | AML_UART_XMIT_BUSY);
+	return (val == AML_UART_TX_EMPTY) ? TIOCSER_TEMT : 0;
 }
 
 static void meson_uart_stop_tx(struct uart_port *port)
@@ -287,7 +289,7 @@ static void meson_uart_stop_tx(struct uart_port *port)
 	u32 val;
 
 	val = readl(port->membase + AML_UART_CONTROL);
-	val &= ~AML_UART_TX_EN;
+	val &= ~AML_UART_TX_INT_EN;
 	writel(val, port->membase + AML_UART_CONTROL);
 }
 
@@ -311,7 +313,7 @@ static void meson_uart_shutdown(struct uart_port *port)
 	spin_lock_irqsave(&port->lock, flags);
 
 	val = readl(port->membase + AML_UART_CONTROL);
-	val &= ~(AML_UART_RX_EN | AML_UART_TX_EN);
+	val &= ~AML_UART_RX_EN;
 	val &= ~(AML_UART_RX_INT_EN | AML_UART_TX_INT_EN);
 	writel(val, port->membase + AML_UART_CONTROL);
 
@@ -458,15 +460,26 @@ static const char *meson_uart_type(struct uart_port *port)
 	return (port->type == PORT_MESON) ? "meson_uart" : NULL;
 }
 
-static int meson_uart_startup(struct uart_port *port)
+static void meson_uart_reset(struct uart_port *port)
 {
 	u32 val;
-	int ret = 0;
 	val = readl(port->membase + AML_UART_CONTROL);
 	val |= (AML_UART_RX_RST | AML_UART_TX_RST | AML_UART_CLR_ERR);
 	writel(val, port->membase + AML_UART_CONTROL);
 
 	val &= ~(AML_UART_RX_RST | AML_UART_TX_RST | AML_UART_CLR_ERR);
+	writel(val, port->membase + AML_UART_CONTROL);
+}
+
+static int meson_uart_startup(struct uart_port *port)
+{
+	u32 val;
+	int ret = 0;
+
+	val = readl(port->membase + AML_UART_CONTROL);
+	val |= AML_UART_CLR_ERR;
+	writel(val, port->membase + AML_UART_CONTROL);
+	val &= ~AML_UART_CLR_ERR;
 	writel(val, port->membase + AML_UART_CONTROL);
 
 	val |= (AML_UART_RX_EN | AML_UART_TX_EN);
@@ -482,7 +495,7 @@ static void meson_uart_change_speed(struct uart_port *port, unsigned long baud)
 {
 	u32 val;
 	struct meson_uart_port *mup = to_meson_port(port);
-	while (!(readl(port->membase + AML_UART_STATUS) & AML_UART_TX_EMPTY))
+	while (!meson_uart_tx_empty(port))
 		cpu_relax();
 
 #ifdef UART_TEST_DEBUG
@@ -593,27 +606,39 @@ static int meson_uart_verify_port(struct uart_port *port,
 	return ret;
 }
 
+static int meson_uart_res_size(struct uart_port *port)
+{
+	struct platform_device *pdev = to_platform_device(port->dev);
+	struct resource *res;
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		dev_err(port->dev, "cannot obtain I/O memory region");
+		return -ENODEV;
+	}
+
+	return resource_size(res);
+}
+
 static void meson_uart_release_port(struct uart_port *port)
 {
+	int size = meson_uart_res_size(port);
+
 	if (port->flags & UPF_IOREMAP) {
-		iounmap(port->membase);
+		devm_release_mem_region(port->dev, port->mapbase, size);
+		devm_iounmap(port->dev, port->membase);
 		port->membase = NULL;
 	}
 }
 
 static int meson_uart_request_port(struct uart_port *port)
 {
-	struct platform_device *pdev = to_platform_device(port->dev);
-	struct resource *res;
-	int size, ret;
+	int size = meson_uart_res_size(port);
+	int ret;
 	u32 val;
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!res) {
-		dev_err(&pdev->dev, "cannot obtain I/O memory region");
-		return -ENODEV;
-	}
-	size = resource_size(res);
+	if (size < 0)
+		return size;
 
 	if (!devm_request_mem_region(port->dev, port->mapbase, size,
 				     dev_name(port->dev))) {
@@ -998,11 +1023,13 @@ static int meson_uart_probe(struct platform_device *pdev)
 
 	meson_ports[pdev->id] = mup;
 	platform_set_drvdata(pdev, port);
-	if (of_get_property(pdev->dev.of_node, "pinctrl-names", NULL)) {
-		mup->p = devm_pinctrl_get_select_default(&pdev->dev);
-		if (!mup->p)
-			return -1;
+
+	/* reset port before registering (and possibly registering console) */
+	if (meson_uart_request_port(port) >= 0) {
+		meson_uart_reset(port);
+		meson_uart_release_port(port);
 	}
+
 	ret = uart_add_one_port(&meson_uart_driver, port);
 	if (ret)
 		meson_ports[pdev->id] = NULL;
