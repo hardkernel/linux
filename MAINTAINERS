@@ -22889,6 +22889,11 @@ L:	linux-mm@kvack.org
 S:	Maintained
 F:	mm/zswap.c
 
+DWAV TOUCHSCREEN DRIVER
+M:	codewalker@hardkernel.com>
+S:	Maintained
+F:	drivers/input/touchscreen/dwav-usb-mt.c
+
 THE REST
 M:	Linus Torvalds <torvalds@linux-foundation.org>
 L:	linux-kernel@vger.kernel.org
