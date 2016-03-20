@@ -92,6 +92,13 @@ config GOODIX_CAPACITIVE_TOUCHSCREEN
 	help
 	  Say Y here if you want to use the Goodix capacitive panel.
 
+config GOODIX_GT801_CAPACITIVE_TOUCHSCREEN
+	tristate "Goodix I2C GT801 capacitive touchscreen"
+	depends on I2C
+	default n
+	help
+	  Say Y here if you want to use the Goodix Guitar touch.
+
 config GOODIX_GT81XX_CAPACITIVE_TOUCHSCREEN
 	tristate "Goodix I2C GT81XX capacitive touchscreen"
 	depends on I2C
