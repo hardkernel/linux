@@ -433,7 +433,13 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&a_uart_pins>;
 	};
-
+	
+	i2c1: ds1307@68 {
+		compatible = "maxim,ds1307";
+		reg = <0x68>;
+		status = "okay";
+	};
+	
 	canvas {
 		compatible = "amlogic, meson, canvas";
 		dev_name = "amlogic-canvas";
