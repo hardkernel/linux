@@ -1335,25 +1335,14 @@ CONFIG_GXBB_SUSPEND=y
 #
 # Amlogic DVB driver
 #
-CONFIG_AM_DVB=y
+# CONFIG_AM_DVB is not set
 # CONFIG_AM_ATVDEMOD is not set
-# CONFIG_AM_DTVDEMOD is not set
 
 #
 # AMLOGIC CI Driver
 #
-# CONFIG_AM_CI is not set
 # CONFIG_AM_PCMCIA is not set
 # CONFIG_AM_IOBUS is not set
-# CONFIG_AM_SI2157 is not set
-# CONFIG_AM_SI2177 is not set
-# CONFIG_AM_AVL6211 is not set
-# CONFIG_AM_SI2168 is not set
-# CONFIG_AM_MXL101 is not set
-CONFIG_AM_AVL68xx=y
-CONFIG_AM_MXL241_FE=y
-CONFIG_AM_MXL683_FE=y
-# CONFIG_AM_R840 is not set
 
 #
 # MESON MHU mailbox Support
