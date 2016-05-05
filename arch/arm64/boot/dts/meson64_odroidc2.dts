@@ -410,6 +410,25 @@
 		};
 	};
 
+	aocec: aocec{
+		compatible = "amlogic, amlogic-aocec";
+		device_name = "aocec";
+		status = "okay";
+		vendor_name = "Hardkernel"; /* Max Chars: 8     */
+		vendor_id = <0x000000>; /* Refer to http://standards.ieee.org/develop/regauth/oui/oui.txt   */
+		product_desc = "ODROID-C2"; /* Max Chars: 16    */
+		cec_osd_string = "ODROID-C2"; /* Max Chars: 14    */
+		port_num = <3>;
+		arc_port_mask = <0x0>;
+		interrupts = <0 199 1>;
+		interrupt-names = "hdmi_aocec";
+		pinctrl-names = "hdmitx_aocec";
+		pinctrl-0=<&hdmitx_aocec>;
+		reg = <0x0 0xc810023c 0x0 0x4
+		       0x0 0xc8100000 0x0 0x200
+		       0x0 0xda83e000 0x0 0x10>;
+	};
+
 	uart_AO: serial@c81004c0 {
 		compatible = "amlogic, meson-uart";
 		reg = <0x0 0xc81004c0 0x0 0x14>;

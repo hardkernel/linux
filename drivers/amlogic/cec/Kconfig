@@ -1,0 +1,9 @@
+menu "AO CEC Support"
+
+config AML_AO_CEC
+	boolean "HDMI AO cec driver support"
+	help
+		HDMI AO cec driver provide cec support on Amlogic SOC chips, you can
+		use this driver to implement cec features on TV/MBOX
+
+endmenu

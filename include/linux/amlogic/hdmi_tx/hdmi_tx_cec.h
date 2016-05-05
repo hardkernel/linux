@@ -88,6 +88,56 @@ void fiq_gpio_test(unsigned int cmd);
 #define MAX_MSG           16
 #define MAX_NUM_OF_DEV    16
 
+#ifdef CONFIG_AML_AO_CEC
+#define CEC_IOC_MAGIC                   'C'
+#define CEC_IOC_GET_PHYSICAL_ADDR       _IOR(CEC_IOC_MAGIC, 0x00, uint16_t)
+#define CEC_IOC_GET_VERSION             _IOR(CEC_IOC_MAGIC, 0x01, int)
+#define CEC_IOC_GET_VENDOR_ID           _IOR(CEC_IOC_MAGIC, 0x02, uint32_t)
+#define CEC_IOC_GET_PORT_INFO           _IOR(CEC_IOC_MAGIC, 0x03, int)
+#define CEC_IOC_GET_PORT_NUM            _IOR(CEC_IOC_MAGIC, 0x04, int)
+#define CEC_IOC_GET_SEND_FAIL_REASON    _IOR(CEC_IOC_MAGIC, 0x05, uint32_t)
+#define CEC_IOC_SET_OPTION_WAKEUP       _IOW(CEC_IOC_MAGIC, 0x06, uint32_t)
+#define CEC_IOC_SET_OPTION_ENALBE_CEC   _IOW(CEC_IOC_MAGIC, 0x07, uint32_t)
+#define CEC_IOC_SET_OPTION_SYS_CTRL     _IOW(CEC_IOC_MAGIC, 0x08, uint32_t)
+#define CEC_IOC_SET_OPTION_SET_LANG     _IOW(CEC_IOC_MAGIC, 0x09, uint32_t)
+#define CEC_IOC_GET_CONNECT_STATUS      _IOR(CEC_IOC_MAGIC, 0x0A, uint32_t)
+#define CEC_IOC_ADD_LOGICAL_ADDR        _IOW(CEC_IOC_MAGIC, 0x0B, uint32_t)
+#define CEC_IOC_CLR_LOGICAL_ADDR        _IOW(CEC_IOC_MAGIC, 0x0C, uint32_t)
+#define CEC_IOC_SET_DEV_TYPE            _IOW(CEC_IOC_MAGIC, 0x0D, uint32_t)
+#define CEC_IOC_SET_ARC_ENABLE          _IOW(CEC_IOC_MAGIC, 0x0E, uint32_t)
+
+#define CEC_FAIL_NONE                   0
+#define CEC_FAIL_NACK                   1
+#define CEC_FAIL_BUSY                   2
+#define CEC_FAIL_OTHER                  3
+
+struct hdmi_port_info {
+	int type;
+	/* Port ID should start from 1 which corresponds to HDMI "port 1". */
+	int port_id;
+	int cec_supported;
+	int arc_supported;
+	uint16_t physical_address;
+};
+
+void cec_pinmux_set(void);
+void cec_arbit_bit_time_set(unsigned , unsigned , unsigned);
+void cec_clear_buf(unsigned int flag);
+void cec_keep_reset(void);
+void ao_cec_init(void);
+void tx_irq_handle(void);
+int  cec_node_init(struct hdmitx_dev *hdmitx_device);
+extern struct hrtimer cec_key_timer;
+extern enum hrtimer_restart cec_key_up(struct hrtimer *timer);
+unsigned int cec_intr_stat(void);
+extern struct cec_global_info_t cec_info;
+extern int get_cec_tx_fail(void);
+
+enum hdmi_port_type {
+	HDMI_INPUT = 0,
+	HDMI_OUTPUT = 1
+};
+#endif
 enum _cec_log_dev_addr_e {
 	CEC_TV_ADDR					= 0x00,
 	CEC_RECORDING_DEVICE_1_ADDR,
@@ -433,6 +483,7 @@ struct cec_flag_t {
 	int cec_repeat_flag;
 };
 
+#ifndef CONFIG_AML_AO_CEC
 struct cec_global_info_t {
 	unsigned short dev_mask;
 	unsigned char active_log_dev;
@@ -444,6 +495,32 @@ struct cec_global_info_t {
 	struct hdmitx_dev *hdmitx_device;
 	enum cec_power_status_e tv_power_status;
 };
+#else
+/*
+ * only for 1 tx device
+ */
+struct cec_global_info_t {
+	dev_t dev_no;
+	unsigned int open_count;
+	unsigned int hal_ctl;			/* message controled by hal */
+	unsigned int vendor_id:24;
+	unsigned int power_status;
+	unsigned int menu_lang;
+	unsigned int cec_version;
+	//struct {
+	//    unsigned int log_addr1;
+	//    unsigned int log_addr2;
+	//    unsigned int log_addr3;
+	//    unsigned int log_addr4;
+	//    unsigned int log_addr5;
+	//} log_addr;
+	unsigned int log_addr[5];
+	unsigned int menu_status;
+	unsigned char osd_name[16];
+	struct input_dev *remote_cec_dev;	/* cec input device */
+	struct hdmitx_dev *hdmitx_device;
+};
+#endif
 
 struct cec_global_info_to_usr_t {
 	unsigned char dev_number;
@@ -560,11 +637,26 @@ void cec_usrcmd_clear_node_dev_real_info_mask(unsigned char log_addr,
 void cec_usrcmd_set_report_physical_address(void);
 void cec_usrcmd_text_view_on(unsigned char log_addr);
 void cec_polling_online_dev(int log_addr, int *bool);
-void cec_device_vendor_id(struct cec_rx_message_t *pcec_message);
-void cec_report_power_status(struct cec_rx_message_t *pcec_message);
 void cec_active_source(struct cec_rx_message_t *pcec_message);
+#ifndef CONFIG_AML_AO_CEC 
+void cec_inactive_source(void);
+void cec_report_power_status(struct cec_rx_message_t *pcec_message);
 void cec_set_stream_path(struct cec_rx_message_t *pcec_message);
 void cec_set_osd_name(struct cec_rx_message_t *pcec_message);
+void cec_menu_status_smp(enum cec_device_menu_state_e status);
+void cec_device_vendor_id(struct cec_rx_message_t *pcec_message);
+void cec_user_control_released_irq(void);
+void cec_user_control_pressed_irq(void);
+#else
+void cec_inactive_source(int dest);
+void cec_report_power_status(int dest, int status);
+void cec_set_stream_path(unsigned char *msg);
+void cec_set_osd_name(int dest);
+void cec_menu_status_smp(int dest, int status);
+void cec_device_vendor_id(void);
+void cec_user_control_pressed_irq(unsigned char message_irq);
+void cec_user_control_released_irq(void);
+#endif
 void cec_set_osd_name_init(void);
 void cec_inactive_source_rx(struct cec_rx_message_t *pcec_message);
 void cec_set_system_audio_mode(void);
@@ -572,7 +664,6 @@ void cec_system_audio_mode_request(void);
 void cec_report_audio_status(void);
 void cec_get_menu_language_smp(void);
 void cec_device_vendor_id_smp(void);
-void cec_menu_status_smp(enum cec_device_menu_state_e status);
 void cec_set_imageview_on_irq(void);
 void cec_active_source_irq(void);
 
@@ -588,9 +679,6 @@ void cec_usrcmd_set_lang_config(const char *buf, size_t count);
 void cec_input_handle_message(void);
 void cec_send_event_irq(void);
 void cec_standby_irq(void);
-void cec_user_control_released_irq(void);
-void cec_user_control_pressed_irq(void);
-void cec_inactive_source(void);
 void cec_set_standby(void);
 void cec_isr_post_process(void);
 void cec_clear_buf(unsigned int flag);
@@ -606,7 +694,11 @@ unsigned int cec_intr_stat(void);
 void cec_pinmux_set(void);
 irqreturn_t cec_isr_handler(int irq, void *dev_instance);
 void hdmitx_setup_cecirq(struct hdmitx_dev *phdev);
+#ifndef CONFIG_AML_AO_CEC
 void cec_logicaddr_set(int logicaddr);
+#else
+void cec_logicaddr_set(int logicaddr, int logreg);
+#endif
 void cec_arbit_bit_time_set(unsigned bit_set, unsigned time_set,
 	unsigned flag);
 void tx_irq_handle(void);
@@ -626,7 +718,11 @@ extern void cec_key_init(void);
 extern __u16 cec_key_map[];
 extern struct cec_global_info_t cec_global_info;
 
+#ifndef CONFIG_AML_AO_CEC
 extern __u16 cec_key_map[128];
+#else
+extern __u16 cec_key_map[160];
+#endif
 extern bool cec_msg_dbg_en;
 extern void cec_rx_buf_clear(void);
 

@@ -35,11 +35,13 @@ config AML_HDMI_TX_HDCP
 endif
 
 if AML_HDMI_TX_20
+if !AML_AO_CEC
 config AML_HDMI_TX_NEW_CEC_DRIVER
         bool "HDMI new CEC driver"
         default n
         help
                 hdmitx uses new CEC driver
+endif
 endif
 
 endmenu

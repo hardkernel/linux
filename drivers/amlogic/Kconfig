@@ -3,6 +3,8 @@
 #
 menu "Amlogic Device Drivers"
 
+source "drivers/amlogic/cec/Kconfig"
+
 source "drivers/amlogic/clocksource/Kconfig"
 
 source "drivers/amlogic/uart/Kconfig"
