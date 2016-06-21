@@ -996,6 +996,9 @@ int cec_node_init(struct hdmitx_dev *hdmitx_device)
     if ((cec_dev->hal_flag & (1 << HDMI_OPTION_SYSTEM_CEC_CONTROL)))
         return -1;
 
+    if (!(hdmitx_device->cec_func_config & (1 << CEC_FUNC_MSAK)))
+        return -1;
+
     CEC_INFO("cec_node_init started\n");
 
     cec_phy_addr = ((a << 12) | (b << 8) | (c << 4) | (d << 0));
