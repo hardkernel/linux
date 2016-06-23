@@ -116,7 +116,7 @@ static int cec_tx_result;
 static unsigned char rx_msg[MAX_MSG];
 static unsigned char rx_len;
 static unsigned int  new_msg;
-bool cec_msg_dbg_en = 1;
+bool cec_msg_dbg_en = 0;
 
 #define CEC_ERR(format, args...)                \
     {if (cec_dev->dbg_dev)                  \
@@ -467,19 +467,27 @@ static int cec_ll_trigle_tx(const unsigned char *msg, int len)
     unsigned int j = 20;
     unsigned tx_stat;
     static int cec_timeout_cnt = 1;
+	int flag = 0;
 
     while (1) {
         tx_stat = aocec_rd_reg(CEC_TX_MSG_STATUS);
         if (tx_stat != TX_BUSY)
             break;
 
+		if (!flag && tx_stat == TX_BUSY) {
+            CEC_INFO("TX is busy. Sending TX_ABORT\n");
+			aocec_wr_reg(CEC_TX_MSG_CMD, TX_ABORT);
+			flag = 1;
+		}
+
         if (!(j--)) {
-            CEC_INFO("wating busy timeout\n");
-            aocec_wr_reg(CEC_TX_MSG_CMD, TX_ABORT);
+            CEC_INFO("TX is still busy. Sending TX_NO_OP\n");
+            aocec_wr_reg(CEC_TX_MSG_CMD, TX_NO_OP);
             cec_timeout_cnt++;
-            if (cec_timeout_cnt > 0x08)
+            if (cec_timeout_cnt > 0x08) {
                 cec_hw_reset();
-            break;
+                break;
+            }
         }
         msleep(20);
     }
@@ -569,7 +577,7 @@ int cec_ll_tx(const unsigned char *msg, unsigned char len)
     cec_tx_result = 0;
     ret = wait_for_completion_timeout(&cec_dev->tx_ok, timeout);
     if (ret <= 0) {
-        /* timeout or interrupt */
+        /* timeout of interrupt */
         ret = CEC_FAIL_OTHER;
         CEC_INFO("tx timeout\n");
     } else {
@@ -1225,9 +1233,10 @@ static void cec_rx_process(void)
             cec_send_simplink_ack();
         }
         break;
+	case CEC_OC_DEVICE_VENDOR_ID:
+		break;
 
     default:
-        CEC_ERR("unsupported command:%x\n", opcode);
         break;
     }
     new_msg = 0;
@@ -1636,16 +1645,10 @@ static long hdmitx_cec_ioctl(struct file *f,
 
     case CEC_IOC_SET_OPTION_SYS_CTRL:
         tmp = (1 << HDMI_OPTION_SYSTEM_CEC_CONTROL);
-        if (arg){
-            if (cec_dev->cec_info.log_addr[0] != 0) {
-                cec_inactive_source(CEC_BROADCAST_ADDR);
-                cec_menu_status_smp(CEC_TV_ADDR, DEVICE_MENU_INACTIVE);
-            }
+        if (arg)
             cec_dev->hal_flag |= tmp;
-        }
-        else {
+        else
             cec_dev->hal_flag &= ~(tmp);
-        }
         break;
 
     case CEC_IOC_SET_OPTION_SET_LANG:
