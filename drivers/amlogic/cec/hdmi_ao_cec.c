@@ -996,6 +996,9 @@ int cec_node_init(struct hdmitx_dev *hdmitx_device)
     if ((cec_dev->hal_flag & (1 << HDMI_OPTION_SYSTEM_CEC_CONTROL)))
         return -1;
 
+    if (!(hdmitx_device->cec_func_config & (1 << CEC_FUNC_MSAK)))
+        return -1;
+
     CEC_INFO("cec_node_init started\n");
 
     cec_phy_addr = ((a << 12) | (b << 8) | (c << 4) | (d << 0));
@@ -1449,6 +1452,8 @@ static struct class_attribute aocec_class_attr[] = {
 /******************** cec hal interface ***************************/
 static int hdmitx_cec_open(struct inode *inode, struct file *file)
 {
+    wait_event_interruptible(cec_dev->tx_dev->hdmi_info.vsdb_phy_addr.waitq,
+            cec_dev->tx_dev->hdmi_info.vsdb_phy_addr.valid == 1);
     cec_dev->cec_info.open_count++;
     if (cec_dev->cec_info.open_count) {
         cec_dev->cec_info.hal_ctl = 1;
