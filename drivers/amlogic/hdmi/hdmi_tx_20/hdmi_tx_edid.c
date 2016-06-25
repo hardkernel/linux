@@ -313,6 +313,9 @@ void set_vsdb_phy_addr(struct vsdb_phyaddr *vsdb,
 	vsdb->d = (edid_offset[5] >> 0) & 0xf;
 	vsdb_local = *vsdb;
 	vsdb->valid = 1;
+#ifdef CONFIG_AML_AO_CEC
+        wake_up_interruptible(&vsdb->waitq);
+#endif
 }
 
 int Edid_Parse_check_HDMI_VSDB(struct hdmitx_info *info,
