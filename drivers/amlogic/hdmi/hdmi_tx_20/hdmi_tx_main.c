@@ -495,7 +495,11 @@ static int set_disp_mode_auto(void)
 	if ((vic_ready != HDMI_Unkown) && (vic_ready == vic)) {
 		hdmi_print(IMP, SYS "[%s] ALREADY init VIC = %d\n",
 			__func__, vic);
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+		if (hdmitx_device.RXCap.IEEEOUI == 0 || odroidc_voutmode()) {
+#else
 		if (hdmitx_device.RXCap.IEEEOUI == 0) {
+#endif
 			/* DVI case judgement. In uboot, directly output HDMI
 			 * mode
 			 */
@@ -977,6 +981,10 @@ const char *disp_mode_t[] = {
 	"1600x900p60hz",
 	"1680x1050p60hz",
 	"1920x1200p60hz",
+	"2560x1440p60hz",
+	"2560x1600p60hz",
+	"2560x1080p60hz",
+	"3440x1440p60hz",
 	NULL
 };
 
@@ -2182,6 +2190,9 @@ static int amhdmitx_probe(struct platform_device *pdev)
 	HDMITX_Meson_Init(&hdmitx_device);
 	hdmitx_device.task = kthread_run(hdmi_task_handle,
 		&hdmitx_device, "kthread_hdmi");
+#ifdef CONFIG_AML_AO_CEC
+    init_waitqueue_head(&hdmitx_device.hdmi_info.vsdb_phy_addr.waitq);
+#endif
 
 	if (r < 0) {
 		hdmi_print(INF, SYS "register switch dev failed\n");
@@ -2465,6 +2476,9 @@ static  int __init hdmitx_boot_para_setup(char *s)
 				hdmitx_device.cec_func_config = list;
 			hdmi_print(INF, CEC "HDMI hdmi_cec_func_config:0x%x\n",
 				   hdmitx_device.cec_func_config);
+		} else if (strcmp(token, "forcergb") == 0) {
+			hdmitx_output_rgb();
+			hdmi_print(IMP, "Forced RGB colorspace output\n");
 		}
 	}
 		offset = token_offset;
