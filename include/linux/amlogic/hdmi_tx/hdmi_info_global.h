@@ -19,6 +19,7 @@
 #define _HDMI_INFO_GLOBAL_H
 
 #include "hdmi_common.h"
+#include <linux/wait.h>
 
 /* old definitions move to hdmi_common.h */
 
@@ -269,6 +270,9 @@ struct vsdb_phyaddr {
 	unsigned char c:4;
 	unsigned char d:4;
 	unsigned char valid;
+#ifdef CONFIG_AML_AO_CEC
+	wait_queue_head_t waitq;
+#endif
 };
 
 struct hdmitx_clk {
