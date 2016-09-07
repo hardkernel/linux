@@ -2487,9 +2487,9 @@ static  int __init hdmitx_boot_para_setup(char *s)
 			init_flag |= INIT_FLAG_NOT_LOAD;
 		} else if (strncmp(token, "cec", 3) == 0) {
 			ret = kstrtoul(token+3, 16, &list);
-			if ((list >= 0) && (list <= 0x2f))
+			if ((list >= 0) && (list <= 0xff))
 				hdmitx_device.cec_func_config = list;
-			hdmi_print(INF, CEC "HDMI hdmi_cec_func_config:0x%x\n",
+			hdmi_print(IMP, CEC "HDMI hdmi_cec_func_config:0x%x\n",
 				   hdmitx_device.cec_func_config);
 		} else if (strcmp(token, "forcergb") == 0) {
 			hdmitx_output_rgb();
