@@ -24,40 +24,40 @@
 //
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_name	(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_name, S_IRWXUGO, show_name, NULL);
+static	DEVICE_ATTR(sensor_name, S_IRUGO, show_name, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_power			(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_W, S_IRWXUGO, show_power, NULL);
+static	DEVICE_ATTR(sensor_W, S_IRUGO, show_power, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_current		(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_A, S_IRWXUGO, show_current, NULL);
+static	DEVICE_ATTR(sensor_A, S_IRUGO, show_current, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_voltage		(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_V, S_IRWXUGO, show_voltage, NULL);
+static	DEVICE_ATTR(sensor_V, S_IRUGO, show_voltage, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_max_power		(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_maxW, S_IRWXUGO, show_max_power, NULL);
+static	DEVICE_ATTR(sensor_maxW, S_IRUGO, show_max_power, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_max_current	(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_maxA, S_IRWXUGO, show_max_current, NULL);
+static	DEVICE_ATTR(sensor_maxA, S_IRUGO, show_max_current, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_max_voltage	(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(sensor_maxV, S_IRWXUGO, show_max_voltage, NULL);
+static	DEVICE_ATTR(sensor_maxV, S_IRUGO, show_max_voltage, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static 	ssize_t show_enable         (struct device *dev, struct device_attribute *attr, char *buf);
 static 	ssize_t set_enable          (struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-static	DEVICE_ATTR(enable, S_IRWXUGO, show_enable, set_enable);
+static	DEVICE_ATTR(enable, S_IRUGO | S_IWUSR, show_enable, set_enable);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 static	ssize_t show_period 		(struct device *dev, struct device_attribute *attr, char *buf);
-static	DEVICE_ATTR(update_period, S_IRWXUGO, show_period, NULL);
+static	DEVICE_ATTR(update_period, S_IRUGO, show_period, NULL);
 
 //[*]--------------------------------------------------------------------------------------------------[*]
 //[*]--------------------------------------------------------------------------------------------------[*]
