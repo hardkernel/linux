@@ -21,6 +21,15 @@
 	compatible = "hardkernel,odroid-xu3-lite", "samsung,exynos5800", "samsung,exynos5";
 };
 
+&cluster_a15_opp_table {
+	/delete-node/opp@2000000000;
+	/delete-node/opp@1900000000;
+};
+
+&cluster_a7_opp_table {
+	/delete-node/opp@1400000000;
+};
+
 &pwm {
 	/*
 	 * PWM 0 -- fan

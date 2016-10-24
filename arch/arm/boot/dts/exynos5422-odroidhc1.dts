@@ -55,7 +55,7 @@
 				/*
 				 * When reaching cpu0_alert0, reduce CPU
 				 * by 2 steps. On Exynos5422/5800 that would
-				 * be: 1600 MHz and 1100 MHz.
+				 * be: 1800 MHz and 1100 MHz.
 				 */
 				map0 {
 					trip = <&cpu0_alert0>;
@@ -67,16 +67,16 @@
 				};
 				/*
 				 * When reaching cpu0_alert1, reduce CPU
-				 * further, down to 600 MHz (12 steps for big,
-				 * 7 steps for LITTLE).
+				 * further, down to 600 MHz (14 steps for big,
+				 * 8 steps for LITTLE).
 				 */
 				map2 {
 					trip = <&cpu0_alert1>;
-					cooling-device = <&cpu0 3 7>;
+					cooling-device = <&cpu0 3 8>;
 				};
 				map3 {
 					trip = <&cpu0_alert1>;
-					cooling-device = <&cpu4 3 12>;
+					cooling-device = <&cpu4 3 14>;
 				};
 			};
 		};
@@ -110,11 +110,11 @@
 				};
 				map2 {
 					trip = <&cpu1_alert1>;
-					cooling-device = <&cpu0 3 7>;
+					cooling-device = <&cpu0 3 8>;
 				};
 				map3 {
 					trip = <&cpu1_alert1>;
-					cooling-device = <&cpu4 3 12>;
+					cooling-device = <&cpu4 3 14>;
 				};
 			};
 		};
@@ -148,11 +148,11 @@
 				};
 				map2 {
 					trip = <&cpu2_alert1>;
-					cooling-device = <&cpu0 3 7>;
+					cooling-device = <&cpu0 3 8>;
 				};
 				map3 {
 					trip = <&cpu2_alert1>;
-					cooling-device = <&cpu4 3 12>;
+					cooling-device = <&cpu4 3 14>;
 				};
 			};
 		};
@@ -186,11 +186,11 @@
 				};
 				map2 {
 					trip = <&cpu3_alert1>;
-					cooling-device = <&cpu0 3 7>;
+					cooling-device = <&cpu0 3 8>;
 				};
 				map3 {
 					trip = <&cpu3_alert1>;
-					cooling-device = <&cpu4 3 12>;
+					cooling-device = <&cpu4 3 14>;
 				};
 			};
 		};
