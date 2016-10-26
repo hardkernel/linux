@@ -152,6 +152,10 @@ static void vb2_dc_put(void *buf_priv)
 		sg_free_table(buf->sgt_base);
 		kfree(buf->sgt_base);
 	}
+	if (buf->dma_sgt) {
+		sg_free_table(buf->dma_sgt);
+		kfree(buf->dma_sgt);
+	}
 	dma_free_attrs(buf->dev, buf->size, buf->cookie, buf->dma_addr,
 		       buf->attrs);
 	put_device(buf->dev);
@@ -193,6 +197,14 @@ static void *vb2_dc_alloc(struct device *dev, unsigned long attrs,
 	buf->handler.put = vb2_dc_put;
 	buf->handler.arg = buf;
 
+	/*
+	 * Enable cache maintenance. Even if userspace doesn't mmap the buffer,
+	 * sync still should be happening if kernel mapping is present.
+	 */
+	if (!(buf->attrs & DMA_ATTR_NO_KERNEL_MAPPING) &&
+	    buf->attrs & DMA_ATTR_NON_CONSISTENT)
+		buf->dma_sgt = vb2_dc_get_base_sgt(buf);
+
 	refcount_set(&buf->refcount, 1);
 
 	return buf;
@@ -227,6 +239,10 @@ static int vb2_dc_mmap(void *buf_priv, struct vm_area_struct *vma)
 	vma->vm_ops		= &vb2_common_vm_ops;
 
 	vma->vm_ops->open(vma);
+
+	/* Enable cache maintenance if not enabled in allocation. */
+	if (!buf->dma_sgt && buf->attrs & DMA_ATTR_NON_CONSISTENT)
+		buf->dma_sgt = vb2_dc_get_base_sgt(buf);
 
 	pr_debug("%s: mapped dma addr 0x%08lx at 0x%08lx, size %ld\n",
 		__func__, (unsigned long)buf->dma_addr, vma->vm_start,
