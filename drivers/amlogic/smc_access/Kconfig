@@ -1,0 +1,7 @@
+# Amlogic DEBUG
+#
+config AML_SMC_ACCESS
+    bool "Amlogic SMC call and JTAG enable from userspace support"
+    default m
+    help
+      This is the Amlogic debug sysfs interface driver using debugfs interface
