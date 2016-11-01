@@ -16,7 +16,9 @@
  *
 */
 
-
+/* This is a debugfs driver written by github.com/frederic/ 
+ * and modified by myself to add JTAG enable function.
+*/
 
 /* Standard Linux headers */
 #include <linux/types.h>
@@ -33,7 +35,7 @@
 #include <linux/uaccess.h>
 
 #define JTAG_ON		0x82000040
-#define JTAG_OFF	0x82000041
+#define JTAG_OFF	0x82000041 // Not implemented yet
 
 /* Currently only the Cortex-M3 is available for JTAG, the A53 still has issues for me, but it may be because of my tools (OpenOCD) and their developmental ARMv8 support. Neither of the power domain taps are working yet either, this may be an Amlogic limitation. */
 
