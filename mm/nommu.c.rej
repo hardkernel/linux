@@ -1,0 +1,15 @@
+--- mm/nommu.c
++++ mm/nommu.c
+@@ -1428,10 +1428,10 @@ error_just_free:
+ 	up_write(&nommu_region_sem);
+ error:
+ 	if (region->vm_file)
+-		vmr_fput(region);
++		fput(region->vm_file);
+ 	kmem_cache_free(vm_region_jar, region);
+ 	if (vma->vm_file)
+-		vma_fput(vma);
++		fput(vma->vm_file);
+ 	kmem_cache_free(vm_area_cachep, vma);
+ 	return ret;
+ 
