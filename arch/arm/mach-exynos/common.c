@@ -696,7 +696,7 @@ void exynos5_restart(char mode, const char *cmd)
 
 	if (cmd) {
 	    #if defined(CONFIG_MACH_ODROIDXU3)
-        	if (!strcmp((char *)cmd, "fastboot"))
+			if (!strcmp((char *)cmd, "fastboot") || !strcmp((char *)cmd, "bootloader"))
         		restart_inform = REBOOT_FASTBOOT;
         	if (!strcmp((char *)cmd, "update"))
         		restart_inform = REBOOT_UPDATE;
