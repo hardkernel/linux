@@ -13,6 +13,7 @@
 
 /dts-v1/;
 #include "exynos5422-odroidxu3-common.dtsi"
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	model = "Hardkernel Odroid XU4";
@@ -49,4 +50,43 @@
 
 &spi_1 {
 	status = "okay";
+	samsung,spi-src-clk = <0>;
+	num-cs = <2>;
+	cs-gpios = <&gpa2 5 GPIO_ACTIVE_HIGH>, <&gpx2 1 GPIO_ACTIVE_HIGH>;
+
+	spidev: spidev@0 {
+		reg = <0>;
+		compatible = "spidev";
+		spi-max-frequency = <1000000>;
+
+		controller-data {
+			cs-gpio = <&gpa2 5 GPIO_ACTIVE_HIGH>;
+			samsung,spi-feedback-delay = <0>;
+		};
+	};
+
+	ads7846: ads7846@1 {
+		reg = <1>;
+		compatible = "ti,ads7846";
+		interrupt-parent = <&gpa0>;
+		interrupts = <3 3>;
+		spi-max-frequency = <1000000>;
+		pendown-gpio = <&gpa0 3 GPIO_ACTIVE_HIGH>;
+		vcc-supply = <&ldo30_reg>;
+
+		ti,swap-xy = <1>;
+		ti,x-min = /bits/ 16 <0>;
+		ti,x-max = /bits/ 16 <8000>;
+		ti,y-min = /bits/ 16 <0>;
+		ti,y-max = /bits/ 16 <4800>;
+		ti,x-plate-ohms = /bits/ 16 <40>;
+		ti,pressure-max = /bits/ 16 <255>;
+
+		linux,wakeup;
+
+		controller-data {
+			cs-gpio = <&gpx2 1 GPIO_ACTIVE_HIGH>;
+			samsung,spi-feedback-delay = <0>;
+		};
+	};
 };
