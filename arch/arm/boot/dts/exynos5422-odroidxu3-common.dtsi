@@ -37,6 +37,13 @@
 		};
 	};
 
+	gpiomem {
+		compatible = "samsung,exynos-gpiomem";
+		reg = <0x13400000 0x1000>,
+		      <0x14010000 0x1000>;
+		status = "okay";
+	};
+
 	emmc_pwrseq: pwrseq {
 		pinctrl-0 = <&emmc_nrst_pin>;
 		pinctrl-names = "default";
