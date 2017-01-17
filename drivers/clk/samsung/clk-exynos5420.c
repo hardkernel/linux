@@ -715,7 +715,7 @@ static const struct samsung_mux_clock exynos5x_mux_clks[] __initconst = {
 	MUX(0, "mout_sclk_rpll", mout_rpll_p, SRC_TOP6, 16, 1),
 	MUX_F(CLK_MOUT_EPLL, "mout_sclk_epll", mout_epll_p, SRC_TOP6, 20, 1,
 			CLK_SET_RATE_PARENT, 0),
-	MUX(0, "mout_sclk_dpll", mout_dpll_p, SRC_TOP6, 24, 1),
+	MUX(CLK_MOUT_DPLL, "mout_sclk_dpll", mout_dpll_p, SRC_TOP6, 24, 1),
 	MUX(0, "mout_sclk_cpll", mout_cpll_p, SRC_TOP6, 28, 1),
 
 	MUX(0, "mout_sw_aclk400_isp", mout_sw_aclk400_isp_p,
@@ -799,7 +799,7 @@ static const struct samsung_mux_clock exynos5x_mux_clks[] __initconst = {
 	MUX(0, "mout_audio1", mout_audio1_p, SRC_PERIC1, 12, 3),
 	MUX(0, "mout_audio2", mout_audio2_p, SRC_PERIC1, 16, 3),
 	MUX(0, "mout_spi0", mout_group2_p, SRC_PERIC1, 20, 3),
-	MUX(0, "mout_spi1", mout_group2_p, SRC_PERIC1, 24, 3),
+	MUX(CLK_MOUT_SPI1, "mout_spi1", mout_group2_p, SRC_PERIC1, 24, 3),
 	MUX(0, "mout_spi2", mout_group2_p, SRC_PERIC1, 28, 3),
 
 	/* ISP Block */
@@ -910,7 +910,7 @@ static const struct samsung_div_clock exynos5x_div_clks[] __initconst = {
 
 	/* SPI */
 	DIV(0, "dout_spi0", "mout_spi0", DIV_PERIC1, 20, 4),
-	DIV(0, "dout_spi1", "mout_spi1", DIV_PERIC1, 24, 4),
+	DIV(CLK_DOUT_SPI1, "dout_spi1", "mout_spi1", DIV_PERIC1, 24, 4),
 	DIV(0, "dout_spi2", "mout_spi2", DIV_PERIC1, 28, 4),
 
 	/* Mfc Block */
