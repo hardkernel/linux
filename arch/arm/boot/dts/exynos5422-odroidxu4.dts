@@ -48,6 +48,11 @@
 	dr_mode = "host";
 };
 
+&adc {
+	status = "okay";
+	vdd-supply = <&ldo4_reg>;
+};
+
 &spi_1 {
 	status = "okay";
 
