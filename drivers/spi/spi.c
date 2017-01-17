@@ -1632,8 +1632,6 @@ EXPORT_SYMBOL_GPL(spi_bus_unlock);
 /* portable code must never pass more than 32 bytes */
 #define	SPI_BUFSIZ	max(32,SMP_CACHE_BYTES)
 
-static u8	*buf;
-
 /**
  * spi_write_then_read - SPI synchronous write followed by read
  * @spi: device with which data will be exchanged
@@ -1657,7 +1655,7 @@ int spi_write_then_read(struct spi_device *spi,
 		const void *txbuf, unsigned n_tx,
 		void *rxbuf, unsigned n_rx)
 {
-	static DEFINE_MUTEX(lock);
+	u8	buf[SPI_BUFSIZ];
 
 	int			status;
 	struct spi_message	message;
@@ -1669,9 +1667,8 @@ int spi_write_then_read(struct spi_device *spi,
 	 * keep heap costs out of the hot path unless someone else is
 	 * using the pre-allocated buffer or the transfer is too large.
 	 */
-	if ((n_tx + n_rx) > SPI_BUFSIZ || !mutex_trylock(&lock)) {
-		local_buf = kmalloc(max((unsigned)SPI_BUFSIZ, n_tx + n_rx),
-				    GFP_KERNEL | GFP_DMA);
+	if ((n_tx + n_rx) > SPI_BUFSIZ) {
+		local_buf = kmalloc(n_tx + n_rx, GFP_KERNEL | GFP_DMA);
 		if (!local_buf)
 			return -ENOMEM;
 	} else {
@@ -1679,28 +1676,26 @@ int spi_write_then_read(struct spi_device *spi,
 	}
 
 	spi_message_init(&message);
-	memset(x, 0, sizeof x);
-	if (n_tx) {
-		x[0].len = n_tx;
+	if (n_tx && txbuf) {
+		x[0].len    = n_tx;
+		x[0].tx_buf = local_buf;
+		x[0].rx_buf = NULL;
 		spi_message_add_tail(&x[0], &message);
+		memcpy(local_buf, txbuf, n_tx);
 	}
-	if (n_rx) {
-		x[1].len = n_rx;
+	if (n_rx && rxbuf) {
+		x[1].len    = n_rx;
+		x[1].rx_buf = local_buf + n_tx;
+		x[1].tx_buf = NULL;
 		spi_message_add_tail(&x[1], &message);
 	}
 
-	memcpy(local_buf, txbuf, n_tx);
-	x[0].tx_buf = local_buf;
-	x[1].rx_buf = local_buf + n_tx;
-
 	/* do the i/o */
 	status = spi_sync(spi, &message);
-	if (status == 0)
+	if (x[1].rx_buf && (status == 0))
 		memcpy(rxbuf, x[1].rx_buf, n_rx);
 
-	if (x[0].tx_buf == buf)
-		mutex_unlock(&lock);
-	else
+	if (local_buf != buf)
 		kfree(local_buf);
 
 	return status;
@@ -1713,26 +1708,17 @@ static int __init spi_init(void)
 {
 	int	status;
 
-	buf = kmalloc(SPI_BUFSIZ, GFP_KERNEL);
-	if (!buf) {
-		status = -ENOMEM;
-		goto err0;
-	}
-
 	status = bus_register(&spi_bus_type);
 	if (status < 0)
-		goto err1;
+        goto err0;
 
 	status = class_register(&spi_master_class);
 	if (status < 0)
-		goto err2;
+        goto err1;
 	return 0;
 
-err2:
-	bus_unregister(&spi_bus_type);
 err1:
-	kfree(buf);
-	buf = NULL;
+	bus_unregister(&spi_bus_type);
 err0:
 	return status;
 }
