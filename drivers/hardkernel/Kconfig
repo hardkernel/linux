@@ -1,0 +1,10 @@
+menu "ODROID Specific Hardware"
+
+config ODROID_EXYNOS5_SP
+	tristate "Enable the INA231 Sensor on ODROID-EXYNOS5"
+	depends on I2C && ARCH_EXYNOS5
+	default n
+	---help---
+		Enables the INA231 Sensor on ODROID-EXYNOS5
+endmenu
+
