@@ -1733,9 +1733,9 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 					goto next_sg;
 #ifdef CONFIG_SCHED_DEBUG
 				printk(KERN_EMERG "Attaching CPUs 0x%08lX to domain %s\n",
-				       sched_group_cpus(sg)->bits[0], sd->name);
+				       sched_group_span(sg)->bits[0], sd->name);
 #endif
-				if (cpumask_intersects(sched_group_cpus(sg),
+				if (cpumask_intersects(sched_group_span(sg),
 							cpu_fastest_mask))
 					sd->a15_group = sg;
 				else
