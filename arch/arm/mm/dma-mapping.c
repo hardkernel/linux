@@ -650,7 +650,8 @@ static inline pgprot_t __get_dma_pgprot(unsigned long attrs, pgprot_t prot)
 {
 	prot = (attrs & DMA_ATTR_WRITE_COMBINE) ?
 			pgprot_writecombine(prot) :
-			pgprot_dmacoherent(prot);
+		(attrs & DMA_ATTR_NON_CONSISTENT) ?
+			prot : pgprot_dmacoherent(prot);
 	return prot;
 }
 
