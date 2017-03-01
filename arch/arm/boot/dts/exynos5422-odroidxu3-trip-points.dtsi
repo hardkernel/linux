@@ -1,0 +1,100 @@
+/*
+ * Device tree sources for default OdroidXU3/Exynos5422 thermal zone definition
+ *
+ * Copyright (c) 2015 Lukasz Majewski <l.majewski@samsung.com>
+ *						Anand Moon <linux.amoon@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+
+#define _TOKENPASTE(x, y) x ## y
+#define TOKENPASTE(x, y) _TOKENPASTE(x, y)
+#define UNIQIFY(label) TOKENPASTE(label, CPU_THERMAL_ZONE_NUM)
+
+			polling-delay-passive = <250>;
+			polling-delay = <1000>;
+			trips {
+				UNIQIFY(cpu_alert0): cpu-alert-0 {
+					temperature = <60000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "active";
+				};
+				UNIQIFY(cpu_alert1): cpu-alert-1 {
+					temperature = <70000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "active";
+				};
+				UNIQIFY(cpu_alert2): cpu-alert-2 {
+					temperature = <80000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "active";
+				};
+				UNIQIFY(cpu_alert3): cpu-alert-3 {
+					temperature = <85000>; /* millicelsius */
+					hysteresis = <3000>; /* millicelsius */
+					type = "passive";
+				};
+				UNIQIFY(cpu_alert4): cpu-alert-4 {
+					temperature = <90000>; /* millicelsius */
+					hysteresis = <3000>; /* millicelsius */
+					type = "passive";
+				};
+				UNIQIFY(cpu_alert5): cpu-alert-5 {
+					temperature = <95000>; /* millicelsius */
+					hysteresis = <3000>; /* millicelsius */
+					type = "passive";
+				};
+				UNIQIFY(cpu_criti0): cpu-crit-0 {
+					temperature = <115000>; /* millicelsius */
+					hysteresis = <3000>; /* millicelsius */
+					type = "critical";
+				};
+			};
+			cooling-maps {
+				map0 {
+					trip = <&UNIQIFY(cpu_alert0)>;
+					cooling-device = <&fan0 0 1>;
+				};
+				map1 {
+					trip = <&UNIQIFY(cpu_alert1)>;
+					cooling-device = <&fan0 1 2>;
+				};
+				map2 {
+					trip = <&UNIQIFY(cpu_alert2)>;
+					cooling-device = <&fan0 2 3>;
+				};
+				/*
+				 * When reaching cpu_alert3, reduce A15 cores by 4 steps (2.0GHz -> 1.6GHz).
+				 * The 2GHz step causes high thermals on multithreaded workloads
+				 * so better performance is gained by managing it out early.
+				 */
+				map3 {
+					trip = <&UNIQIFY(cpu_alert3)>;
+					cooling-device = <&cpu4 0 4>;
+				};
+				/*
+				* When reaching cpu_alert4, reduce A15 cores by 4 steps (1.6GHz -> 1.2GHz)
+				* to further manage the performance level while keeping
+				* thermals under control.
+				*/
+				map4 {
+					trip = <&UNIQIFY(cpu_alert4)>;
+					cooling-device = <&cpu4 2 8>;
+				};
+				/*
+				 * When reaching cpu_alert5, reduce all CPUs to ensure thermal
+				 * safety. A7 cores don't produce much thermal load so they are
+				 * reduced less to optimise performance.
+				 */
+				map5 {
+					trip = <&UNIQIFY(cpu_alert5)>;
+					cooling-device = <&cpu0 0 2>;
+				};
+				map6 {
+					trip = <&UNIQIFY(cpu_alert5)>;
+					cooling-device = <&cpu4 5 14>;
+				};
+			};
