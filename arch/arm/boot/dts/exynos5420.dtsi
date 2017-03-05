@@ -201,6 +201,15 @@
 			iommu-names = "left", "right";
 		};
 
+                g2d@10850000 {
+                        compatible = "samsung,exynos5250-g2d";
+                        reg = <0x10850000 0x1000>;
+                        interrupts = <GIC_SPI 91 IRQ_TYPE_NONE>;
+                        clocks = <&clock CLK_G2D>;
+                        clock-names = "fimg2d";
+                        iommus = <&sysmmu_g2dr>, <&sysmmu_g2dw>;
+                };
+
 		mmc_0: mmc@12200000 {
 			compatible = "samsung,exynos5420-dw-mshc-smu";
 			interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
