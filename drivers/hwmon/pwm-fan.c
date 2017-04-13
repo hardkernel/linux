@@ -149,9 +149,55 @@ static ssize_t rpm_show(struct device *dev,
 static SENSOR_DEVICE_ATTR_RW(pwm1, pwm, 0);
 static SENSOR_DEVICE_ATTR_RO(fan1_input, rpm, 0);
 
+static ssize_t cooll_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	struct pwm_fan_ctx *ctx = dev_get_drvdata(dev);
+	unsigned int speed_0, speed_1, speed_2, speed_3;
+
+	if(sscanf(buf, "%u %u %u %u\n", &speed_0, &speed_1, &speed_2, &speed_3) != 4) {
+		dev_err(dev, "invalid speed input");
+		return  -EINVAL;
+	}
+
+	if(!(speed_0 < speed_1 && speed_1 < speed_2 && speed_2 < speed_3)){
+		dev_err(dev, "fan speeds must be increasing in value");
+		return count;
+	}
+
+	dev_info(dev, "fan_speeds : %s [%d %d %d %d] \n",
+			__func__, speed_0, speed_1, speed_2, speed_3);
+
+	mutex_lock(&ctx->lock);
+	ctx->pwm_fan_cooling_levels[0] = speed_0;
+	ctx->pwm_fan_cooling_levels[1] = speed_1;
+	ctx->pwm_fan_cooling_levels[2] = speed_2;
+	ctx->pwm_fan_cooling_levels[3] = speed_3;
+	mutex_unlock(&ctx->lock);
+
+	return count;
+}
+
+static ssize_t cooll_show(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	struct pwm_fan_ctx *ctx = dev_get_drvdata(dev);
+	int lenght = 0, i;
+
+	mutex_lock(&ctx->lock);
+	for (i = 0; i <= ctx->pwm_fan_max_state; i++)
+                lenght += sprintf(buf+lenght, "%u ", ctx->pwm_fan_cooling_levels[i]);
+	mutex_unlock(&ctx->lock);
+
+	return lenght;
+}
+
+static SENSOR_DEVICE_ATTR_RW(fan_speed, cooll, 0);
+
 static struct attribute *pwm_fan_attrs[] = {
 	&sensor_dev_attr_pwm1.dev_attr.attr,
 	&sensor_dev_attr_fan1_input.dev_attr.attr,
+	&sensor_dev_attr_fan_speed.dev_attr.attr,
 	NULL,
 };
 
