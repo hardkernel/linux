@@ -57,8 +57,11 @@ void arch_cpu_idle(void)
 {
 	if (tlb_type != hypervisor) {
 		touch_nmi_watchdog();
+		local_irq_enable();
 	} else {
 		unsigned long pstate;
+
+		local_irq_enable();
 
                 /* The sun4v sleeping code requires that we have PSTATE.IE cleared over
                  * the cpu sleep hypervisor call.
@@ -81,7 +84,6 @@ void arch_cpu_idle(void)
 			: "=&r" (pstate)
 			: "i" (PSTATE_IE));
 	}
-	local_irq_enable();
 }
 
 #ifdef CONFIG_HOTPLUG_CPU
@@ -278,6 +280,8 @@ void arch_trigger_all_cpu_backtrace(void)
 			printk("             TPC[%lx] O7[%lx] I7[%lx] RPC[%lx]\n",
 			       gp->tpc, gp->o7, gp->i7, gp->rpc);
 		}
+
+		touch_nmi_watchdog();
 	}
 
 	memset(global_cpu_snapshot, 0, sizeof(global_cpu_snapshot));
@@ -350,6 +354,8 @@ static void pmu_snapshot_all_cpus(void)
 		       (cpu == this_cpu ? '*' : ' '), cpu,
 		       pp->pcr[0], pp->pcr[1], pp->pcr[2], pp->pcr[3],
 		       pp->pic[0], pp->pic[1], pp->pic[2], pp->pic[3]);
+
+		touch_nmi_watchdog();
 	}
 
 	memset(global_cpu_snapshot, 0, sizeof(global_cpu_snapshot));
