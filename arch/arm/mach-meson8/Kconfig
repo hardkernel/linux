@@ -70,4 +70,10 @@ config GPIO_TEST
 	help
 		support gpio group test
 
+config MESON_GIC_FIQ
+	bool "MESON support GIC FIQ"
+	default n
+	depends on FIQ
+	help
+	    support GIC FIQ
 endif # ARCH_MESON8

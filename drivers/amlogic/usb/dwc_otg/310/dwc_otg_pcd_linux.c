@@ -1282,7 +1282,7 @@ int pcd_init(
 	 */
 	DWC_DEBUGPL(DBG_ANY, "registering handler for irq%d\n", _dev->irq);
 	retval = request_irq(_dev->irq, dwc_otg_pcd_irq,
-			     IRQF_SHARED | IRQF_DISABLED,
+			     IRQF_SHARED | IRQF_DISABLED | IRQ_TYPE_LEVEL_HIGH,
 			     gadget_wrapper->gadget.name, otg_dev->pcd);
 	if (retval != 0) {
 		DWC_ERROR("request of irq%d failed\n", _dev->irq);
@@ -1290,10 +1290,10 @@ int pcd_init(
 		return -EBUSY;
 	}
 
-        if (irq_set_affinity(_dev->irq, cpumask_of(3))) {
-                pr_warning("unable to set irq affinity (irq=%d, cpu=%u)\n",
-                                _dev->irq, 3);
-        }
+	if (irq_set_affinity(_dev->irq, cpumask_of(3))) {
+		pr_warning("unable to set irq affinity (irq=%d, cpu=%u)\n",
+				_dev->irq, 3);
+	}
 
 	dwc_otg_pcd_start(gadget_wrapper->pcd, &fops);
 

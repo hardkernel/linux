@@ -57,6 +57,7 @@
 #include "dwc_otg_cil.h"
 #include "dwc_otg_pcd_if.h"
 #include "dwc_otg_hcd_if.h"
+#include "dwc_otg_fiq_fsm.h"
 
 #include <linux/of_platform.h>
 #include <linux/amlogic/of_lm.h>
@@ -72,6 +73,7 @@
 
 #define DWC_DRIVER_VERSION	"3.10a 12-MAY-2014"
 #define DWC_DRIVER_DESC		"HS OTG USB Controller driver"
+bool microframe_schedule=true;
 
 static const char dwc_driver_name[] = "dwc_otg";
 
@@ -269,6 +271,17 @@ static const char *dma_config_name[] = {
 	"BURST_INCR16"
 	"DISABLE",
 };
+
+
+//Global variable to switch the fiq fix on or off
+bool fiq_enable = 1;
+// Global variable to enable the split transaction fix
+bool fiq_fsm_enable = false;
+//Bulk split-transaction NAK holdoff in microframes
+uint16_t nak_holdoff = 8;
+
+unsigned short fiq_fsm_mask = 0x07;
+
 /**
  * This function shows the Driver Version.
  */
@@ -892,6 +905,7 @@ static int dwc_otg_driver_probe(
 	int charger_detect = 0;
 	int host_only_core = 0;
 	int pmu_apply_power = 0;
+        int use_fiq_flag = 0;
 	unsigned int phy_reg_addr = 0;
 	unsigned int ctrl_reg_addr = 0;
 	const char *s_clock_name = NULL;
@@ -900,6 +914,8 @@ static int dwc_otg_driver_probe(
 	struct clk * clock;
 	dwc_otg_device_t *dwc_otg_device;
 	struct dwc_otg_driver_module_params *pcore_para;
+	int irqno;
+	unsigned long flags = IRQF_SHARED | IRQF_DISABLED;
 
 	dev_dbg(&_dev->dev, "dwc_otg_driver_probe(%p)\n", _dev);
 
@@ -933,6 +949,15 @@ static int dwc_otg_driver_probe(
 		struct device_node	*of_node = _dev->dev.of_node;
 		match = of_lm_match_node(dwc_otg_dt_match, of_node);
 		if(match){
+			gpio_name = of_get_property(of_node, "gpio-pwr", NULL);
+			if (gpio_name) {
+				int nr = amlogic_gpio_name_map_num(gpio_name);
+				amlogic_gpio_request_one(nr,
+							 GPIOF_OUT_INIT_LOW,
+							 "usb_pwr_en");
+				amlogic_set_value(nr, 1, "usb_pwr_en");
+			}
+
 			s_clock_name = of_get_property(of_node, "clock-src", NULL);
 			prop = of_get_property(of_node, "port-id", NULL);
 			if(prop)
@@ -992,7 +1017,11 @@ static int dwc_otg_driver_probe(
 			prop = of_get_property(of_node, "pmu-apply-power", NULL);
 			if(prop)
 				pmu_apply_power = of_read_ulong(prop,1);
-			
+
+			prop = of_get_property(of_node, "fiq_use", NULL);
+			if(prop)
+				use_fiq_flag = of_read_ulong(prop,1);			
+
 			ctrl_reg_addr = (unsigned long)usb_platform_data.ctrl_regaddr[port_index];
 			phy_reg_addr = (unsigned long)usb_platform_data.phy_regaddr[port_index];
 			_dev->irq = usb_platform_data.irq_no[port_index];
@@ -1200,14 +1229,20 @@ static int dwc_otg_driver_probe(
 	 */
 	dwc_otg_disable_global_interrupts(dwc_otg_device->core_if);
 
+	if(fiq_enable && use_fiq_flag) {
+		irqno= MESON_USB_FIQ_BRIDGE;
+	} else {
+		irqno = _dev->irq;
+		flags |= IRQ_TYPE_LEVEL_HIGH;
+	}
 	/*
 	 * Install the interrupt handler for the common interrupts before
 	 * enabling common interrupts in core_init below.
 	 */
 	DWC_DEBUGPL(DBG_CIL, "registering (common) handler for irq%d\n",
-		    _dev->irq);
-	retval = request_irq(_dev->irq, dwc_otg_common_irq,
-			     IRQF_SHARED | IRQF_DISABLED | IRQ_LEVEL, "dwc_otg",
+		    irqno);
+	retval = request_irq(irqno, dwc_otg_common_irq,
+			     flags, "dwc_otg",
 			     dwc_otg_device);
 	if (retval) {
 		DWC_ERROR("request of irq%d failed\n", _dev->irq);
@@ -1217,10 +1252,10 @@ static int dwc_otg_driver_probe(
 		dwc_otg_device->common_irq_installed = 1;
 	}
 
-        if (irq_set_affinity(_dev->irq, cpumask_of(3))) {
-                pr_warning("unable to set irq affinity (irq=%d, cpu=%u)\n",
-                                _dev->irq, 3);
-        }
+	if (irq_set_affinity(irqno, cpumask_of(3))) {
+		pr_warning("unable to set irq affinity (irq=%d, cpu=%u)\n",
+				_dev->irq, 3);
+	}
 
 #ifdef LM_INTERFACE
 //	set_irq_type(_dev->irq, IRQT_LOW);
@@ -1256,6 +1291,7 @@ static int dwc_otg_driver_probe(
 	if(host_only_core&&pmu_apply_power)
 		dwc_otg_device->core_if->swicth_int_reg = 1;
 
+	dwc_otg_device->core_if->use_fiq_flag = use_fiq_flag;
 	if (port_type == USB_PORT_TYPE_HOST) {
 		/*
 		 * Initialize the HCD
@@ -1406,6 +1442,11 @@ static int __init dwc_otg_driver_init(void)
 {
 	int retval = 0;
 	int error;
+
+	if(fiq_fsm_enable && !fiq_enable) {
+		printk(KERN_WARNING "dwc_otg: fiq_fsm_enable was set without fiq_enable! Correcting.\n");
+		fiq_enable = 1;
+	}
 	printk(KERN_INFO "%s: version %s\n", dwc_driver_name,
 	       DWC_DRIVER_VERSION);
 #ifdef LM_INTERFACE
@@ -1417,6 +1458,10 @@ static int __init dwc_otg_driver_init(void)
 		printk(KERN_ERR "%s retval=%d\n", __func__, retval);
 		return retval;
 	}
+	printk(KERN_DEBUG "dwc_otg: FIQ %s\n", fiq_enable ? "enabled":"disabled");
+	printk(KERN_DEBUG "dwc_otg: NAK holdoff %s\n", nak_holdoff ? "enabled":"disabled");
+	printk(KERN_DEBUG "dwc_otg: FIQ split-transaction FSM %s\n", fiq_fsm_enable ? "enabled":"disabled");
+
 #ifdef LM_INTERFACE
 	error = driver_create_file(&dwc_otg_driver.drv, &driver_attr_version);
 	error = driver_create_file(&dwc_otg_driver.drv, &driver_attr_debuglevel);
@@ -1700,6 +1745,22 @@ module_param_named(adp_enable, dwc_otg_module_params.adp_enable, int, 0444);
 MODULE_PARM_DESC(adp_enable, "ADP Enable 0=ADP Disabled 1=ADP Enabled");
 module_param_named(otg_ver, dwc_otg_module_params.otg_ver, int, 0444);
 MODULE_PARM_DESC(otg_ver, "OTG revision supported 0=OTG 1.3 1=OTG 2.0");
+module_param(microframe_schedule, bool, 0444);
+MODULE_PARM_DESC(microframe_schedule, "Enable the microframe scheduler");
+
+module_param(fiq_enable, bool, 0444);
+MODULE_PARM_DESC(fiq_enable, "Enable the FIQ");
+module_param(nak_holdoff, ushort, 0644);
+MODULE_PARM_DESC(nak_holdoff, "Throttle duration for bulk split-transaction endpoints on a NAK. Default 8");
+module_param(fiq_fsm_enable, bool, 0444);
+MODULE_PARM_DESC(fiq_fsm_enable, "Enable the FIQ to perform split transactions as defined by fiq_fsm_mask");
+module_param(fiq_fsm_mask, ushort, 0444);
+MODULE_PARM_DESC(fiq_fsm_mask, "Bitmask of transactions to perform in the FIQ.\n"
+					"Bit 0 : Non-periodic split transactions\n"
+					"Bit 1 : Periodic split transactions\n"
+					"Bit 2 : High-speed multi-transfer isochronous\n"
+					"All other bits should be set 0.");
+
 
 /** @page "Module Parameters"
  *
