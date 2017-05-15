@@ -34,6 +34,7 @@
 #include <linux/fb.h>
 #include <linux/fbcon.h>
 #include <linux/mem_encrypt.h>
+#include <linux/dma-buf.h>
 
 #include <asm/fb.h>
 
@@ -1086,6 +1087,20 @@ fb_blank(struct fb_info *info, int blank)
 }
 EXPORT_SYMBOL(fb_blank);
 
+int fb_get_dmabuf(struct fb_info *info, int flags)
+{
+	struct dma_buf *dmabuf;
+
+	if (info->fbops->fb_dmabuf_export == NULL)
+		return -ENOTTY;
+
+	dmabuf = info->fbops->fb_dmabuf_export(info);
+	if (IS_ERR(dmabuf))
+		return PTR_ERR(dmabuf);
+
+	return dma_buf_fd(dmabuf, flags);
+}
+
 static long do_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			unsigned long arg)
 {
@@ -1096,6 +1111,7 @@ static long do_fb_ioctl(struct fb_info *info, unsigned int cmd,
 	struct fb_cmap cmap_from;
 	struct fb_cmap_user cmap;
 	struct fb_event event;
+	struct fb_dmabuf_export dmaexp;
 	void __user *argp = (void __user *)arg;
 	long ret = 0;
 
@@ -1212,6 +1228,21 @@ static long do_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		info->flags &= ~FBINFO_MISC_USEREVENT;
 		unlock_fb_info(info);
 		console_unlock();
+		break;
+	case FBIOGET_DMABUF:
+		if (copy_from_user(&dmaexp, argp, sizeof(dmaexp)))
+			return -EFAULT;
+
+		if (!lock_fb_info(info))
+			return -ENODEV;
+
+		dmaexp.fd = fb_get_dmabuf(info, dmaexp.flags);
+		unlock_fb_info(info);
+
+		if (dmaexp.fd < 0)
+			return dmaexp.fd;
+
+		ret = copy_to_user(argp, &dmaexp, sizeof(dmaexp)) ? -EFAULT : 0;
 		break;
 	default:
 		if (!lock_fb_info(info))
