@@ -338,22 +338,6 @@ static void dwc3_event_buffers_cleanup(struct dwc3 *dwc)
 	dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
 }
 
-static int dwc3_alloc_scratch_buffers(struct dwc3 *dwc)
-{
-	if (!dwc->has_hibernation)
-		return 0;
-
-	if (!dwc->nr_scratch)
-		return 0;
-
-	dwc->scratchbuf = kmalloc_array(dwc->nr_scratch,
-			DWC3_SCRATCHBUF_SIZE, GFP_KERNEL);
-	if (!dwc->scratchbuf)
-		return -ENOMEM;
-
-	return 0;
-}
-
 static int dwc3_setup_scratch_buffers(struct dwc3 *dwc)
 {
 	dma_addr_t scratch_addr;
@@ -732,8 +716,6 @@ static int dwc3_core_init(struct dwc3 *dwc)
 
 err2:
 	dwc3_free_scratch_buffers(dwc);
-
-err1:
 	usb_phy_shutdown(dwc->usb2_phy);
 	usb_phy_shutdown(dwc->usb3_phy);
 	phy_exit(dwc->usb2_generic_phy);
