@@ -725,6 +725,6 @@
 				"gpz-4", "gpz-5", "gpz-6";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_2>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
-		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV1>;
+		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV4>;
 	};
 };
