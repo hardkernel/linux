@@ -315,6 +315,10 @@ static int s5m8767_rtc_set_alarm_reg(struct s5m_rtc_info *info)
 		return -EINVAL;
 	}
 
+	/* System wake-up from RTC alarm event */
+	/* RTWWAKE bit enable */
+	data |= 0x08;
+
 	ret = regmap_write(info->regmap, info->regs->udr_update, data);
 	if (ret < 0) {
 		dev_err(info->dev, "%s: fail to write update reg(%d)\n",
