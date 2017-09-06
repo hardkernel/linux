@@ -65,7 +65,7 @@
 /* Fixed clock divider */
 #define EXYNOS4210_FIXED_CIU_CLK_DIV	2
 #define EXYNOS4412_FIXED_CIU_CLK_DIV	4
-#define HS400_FIXED_CIU_CLK_DIV		1
+#define HS400_FIXED_CIU_CLK_DIV		2
 
 /* Minimal required clock frequency for cclkin, unit: HZ */
 #define EXYNOS_CCLKIN_MIN	50000000
