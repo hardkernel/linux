@@ -707,6 +707,10 @@
 	status = "okay";
 };
 
+&mixer {
+	status = "okay";
+};
+
 &mmc_0 {
 	status = "okay";
 	mmc-pwrseq = <&emmc_pwrseq>;
