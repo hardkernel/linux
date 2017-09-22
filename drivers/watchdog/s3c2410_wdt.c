@@ -74,7 +74,7 @@
 						 QUIRK_HAS_RST_STAT)
 
 static bool nowayout	= WATCHDOG_NOWAYOUT;
-static int tmr_margin;
+static int tmr_margin	= S3C2410_WATCHDOG_DEFAULT_TIME;
 static int tmr_atboot	= S3C2410_WATCHDOG_ATBOOT;
 static int soft_noboot;
 
@@ -747,7 +747,17 @@ static struct platform_driver s3c2410wdt_driver = {
 	},
 };
 
-module_platform_driver(s3c2410wdt_driver);
+static int __init s3c2410_wdt_init(void)
+{
+	return platform_driver_register(&s3c2410wdt_driver);
+}
+subsys_initcall(s3c2410_wdt_init);
+
+static void __exit s3c2410_wdt_exit(void)
+{
+	platform_driver_unregister(&s3c2410wdt_driver);
+}
+module_exit(s3c2410_wdt_exit);
 
 MODULE_AUTHOR("Ben Dooks <ben@simtec.co.uk>, Dimitry Andric <dimitry.andric@tomtom.com>");
 MODULE_DESCRIPTION("S3C2410 Watchdog Device Driver");

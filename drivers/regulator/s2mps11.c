@@ -1200,6 +1200,37 @@ static int s2mps11_pmic_watchdog_setup(struct sec_pmic_dev *iodev)
 	return	0;
 }
 
+/* pmic control register setup for watchdog timer enable */
+static int s2mps11_wdt_enable(struct sec_pmic_dev *iodev)
+{
+	unsigned char rdata = 0;
+
+	rdata = 0x0A;
+	if(regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_CTRL1,
+		0xFF, rdata))
+		pr_err("%s : S2MPS11_REG_CTRL1(w) fail!\n", __func__);
+
+	rdata = 0x04;
+	if(regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_OFFSRC,
+		0xFF, rdata))
+		pr_err("%s : S2MPS11_REG_CTRL1(w) fail!\n", __func__);
+
+	mdelay(500);
+
+	rdata = 0x1A;
+	if(regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_CTRL1,
+		0xFF, rdata))
+		pr_err("%s : S2MPS11_REG_CTRL1(w) fail!\n", __func__);
+	mdelay(500);
+
+	rdata = 0x0A;
+	if(regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_CTRL1,
+		0xFF, rdata))
+		pr_err("%s : S2MPS11_REG_CTRL1(w) fail!\n", __func__);
+
+        return 0;
+}
+
 static int s2mps11_pmic_probe(struct platform_device *pdev)
 {
 	struct sec_pmic_dev *iodev = dev_get_drvdata(pdev->dev.parent);
@@ -1330,6 +1361,8 @@ out:
 	/* for Exterenal Watchdog board enable */
 	if (external_watchdog)
 		s2mps11_pmic_watchdog_setup(iodev);
+
+	s2mps11_wdt_enable(iodev);
 
 	return ret;
 }
