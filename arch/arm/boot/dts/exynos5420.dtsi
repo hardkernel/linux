@@ -1308,6 +1308,61 @@
 		};
 	};
 
+	mali: mali@11800000 {
+		compatible = "samsung,exynos5422-mali", "arm,malit628", "arm,malit62x", "arm,malit6xx", "arm,mali-midgard";
+		reg = <0x11800000 0x5000>;
+		interrupts = <0 219 0>, <0 74 0>, <0 117 0>;
+		interrupt-names = "JOB", "MMU", "GPU";
+
+		clocks = <&clock CLK_FOUT_VPLL>, <&clock CLK_DOUT_ACLK_G3D>, <&clock CLK_G3D>;
+		clock-names = "fout_vpll", "dout_aclk_g3d", "clk_mali";
+
+		operating-points-v2 = <&gpu_opp_table>;
+
+		status = "disabled";
+
+		power_model@0 {
+			compatible = "arm,mali-simple-power-model";
+			static-coefficient = <2427750>;
+			dynamic-coefficient = <4687>;
+			ts = <20000 2000 (-20) 2>;
+			thermal-zone = "gpu-thermal";
+		};
+	};
+
+	gpu_opp_table: opp_table0 {
+		compatible = "operating-points-v2";
+
+		opp@600000000 {
+			opp-hz = /bits/ 64 <600000000>;
+			opp-microvolt = <1150000>;
+		};
+		opp@543000000 {
+			opp-hz = /bits/ 64 <543000000>;
+			opp-microvolt = <1037500>;
+		};
+		opp@480000000 {
+			opp-hz = /bits/ 64 <480000000>;
+			opp-microvolt = <1000000>;
+		};
+		opp@420000000 {
+			opp-hz = /bits/ 64 <420000000>;
+			opp-microvolt = <962500>;
+		};
+		opp@350000000 {
+			opp-hz = /bits/ 64 <350000000>;
+			opp-microvolt = <912500>;
+		};
+		opp@266000000 {
+			opp-hz = /bits/ 64 <266000000>;
+			opp-microvolt = <862500>;
+		};
+		opp@177000000 {
+			opp-hz = /bits/ 64 <177000000>;
+			opp-microvolt = <812500>;
+		};
+	};
+
 	thermal-zones {
 		cpu0_thermal: cpu0-thermal {
 			thermal-sensors = <&tmu_cpu0>;
