@@ -3892,7 +3892,7 @@ static int power_control_init(struct platform_device *pdev)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)) && defined(CONFIG_OF) \
 			&& defined(CONFIG_REGULATOR)
-	kbdev->regulator = regulator_get_optional(kbdev->dev, "mali");
+	kbdev->regulator = regulator_get_optional(kbdev->dev, "vdd_g3d");
 	if (IS_ERR_OR_NULL(kbdev->regulator)) {
 		err = PTR_ERR(kbdev->regulator);
 		kbdev->regulator = NULL;
