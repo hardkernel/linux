@@ -1300,6 +1300,17 @@ static const struct samsung_pll_rate_table exynos5420_epll_24mhz_tbl[] = {
 	PLL_36XX_RATE( 32768001U, 131, 3, 5, 4719),
 };
 
+static const struct samsung_pll_rate_table exynos5420_vpll_rates[] __initconst = {
+	PLL_35XX_RATE(600000000U,  200, 2, 2),
+	PLL_35XX_RATE(543000000U,  181, 2, 2),
+	PLL_35XX_RATE(480000000U,  160, 2, 2),
+	PLL_35XX_RATE(420000000U,  140, 2, 2),
+	PLL_35XX_RATE(350000000U,  175, 3, 2),
+	PLL_35XX_RATE(266000000U,  266, 3, 3),
+	PLL_35XX_RATE(177000000U,  118, 2, 3),
+	PLL_35XX_RATE(100000000U,  200, 3, 4),
+};
+
 static struct samsung_pll_clock exynos5x_plls[nr_plls] __initdata = {
 	[apll] = PLL(pll_2550, CLK_FOUT_APLL, "fout_apll", "fin_pll", APLL_LOCK,
 		APLL_CON0, NULL),
@@ -1425,6 +1436,7 @@ static void __init exynos5x_clk_init(struct device_node *np,
 		exynos5x_plls[epll].rate_table = exynos5420_epll_24mhz_tbl;
 		exynos5x_plls[kpll].rate_table = exynos5420_pll2550x_24mhz_tbl;
 		exynos5x_plls[bpll].rate_table = exynos5420_pll2550x_24mhz_tbl;
+		exynos5x_plls[vpll].rate_table = exynos5420_vpll_rates;
 	}
 
 	samsung_clk_register_pll(ctx, exynos5x_plls, ARRAY_SIZE(exynos5x_plls),
