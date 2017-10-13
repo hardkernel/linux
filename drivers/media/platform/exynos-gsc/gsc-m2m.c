@@ -726,14 +726,9 @@ static unsigned int gsc_m2m_poll(struct file *file,
 static int gsc_m2m_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct gsc_ctx *ctx = fh_to_ctx(file->private_data);
-	struct gsc_dev *gsc = ctx->gsc_dev;
 	int ret;
 
-	if (mutex_lock_interruptible(&gsc->lock))
-		return -ERESTARTSYS;
-
 	ret = v4l2_m2m_mmap(file, ctx->m2m_ctx, vma);
-	mutex_unlock(&gsc->lock);
 
 	return ret;
 }
