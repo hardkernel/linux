@@ -18,7 +18,7 @@
 #include <linux/of_gpio.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
-
+#include <linux/module.h>
 #include <sound/soc.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -431,22 +431,17 @@ static int odroid_audio_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_OF
 static const struct of_device_id odroid_max98090_of_match[] = {
 	{ .compatible = "hardkernel,odroid-max98090", },
 	{},
 };
-MODULE_DEVICE_TABLE(of, samsung_max98090_of_match);
-#endif /* CONFIG_OF */
+MODULE_DEVICE_TABLE(of, odroid_max98090_of_match);
 
 static struct platform_driver odroid_audio_driver = {
 	.driver		= {
 		.name	= "odroid-audio",
-		.owner	= THIS_MODULE,
-		.pm = &snd_soc_pm_ops,
-#ifdef CONFIG_OF
-		.of_match_table = of_match_ptr(odroid_max98090_of_match),
-#endif
+		.of_match_table = odroid_max98090_of_match,
+		.pm     = &snd_soc_pm_ops,
 	},
 	.probe		= odroid_audio_probe,
 	.remove		= odroid_audio_remove,
