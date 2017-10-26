@@ -128,7 +128,7 @@ kbase_devfreq_target(struct device *dev, unsigned long *target_freq, u32 flags)
 		return err;
 	}*/
 
-	fout_vpll = clk_get(NULL, "fout_vpll");
+	fout_vpll = clk_get(kbdev->dev, "fout_vpll");
 	if (IS_ERR_OR_NULL(fout_vpll)) {
 		dev_err(dev, "Failed to get clock [fout_vpll]\n");
 		return PTR_ERR(fout_vpll);
