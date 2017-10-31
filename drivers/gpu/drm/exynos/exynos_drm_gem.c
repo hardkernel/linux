@@ -247,6 +247,13 @@ struct exynos_drm_gem *exynos_drm_gem_create(struct drm_device *dev,
 	if (IS_ERR(exynos_gem))
 		return exynos_gem;
 
+	/*
+	 * when no IOMMU is available, all allocated buffers are contiguous
+	 * anyway, so drop EXYNOS_BO_NONCONTIG flag
+	 */
+	if (!is_drm_iommu_supported(dev))
+		flags &= ~EXYNOS_BO_NONCONTIG;
+
 	/* set memory type and cache attribute from user side. */
 	exynos_gem->flags = flags;
 
