@@ -1370,7 +1370,7 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 	s5p_mfc_init_regs(dev);
 
 	/* Register decoder and encoder */
-	ret = video_register_device(dev->vfd_dec, VFL_TYPE_GRABBER, 0);
+	ret = video_register_device(dev->vfd_dec, VFL_TYPE_GRABBER, 10);
 	if (ret) {
 		v4l2_err(&dev->v4l2_dev, "Failed to register video device\n");
 		goto err_dec_reg;
@@ -1378,7 +1378,7 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 	v4l2_info(&dev->v4l2_dev,
 		  "decoder registered as /dev/video%d\n", dev->vfd_dec->num);
 
-	ret = video_register_device(dev->vfd_enc, VFL_TYPE_GRABBER, 0);
+	ret = video_register_device(dev->vfd_enc, VFL_TYPE_GRABBER, 10);
 	if (ret) {
 		v4l2_err(&dev->v4l2_dev, "Failed to register video device\n");
 		goto err_enc_reg;
