@@ -185,9 +185,10 @@
 			compatible = "samsung,exynos5420-audss-clock";
 			reg = <0x03810000 0x0C>;
 			#clock-cells = <1>;
-			clocks = <&clock CLK_FIN_PLL>, <&clock CLK_MAU_EPLL>,
-				 <&clock CLK_SCLK_MAUDIO0>, <&clock CLK_SCLK_MAUPCM0>;
-			clock-names = "pll_ref", "pll_in", "sclk_audio", "sclk_pcm_in";
+			clocks = <&clock CLK_FOUT_EPLL>, <&clock CLK_FIN_PLL>,
+				<&clock CLK_MOUT_USER_MAU_EPLL>, <&clock CLK_SCLK_MAUDIO0>,
+				<&clock CLK_SCLK_MAUPCM0>;
+			clock-names = "fout_epll", "pll_ref", "pll_in", "sclk_audio", "sclk_pcm_in";
 		};
 
 		mfc: codec@11000000 {
@@ -1121,9 +1122,6 @@
 			opp-shared;
 
 			opp00 {
-				opp-hz = /bits/ 64 <100000000>;
-			};
-			opp01 {
 				opp-hz = /bits/ 64 <200000000>;
 			};
 		};
@@ -1427,12 +1425,17 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c1_bus>;
 };
-
+/*
 &i2c_2 {
 	clocks = <&clock CLK_I2C2>;
 	clock-names = "i2c";
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c2_bus>;
+};
+*/
+&i2c_2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&hdmi_i2c_bus>;
 };
 
 &i2c_3 {

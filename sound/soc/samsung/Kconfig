@@ -190,6 +190,7 @@ config SND_SOC_ODROID
 	depends on SND_SOC_SAMSUNG && I2C
 	select SND_SOC_MAX98090
 	select SND_SAMSUNG_I2S
+	select SND_SOC_SPDIF
 	help
 	  Say Y here to enable audio support for the Odroid XU3/XU4.
 

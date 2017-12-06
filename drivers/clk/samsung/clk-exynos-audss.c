@@ -128,7 +128,7 @@ static void exynos_audss_clk_teardown(void)
 /* register exynos_audss clocks */
 static int exynos_audss_clk_probe(struct platform_device *pdev)
 {
-	const char *mout_audss_p[] = {"fin_pll", "fout_epll"};
+	const char *mout_audss_p[] = {"fin_pll", "mout_user_mau_epll"};
 	const char *mout_i2s_p[] = {"mout_audss", "cdclk0", "sclk_audio0"};
 	const char *sclk_pcm_p = "sclk_pcm0";
 	struct clk *pll_ref, *pll_in, *cdclk, *sclk_audio, *sclk_pcm_in;
@@ -156,6 +156,17 @@ static int exynos_audss_clk_probe(struct platform_device *pdev)
 				GFP_KERNEL);
 	if (!clk_data)
 		return -ENOMEM;
+
+	epll = devm_clk_get(&pdev->dev, "fout_epll");
+	ret = clk_prepare_enable(epll);
+	if (ret) {
+		dev_err(&pdev->dev,
+			"failed to prepare the epll clock\n");
+		return ret;
+	}
+	clk_set_rate(epll, 180633600);
+	dev_info(&pdev->dev, "epll %ld\n", clk_get_rate(epll));
+	clk_put(epll);
 
 	clk_data->num = variant->num_clks;
 	clk_table = clk_data->hws;
@@ -195,11 +206,11 @@ static int exynos_audss_clk_probe(struct platform_device *pdev)
 				reg_base + ASS_CLK_SRC, 2, 2, 0, &lock);
 
 	clk_table[EXYNOS_DOUT_SRP] = clk_hw_register_divider(NULL, "dout_srp",
-				"mout_audss", CLK_SET_RATE_PARENT,
+				"mout_audss", CLK_SET_RATE_NO_REPARENT,
 				reg_base + ASS_CLK_DIV, 0, 4, 0, &lock);
 
 	clk_table[EXYNOS_DOUT_AUD_BUS] = clk_hw_register_divider(NULL,
-				"dout_aud_bus", "dout_srp", CLK_SET_RATE_PARENT,
+				"dout_aud_bus", "dout_srp", CLK_SET_RATE_NO_REPARENT,
 				reg_base + ASS_CLK_DIV, 4, 4, 0, &lock);
 
 	clk_table[EXYNOS_DOUT_I2S] = clk_hw_register_divider(NULL, "dout_i2s",
@@ -288,7 +299,17 @@ static struct platform_driver exynos_audss_clk_driver = {
 	.remove = exynos_audss_clk_remove,
 };
 
-module_platform_driver(exynos_audss_clk_driver);
+static int __init exynos_audss_clk_init(void)
+{
+	return platform_driver_register(&exynos_audss_clk_driver);
+}
+core_initcall(exynos_audss_clk_init);
+
+static void __exit exynos_audss_clk_exit(void)
+{
+	platform_driver_unregister(&exynos_audss_clk_driver);
+}
+module_exit(exynos_audss_clk_exit);
 
 MODULE_AUTHOR("Padmavathi Venna <padma.v@samsung.com>");
 MODULE_DESCRIPTION("Exynos Audio Subsystem Clock Controller");

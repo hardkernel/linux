@@ -598,6 +598,17 @@ config I2C_GPIO
 	  This is a very simple bitbanging I2C driver utilizing the
 	  arch-neutral GPIO API to control the SCL and SDA lines.
 
+config I2C_GPIO_CUSTOM
+	tristate "Custom GPIO-based I2C driver"
+	depends on GPIOLIB
+	select I2C_GPIO
+	help
+	  This is an I2C driver to register 1 to 4 custom I2C buses using
+	  GPIO lines.
+
+	  This support is also available as a module.  If so, the module
+	  will be called i2c-gpio-custom.
+
 config I2C_HIGHLANDER
 	tristate "Highlander FPGA SMBus interface"
 	depends on SH_HIGHLANDER
