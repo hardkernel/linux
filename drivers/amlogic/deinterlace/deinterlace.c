@@ -1689,6 +1689,7 @@ struct di_post_stru_s {
 	bool toggle_flag;
 	bool vscale_skip_flag;
 	uint start_pts;
+	u64 start_pts_us64;
 	int buf_type;
 };
 #define di_post_stru_t struct di_post_stru_s
@@ -4438,6 +4439,7 @@ di_buf_i->vframe->type); */
 	disp_vf->height = di_buf_i->vframe->height;
 	disp_vf->duration = di_buf_i->vframe->duration;
 	disp_vf->pts = di_buf_i->vframe->pts;
+	disp_vf->pts_us64 = di_buf_i->vframe->pts_us64;
 	disp_vf->flag = di_buf_i->vframe->flag;
 	disp_vf->canvas0Addr = di_post_idx[di_post_stru.canvas_id][0];
 	disp_vf->canvas1Addr = di_post_idx[di_post_stru.canvas_id][0];

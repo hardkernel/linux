@@ -231,7 +231,9 @@ int calculation_stream_delayed_ms(u8 type, u32 *latestbitrate,
 			outtime = timestamp_pcrscr_get();
 	if (outtime == 0 || outtime == 0xffffffff)
 		outtime = pTable->last_checkout_pts;
-	timestampe_delayed = (pTable->last_checkin_pts - outtime) / 90;
+	if (pTable->last_checkin_pts > outtime)
+		timestampe_delayed = (pTable->last_checkin_pts - outtime) / 90;
+
 	pTable->last_pts_delay_ms = timestampe_delayed;
 	if ((timestampe_delayed < 10
 		 || abs(pTable->last_pts_delay_ms - timestampe_delayed) > 3000)
@@ -253,6 +255,7 @@ int calculation_stream_delayed_ms(u8 type, u32 *latestbitrate,
 		} else
 			/* #endif */
 			diff2 = stbuf_level(get_buf_by_type(type));
+
 		/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON8 */
 		if (has_hevc_vdec()) {
 			if (pTable->hevc) {
@@ -270,7 +273,7 @@ int calculation_stream_delayed_ms(u8 type, u32 *latestbitrate,
 			if (diff2 > stbuf_space(get_buf_by_type(type)))
 				diff = diff2;
 		}
-		delay_ms = diff * 1000 / (1 + pTable->last_avg_bitrate / 8);
+		delay_ms = (diff * 1000) / (int)(1 + pTable->last_avg_bitrate / 8);
 
 		if (timestampe_delayed < 10
 			|| (abs(timestampe_delayed - delay_ms) > 3 * 1000
@@ -888,6 +891,7 @@ static int pts_lookup_offset_inline_locked(u8 type, u32 offset, u32 *val,
 			 * use first checkin pts instead */
 			if (!pTable->first_lookup_ok) {
 				*val = pTable->first_checkin_pts;
+				*uS64 = div64_u64((u64)pTable->first_checkin_pts * 100, 9);
 				pTable->first_lookup_ok = 1;
 				pTable->first_lookup_is_fail = 1;
 
