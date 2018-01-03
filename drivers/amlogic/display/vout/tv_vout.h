@@ -127,6 +127,7 @@ static struct vmode_tvmode_tab_s mode_tab[] = {
 	{TVMODE_2560x1600p60hz, VMODE_2560x1600p60hz},
 	{TVMODE_2560x1080p60hz, VMODE_2560x1080p60hz},
 	{TVMODE_3440x1440p60hz, VMODE_3440x1440p60hz},
+	{TVMODE_480x320p60hz, VMODE_480x320p60hz},
 	{TVMODE_CUSTOMBUILT, VMODE_CUSTOMBUILT},
 };
 
@@ -1157,6 +1158,18 @@ static struct vinfo_s tv_info[] = {
 		.sync_duration_num = 60,
 		.sync_duration_den = 1,
 		.video_clk         = 319750000,
+	},
+	{
+		.name              = "480x320p60hz",
+		.mode              = TVMODE_480x320p60hz,
+		.width             = 480,
+		.height            = 320,
+		.field_height      = 320,
+		.aspect_ratio_num  = 3,
+		.aspect_ratio_den  = 2,
+		.sync_duration_num = 60,
+		.sync_duration_den = 1,
+		.video_clk         = 25200000,
 	},
 	{ /* VMODE_vga */
 		.name              = "vga",

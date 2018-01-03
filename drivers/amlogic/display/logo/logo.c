@@ -76,6 +76,7 @@ static struct para_pair_s mode_infos[] = {
 	{"2560x1600p60hz", TVMODE_2560x1600p60hz},
 	{"2560x1080p60hz", TVMODE_2560x1080p60hz},
 	{"3440x1440p60hz", TVMODE_3440x1440p60hz},
+	{"480x320p60hz", TVMODE_480x320p60hz},
 	{"480cvbs", VMODE_480CVBS},
 	{"576cvbs", VMODE_576CVBS},
 	{"480i60hz", VMODE_480I},

@@ -1633,6 +1633,7 @@ hdmitx: video: get current mode: 1280x1024
 	{"2560x1600p60hz", HDMIV_2560x1600p60hz},
 	{"2560x1080p60hz", HDMIV_2560x1080p60hz},
 	{"3440x1440p60hz", HDMIV_3440x1440p60hz},
+	{"480x320p60hz", HDMIV_480x320p60hz},
 	{"custombuilt", HDMIV_CUSTOMBUILT},
 };
 
