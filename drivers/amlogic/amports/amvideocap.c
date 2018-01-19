@@ -64,7 +64,7 @@
 #define CAP_WIDTH_MAX      1920
 #define CAP_HEIGHT_MAX     1080
 
-#define BUF_SIZE_MAX      (0x800000) /* 1920 * 1088 * 4 */
+#define BUF_SIZE_MAX      (0x600000) /* 1920 * 1088 * 4 */
 
 MODULE_DESCRIPTION("Video Frame capture");
 MODULE_AUTHOR("amlogic-bj");
