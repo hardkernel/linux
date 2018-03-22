@@ -43,6 +43,7 @@
 
 #define GET_UMP_SECURE_ID_BUF1   _IOWR('m', 311, unsigned int)
 #define GET_UMP_SECURE_ID_BUF2   _IOWR('m', 312, unsigned int)
+#define FBTFT_UPDATE             _IO('m', 313)
 
 #include "fbtft.h"
 
@@ -653,8 +654,8 @@ static int disp_get_ump_secure_id(struct fb_info *info, unsigned long arg, int b
 
 static int do_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
 {
-
 	int ret = 0;
+	struct fbtft_par *par = info->par;
 
 	switch(cmd) {
 	case GET_UMP_SECURE_ID_BUF1:
@@ -662,6 +663,13 @@ static int do_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg
 		break;
 	case GET_UMP_SECURE_ID_BUF2:
 		ret = disp_get_ump_secure_id(info, arg, 1);
+		break;
+	case FBTFT_UPDATE:
+		dma_sync_single_for_cpu(info->dev,
+			(dma_addr_t)info->fix.smem_start,
+			info->fix.smem_len,
+			DMA_BIDIRECTIONAL);
+		par->fbtftops.mkdirty(info, -1, 0);
 		break;
 	default:
 		ret = -EINVAL;
@@ -748,6 +756,7 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	int *init_sequence = display->init_sequence;
 	char *gamma = display->gamma;
 	unsigned long *gamma_curves = NULL;
+	dma_addr_t dma_handle;
 
 	/* sanity check */
 	if (display->gamma_num * display->gamma_len > FBTFT_GAMMA_MAX_VALUES_TOTAL) {
@@ -805,7 +814,7 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	}
 
 	vmem_size = PAGE_ALIGN(display->width * display->height * bpp / 8);
-	vmem = vzalloc(vmem_size);
+	vmem = dma_alloc_coherent(dev, vmem_size, &dma_handle, GFP_KERNEL);
 	if (!vmem)
 		goto alloc_fail;
 
@@ -857,7 +866,8 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	info->fix.ywrapstep =	   0;
 	info->fix.line_length =    width*bpp/8;
 	info->fix.accel =          FB_ACCEL_NONE;
-	info->fix.smem_len =       PAGE_ALIGN(vmem_size);
+	info->fix.smem_start =     (unsigned long)dma_handle;
+	info->fix.smem_len =       vmem_size;
 
 	info->var.rotate =         pdata->rotate;
 	info->var.xres =           width;
@@ -954,7 +964,7 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	return info;
 
 alloc_fail:
-	vfree(vmem);
+	dma_free_coherent(dev, vmem_size, vmem, dma_handle);
 
 	return NULL;
 }
@@ -969,7 +979,10 @@ EXPORT_SYMBOL(fbtft_framebuffer_alloc);
 void fbtft_framebuffer_release(struct fb_info *info)
 {
 	fb_deferred_io_cleanup(info);
-	vfree(info->screen_base);
+	dma_free_coherent(info->dev,
+		info->fix.smem_len,
+		info->screen_base,
+		(dma_addr_t)info->fix.smem_start);
 	framebuffer_release(info);
 }
 EXPORT_SYMBOL(fbtft_framebuffer_release);
