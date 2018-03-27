@@ -781,7 +781,7 @@ static int get_vsource_frame_rate(int duration)
 		break;
 	case 1601:
 	case 1602:
-		frame_rate = 6000;
+		frame_rate = 5994;
 		break;
 	case 1920:
 		frame_rate = 5000;
@@ -790,7 +790,7 @@ static int get_vsource_frame_rate(int duration)
 		frame_rate = 3000;
 		break;
 	case 3203:
-		frame_rate = 3000;
+		frame_rate = 2997;
 		break;
 	case 3840:
 		frame_rate = 2500;
@@ -799,7 +799,7 @@ static int get_vsource_frame_rate(int duration)
 		frame_rate = 2400;
 		break;
 	case 4004:
-		frame_rate = 2400;
+		frame_rate = 2397;
 		break;
 	default:
 		break;

@@ -4447,8 +4447,6 @@ static void video_vf_light_unreg_provider(void)
 	spin_unlock_irqrestore(&lock, flags);
 }
 
-static int frame_duration = 0;
-
 static int video_receiver_event_fun(int type, void *data, void *private_data)
 {
 #ifdef CONFIG_AM_VIDEO2
@@ -4495,14 +4493,10 @@ static int video_receiver_event_fun(int type, void *data, void *private_data)
 	} else if (type == VFRAME_EVENT_PROVIDER_FR_HINT) {
 #ifdef CONFIG_AM_VOUT
 		if (data != NULL)
-		{
-			frame_duration = (int)data;
-			set_vframe_rate_hint(frame_duration);
-		}
+			set_vframe_rate_hint((unsigned long)(data));
 #endif
 	} else if (type == VFRAME_EVENT_PROVIDER_FR_END_HINT) {
 #ifdef CONFIG_AM_VOUT
-		frame_duration = 0;
 		set_vframe_rate_end_hint();
 #endif
 	}
@@ -6712,8 +6706,6 @@ int vout_notify_callback(struct notifier_block *block, unsigned long cmd,
 		vsync_pts_inc_scale_base = vinfo->sync_duration_num;
 		spin_unlock_irqrestore(&lock, flags);
 		new_vmode = vinfo->mode;
-		if (frame_duration > 0)
-			set_vframe_rate_hint(frame_duration);
 		break;
 	case VOUT_EVENT_OSD_PREBLEND_ENABLE:
 		vpp_set_osd_layer_preblend(para);

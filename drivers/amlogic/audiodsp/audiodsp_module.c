@@ -808,6 +808,10 @@ static ssize_t digital_codec_store(struct class *class,
 	if (buf) {
 		if (kstrtoint(buf, 10, &digital_codec))
 			pr_info("kstrtoint err %s\n", __func__);
+		if (digital_codec == 5) {
+		    digital_codec = 8;
+		    pr_info("fixed IEC958 type %s to %s\n", codec_str[5], codec_str[digital_codec]);
+		}
 		if (digital_codec < SUPPORT_TYPE_NUM) {
 			IEC958_mode_codec = digital_codec;
 			pr_info("IEC958_mode_codec= %d, IEC958 type %s\n",
