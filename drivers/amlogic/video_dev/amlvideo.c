@@ -644,7 +644,7 @@ static int freerun_dqbuf(struct v4l2_buffer *p)
 			pts_us64 = 0;
 		} else {
 			pts_us64 = last_pts_us64
-				+ (DUR2PTS(ppmgrvf->duration));
+				+ (DUR2PTS(ppmgrvf->duration)) * 100 / 9;
 		}
 		p->timestamp.tv_sec = pts_us64 >> 32;
 		p->timestamp.tv_usec = pts_us64 & 0xFFFFFFFF;
