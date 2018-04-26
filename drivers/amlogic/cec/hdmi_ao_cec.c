@@ -737,6 +737,8 @@ static void cec_pre_init(void)
 {
     ao_cec_init();
 
+    cec_config(cec_dev->tx_dev->cec_func_config, 1);
+
     cec_arbit_bit_time_set(3, 0x118, 0);
     cec_arbit_bit_time_set(5, 0x000, 0);
     cec_arbit_bit_time_set(7, 0x2aa, 0);
@@ -1452,8 +1454,6 @@ static int hdmitx_cec_open(struct inode *inode, struct file *file)
     cec_dev->cec_info.open_count++;
     if (cec_dev->cec_info.open_count) {
         cec_dev->cec_info.hal_ctl = 1;
-        /* enable all cec features */
-        cec_config(0x2f, 1);
     }
     return 0;
 }
@@ -1463,8 +1463,6 @@ static int hdmitx_cec_release(struct inode *inode, struct file *file)
     cec_dev->cec_info.open_count--;
     if (!cec_dev->cec_info.open_count) {
         cec_dev->cec_info.hal_ctl = 0;
-        /* disable all cec features */
-        cec_config(0x0, 1);
     }
     return 0;
 }
