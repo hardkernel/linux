@@ -46,6 +46,7 @@
 #define BMCR_PDOWN		0x0800	/* Enable low power state      */
 #define BMCR_ANENABLE		0x1000	/* Enable auto negotiation     */
 #define BMCR_SPEED100		0x2000	/* Select 100Mbps              */
+#define BMCR_SPEED10		0x0000	/* Select 10Mbps               */
 #define BMCR_LOOPBACK		0x4000	/* TXD loopback bits           */
 #define BMCR_RESET		0x8000	/* Reset to default state      */
 
