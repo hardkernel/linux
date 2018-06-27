@@ -199,7 +199,10 @@ static void __init exynos_dt_machine_init(void)
 	    (of_machine_is_compatible("samsung,exynos4412") &&
 	     of_machine_is_compatible("samsung,trats2")) ||
 	    of_machine_is_compatible("samsung,exynos3250") ||
-	    of_machine_is_compatible("samsung,exynos5250"))
+	    of_machine_is_compatible("samsung,exynos5250") ||
+	    of_machine_is_compatible("hardkernel,odroid-xu3") ||
+	    of_machine_is_compatible("hardkernel,odroid-xu3-lite") ||
+	    of_machine_is_compatible("hardkernel,odroid-xu4"))
 		platform_device_register(&exynos_cpuidle);
 }
 
