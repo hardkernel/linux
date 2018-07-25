@@ -1,0 +1,18 @@
+In the descriptions below <line-name> is the name of the device tree node
+describing the reset line.
+
+What:		/sys/bus/platform/devices/gpio-reset.<ID>/<line-name>/duration_ms
+Date:		February 2014
+Contact:	Martin Fuzzey <mfuzzey@parkeon.com>
+Description:	Allows reset duration to be configured
+		Read: returns reset duration in ms (decimal)
+		Write: sets new resst duration in ms (decimal)
+
+What:		/sys/bus/platform/devices/gpio-reset.<ID>/<line-name>/control
+Date:		February 2014
+Contact:	Martin Fuzzey <mfuzzey@parkeon.com>
+Description:	Allows reset line state to be controlled
+		Write only accepting the following strings:
+			"reset" : Line will be asserted during the reset duration then deasserted
+			"assert" : Line will be asserted until next write operation
+			"deassert" : Line will be deasserted until the next write operation
