@@ -1,0 +1,44 @@
+Generic GPIO based Reset Controller
+======================================
+
+Please also refer to reset.txt in this directory for common reset
+controller binding usage.
+
+The parent node only needs a compatible property "linux,gpio-reset".
+
+Eaach reset line is described by a child node with the following properties:
+Required properties:
+- gpios : phandle of the GPIO line to use
+
+Optional properties:
+- asserted-state:  0 => line low to reset, 1  => line high to reset. Defalut 0
+- duration-ms : Number of ms the line should be asserted while resetting (default 1)
+- auto : boolean property - if present a reset will be done on boot
+- #reset-cells: 0 if drivers can trigger reset via phandle
+
+example:
+
+gpio-reset {
+	compatible = "linux,gpio-reset";
+
+	wifi {
+		gpios = <&gpio2 1 0>;
+		asserted-state = <0>;
+		duration-ms = <100>;
+		auto;
+	};
+
+	ethernet_phy_reset:ethernet_phy {
+		#reset-cells = <0>;
+		gpios = <&gpio7 6 0>;
+		asserted-state = <0>;
+		duration-ms = <100>;
+	};
+};
+
+Note that, although this controller may be used as part of the reset
+framework, meaning that a device driver may request the reset using the
+child node's phandle it (ethernet example above) it can also be used
+in a standalone mode where the reset is performed automatically at boot
+or from userspace by sysfs. This is particularly for devices that require
+reset but are on discoverable busses (eg SDIO, USB).

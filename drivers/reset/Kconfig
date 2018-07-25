@@ -22,6 +22,19 @@ config RESET_A10SR
 	  This option enables support for the external reset functions for
 	  peripheral PHYs on the Altera Arria10 System Resource Chip.
 
+config GPIO_RESET_CONTROLLER
+	tristate "GPIO reset controller"
+	help
+	  Reset controller using GPIO lines
+
+	  There are two main methods of using this controller:
+	  * As a reset controller within the reset framework allowing device
+	  drivers to request a hardware reset of their devices.
+	  * As a standalone driver performing reset at boot or upon userspace
+	  request (via sysfs)
+	  The second method is suitable for devices on discoverable busses
+	  (SDIO, USB)
+
 config RESET_ATH79
 	bool "AR71xx Reset Driver" if COMPILE_TEST
 	default ATH79
