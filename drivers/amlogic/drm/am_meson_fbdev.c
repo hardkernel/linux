@@ -83,6 +83,7 @@ static int am_meson_drm_fbdev_create(struct drm_fb_helper *helper,
 	struct fb_info *fbi;
 	size_t size;
 	int ret;
+	void* vaddr;
 
 	bytes_per_pixel = DIV_ROUND_UP(sizes->surface_bpp, 8);
 
@@ -100,6 +101,12 @@ static int am_meson_drm_fbdev_create(struct drm_fb_helper *helper,
 		return -ENOMEM;
 
 	private->fbdev_bo = &meson_obj->base;
+
+	vaddr = ion_map_kernel(client, meson_obj->handle);
+	if (!vaddr) {
+		ret = -ENOMEM;
+		goto err_meson_gem_free_object;
+	}
 
 	fbi = drm_fb_helper_alloc_fbi(helper);
 	if (IS_ERR(fbi)) {
@@ -119,8 +126,17 @@ static int am_meson_drm_fbdev_create(struct drm_fb_helper *helper,
 	fbi->par = helper;
 	fbi->flags = FBINFO_FLAG_DEFAULT;
 	fbi->fbops = &meson_drm_fbdev_ops;
+	fbi->screen_size = size;
+	fbi->fix.smem_len = fbi->screen_size;
+	fbi->screen_buffer = vaddr;
+	/* Shamelessly leak the physical address to user-space */
+	fbi->fix.smem_start =
+		page_to_phys(virt_to_page(fbi->screen_buffer));
 
 	fb = helper->fb;
+	fb->bits_per_pixel = sizes->surface_bpp;
+	fb->depth = sizes->surface_depth;
+
 	drm_fb_helper_fill_fix(fbi, fb->pitches[0], fb->depth);
 	drm_fb_helper_fill_var(fbi, helper, sizes->fb_width, sizes->fb_height);
 
@@ -195,7 +211,7 @@ int am_meson_drm_fbdev_init(struct drm_device *dev)
 err_drm_fb_helper_fini:
 	drm_fb_helper_fini(helper);
 err_free:
-	kfree(fbdev_cma);
+	kfree(helper);
 	return ret;
 }
 
