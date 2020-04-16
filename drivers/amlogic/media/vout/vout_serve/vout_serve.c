@@ -169,6 +169,11 @@ static enum vmode_e nulldisp_validate_vmode(char *name)
 	enum vmode_e vmode = VMODE_MAX;
 	int i;
 
+	if (!name) {
+		printk(KERN_ALERT "nulldisp_validate_vmode: name=NULL\n");
+		return VMODE_HDMI;
+	}
+
 	for (i = 0; i < ARRAY_SIZE(nulldisp_vinfo); i++) {
 		if (strcmp(nulldisp_vinfo[i].name, name) == 0) {
 			vmode = nulldisp_vinfo[i].mode;
