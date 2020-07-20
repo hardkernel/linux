@@ -101,6 +101,8 @@ struct joypad {
 	struct bt_adc *adcs;
 
 	struct mutex lock;
+
+	char name[32];
 };
 
 /*----------------------------------------------------------------------------*/
@@ -661,12 +663,20 @@ static int joypad_input_setup(struct device *dev, struct joypad *joypad)
 
 	input = poll_dev->input;
 
-	input->name = DRV_NAME;
-	input->phys = DRV_NAME"/input0";
+	if (joypad->bt_gpio_count == 18) {
+		snprintf(joypad->name, sizeof(joypad->name), "%s v11", DRV_NAME);
+		input->id.product = 0x0002;
+	}
+	else {
+		snprintf(joypad->name, sizeof(joypad->name), "%s", DRV_NAME);
+		input->id.product = 0x0001;
+	}
+
+	input->phys = DRV_NAME "/input0";
+	input->name = joypad->name;
 
 	input->id.bustype = BUS_HOST;
 	input->id.vendor  = 0x0001;
-	input->id.product = 0x0001;
 	input->id.version = 0x0101;
 
 	/* IIO ADC key setup (0 mv ~ 1800 mv) * adc->scale */
