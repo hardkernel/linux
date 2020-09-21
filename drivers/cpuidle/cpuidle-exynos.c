@@ -76,6 +76,21 @@ static int exynos_enter_lowpower(struct cpuidle_device *dev,
 	return new_index;
 }
 
+static struct cpuidle_driver exynos_idle_driver_5422 = {
+	.name			= "exynos_idle",
+	.owner			= THIS_MODULE,
+	.states = {
+        [0] = {
+            .enter              = arm_cpuidle_simple_enter,
+            .exit_latency       = 1,
+            .target_residency   = 500,
+            .name               = "WFI",
+            .desc               = "ARM clock gating",
+        },
+    },
+	.state_count = 1,
+};
+
 static struct cpuidle_driver exynos_idle_driver = {
 	.name			= "exynos_idle",
 	.owner			= THIS_MODULE,
@@ -125,7 +140,14 @@ static int exynos_cpuidle_probe(struct platform_device *pdev)
 	} else {
 		exynos_enter_aftr = (void *)(pdev->dev.platform_data);
 
-		ret = cpuidle_register(&exynos_idle_driver, NULL);
+        if (of_machine_is_compatible("hardkernel,odroid-xu3") ||
+            of_machine_is_compatible("hardkernel,odroid-xu3-lite") ||
+            of_machine_is_compatible("hardkernel,odroid-xu4")) {
+
+            ret = cpuidle_register(&exynos_idle_driver_5422, NULL);
+        } else {
+            ret = cpuidle_register(&exynos_idle_driver, NULL);
+        }
 	}
 
 	if (ret) {
