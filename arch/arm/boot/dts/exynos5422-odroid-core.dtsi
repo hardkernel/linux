@@ -161,6 +161,7 @@
 				regulator-name = "vddq_mmc0";
 				regulator-min-microvolt = <1800000>;
 				regulator-max-microvolt = <1800000>;
+				regulator-always-on;
 			};
 
 			ldo4_reg: LDO4 {
