@@ -199,3 +199,17 @@ config TINYDRM_ST7735R
 	  * Okaya RH128128T 1.44" 128x128 TFT
 
 	  If M is selected the module will be called st7735r.
+
+config TINYDRM_ST7789V
+	tristate "DRM support for Sitronix ST7789V display panels"
+	depends on DRM && SPI
+	select DRM_KMS_HELPER
+	select DRM_KMS_CMA_HELPER
+	select DRM_MIPI_DBI
+	select BACKLIGHT_CLASS_DEVICE
+	help
+	  DRM driver for Sitronix ST7789V with one of the following
+	  LCDs:
+	  * Waveshare 2inch lcd module 240x320 TFT
+
+	  If M is selected the module will be called st7789v.
