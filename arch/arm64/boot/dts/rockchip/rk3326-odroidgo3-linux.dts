@@ -401,7 +401,7 @@
 			  15 : MIPI_DSI_SHORT_WRITE_PARAM
 			  39 : MIPI_DSI_LONG_WRITE
 
-			- ST7710S (Initialize sequence) -
+			- ST7701S (Initialize sequence) -
 			  01: Soft reset
 			  11: Sleep out & 250ms wait
 			  FF: Bank select CMD
