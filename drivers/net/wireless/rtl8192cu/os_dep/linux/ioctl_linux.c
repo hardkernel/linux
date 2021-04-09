@@ -8668,6 +8668,7 @@ static int rtw_mp_efuse_get(struct net_device *dev,
 	u16 mapLen=0;
 	char *pch, *ptmp, *token, *tmp[3]={0x00,0x00,0x00};
 	u16 addr = 0, cnts = 0, max_available_size = 0,raw_cursize = 0 ,raw_maxsize = 0;
+	size_t extra_len;
 	
 	_rtw_memset(data, '\0', sizeof(data));
 	_rtw_memset(rawdata, '\0', sizeof(rawdata));
@@ -8701,27 +8702,27 @@ static int rtw_mp_efuse_get(struct net_device *dev,
 		} 
 		_rtw_memset(extra, '\0', sizeof(extra));
 		DBG_871X("\tOFFSET\tVALUE(hex)\n");
-		sprintf(extra, "%s \n", extra);
+		extra_len = sprintf(extra, " \n");
 		for ( i = 0; i < EFUSE_MAP_SIZE; i += 16 )
 		{
 			DBG_871X("\t0x%02x\t", i);
-			sprintf(extra, "%s \t0x%02x\t", extra,i);
+			extra_len += sprintf(extra + extra_len, " \t0x%02x\t",i);
 			for (j = 0; j < 8; j++)
 			{	  
 				DBG_871X("%02X ", data[i+j]);
-				sprintf(extra, "%s %02X", extra, data[i+j]);
+				extra_len += sprintf(extra + extra_len, " %02X", data[i+j]);
 			}
 			DBG_871X("\t");
-			sprintf(extra,"%s\t",extra);
+			extra_len += sprintf(extra + extra_len, "\t");
 			for (; j < 16; j++){
 				DBG_871X("%02X ", data[i+j]);
-				sprintf(extra, "%s %02X", extra, data[i+j]);
+				extra_len += sprintf(extra + extra_len, " %02X", data[i+j]);
 			}
 			DBG_871X("\n");
-			sprintf(extra,"%s\n",extra);	
+			extra_len += sprintf(extra + extra_len, "\n");	
 		}
 		DBG_871X("\n");
-		wrqu->length = strlen(extra);
+		wrqu->length = extra_len;
 	
 		return 0;
 	}
@@ -8753,14 +8754,15 @@ static int rtw_mp_efuse_get(struct net_device *dev,
 		}	
 
 		_rtw_memset(extra, '\0', sizeof(extra));	 
+		extra_len = 0;
 		for ( i = 0; i < cnts; i ++) {
 			DBG_871X("0x%02x", data[i]);
-			sprintf(extra, "%s 0x%02X", extra, data[i]);
+			extra_len += sprintf(extra + extra_len, " 0x%02X", data[i]);
 			DBG_871X(" ");
-			sprintf(extra,"%s ",extra);
+			extra_len += sprintf(extra + extra_len, " ");
 		}
 
-		wrqu->length = strlen(extra)+1;
+		wrqu->length = extra_len;
 
 		DBG_871X("extra = %s ", extra);
 
@@ -8780,20 +8782,21 @@ static int rtw_mp_efuse_get(struct net_device *dev,
 		}
 				
 		_rtw_memset(extra, '\0', sizeof(extra));
+		extra_len = 0;
 		for ( i=0; i<mapLen; i++ ) {
 			DBG_871X(" %02x", rawdata[i]);
-			sprintf(extra, "%s %02x", extra, rawdata[i] );
+			extra_len += sprintf(extra + extra_len, " %02x", rawdata[i] );
 
 			if ((i & 0xF) == 0xF){ 
 				DBG_871X("\n\t");
-				sprintf(extra, "%s\n\t", extra);
+				extra_len += sprintf(extra + extra_len, "\n\t");
 			}
 			else if ((i & 0x7) == 0x7){ 
 				DBG_871X("\t");
-				sprintf(extra, "%s\t", extra);
+				extra_len += sprintf(extra + extra_len, "\t");
 			}
 		}
-		wrqu->length = strlen(extra);
+		wrqu->length = extra_len;
 		return 0;
 	}
 	else if ( strcmp(tmp[0],"mac") == 0 ) {
@@ -8819,13 +8822,14 @@ static int rtw_mp_efuse_get(struct net_device *dev,
 			DBG_871X("rtw_efuse_access ok \n");
 		}	
 		_rtw_memset(extra, '\0', sizeof(extra));		 
+		extra_len = 0;
 		for ( i = 0; i < cnts; i ++) {
 			DBG_871X("0x%02x", data[i]);
-			sprintf(extra, "%s 0x%02X", extra, data[i+j]);
+			extra_len += sprintf(extra + extra_len, " 0x%02X", data[i+j]);
 			DBG_871X(" ");
-			sprintf(extra,"%s ",extra);
+			extra_len += sprintf(extra + extra_len, " ");
 		}
-		wrqu->length = strlen(extra);
+		wrqu->length = extra_len;
 		return 0;
 	}
 	else if ( strcmp(tmp[0],"vidpid") == 0 ) {
@@ -8850,26 +8854,29 @@ static int rtw_mp_efuse_get(struct net_device *dev,
 			DBG_871X("rtw_efuse_access ok \n");
 		}	
 		_rtw_memset(extra, '\0', sizeof(extra));		 
+		extra_len = 0;
 		for ( i = 0; i < cnts; i ++) {
 			DBG_871X("0x%02x", data[i]);
-			sprintf(extra, "%s 0x%02X", extra, data[i+j]);
+			extra_len += sprintf(extra + extra_len, " 0x%02X", data[i+j]);
 			DBG_871X(" ");
-			sprintf(extra,"%s ",extra);
+			extra_len += sprintf(extra + extra_len, " ");
 		}
-		wrqu->length = strlen(extra);
+		wrqu->length = extra_len;
 		return 0;
 	}
 	else if ( strcmp(tmp[0],"ableraw") == 0 ) {
 		efuse_GetCurrentSize(padapter,&raw_cursize);
 		raw_maxsize = efuse_GetMaxSize(padapter);
-		sprintf(extra, "%s : [ available raw size] = %d",extra,raw_maxsize-raw_cursize);
-		wrqu->length = strlen(extra);
+		extra_len = strlen(extra);
+		extra_len += sprintf(extra + extra_len, " : [ available raw size] = %d",raw_maxsize-raw_cursize);
+		wrqu->length = extra_len;
 
 		return 0;
 	}else
 	{
-		 sprintf(extra, "%s : Command not found\n",extra);
-		  wrqu->length = strlen(extra);
+		extra_len = strlen(extra);
+		 extra_len += sprintf(extra + extra_len, " : Command not found\n");
+		  wrqu->length = extra_len;
 		  return 0;
 	}
 	
@@ -9140,6 +9147,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 	//u32 *data = (u32*)extra;
 	u32 ret, i=0, j=0, strtout=0;
 	PADAPTER padapter = rtw_netdev_priv(dev);
+	size_t extra_len;
 
 	if (wrqu->length > 128) return -EFAULT;
 
@@ -9190,6 +9198,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 				pch = tmp;		
 				DBG_871X("pch=%s",pch);
 				
+				extra_len = strlen(extra);
 				while( *pch != '\0' )
 				{
 					pnext = strpbrk(pch, " ");
@@ -9197,7 +9206,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 					if ( *pnext != '\0' )
 					{
 						  strtout = simple_strtoul (pnext , &ptmp, 16);
-						  sprintf( extra, "%s %d" ,extra ,strtout );
+						  extra_len += sprintf( extra + extra_len, " %d", strtout );
 					}
 					else{
 						  break;
@@ -9224,6 +9233,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 				pch = tmp;		
 				DBG_871X("pch=%s",pch);
 				
+				extra_len = strlen(extra);
 				while( *pch != '\0' )
 				{
 					pnext = strpbrk(pch, " ");
@@ -9231,7 +9241,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 					if ( *pnext != '\0' )
 					{
 						  strtout = simple_strtoul (pnext , &ptmp, 16);
-						  sprintf( extra, "%s %d" ,extra ,strtout );
+						  extra_len += sprintf( extra + extra_len, " %d", strtout );
 					}
 					else{
 			break;
@@ -9304,6 +9314,7 @@ static int rtw_mp_read_rf(struct net_device *dev,
 	u32 path, addr;
 	u32 ret,i=0 ,j=0,strtou=0;
 	PADAPTER padapter = rtw_netdev_priv(dev);
+	size_t extra_len = 0;
 
 
 	if (wrqu->length > 128) return -EFAULT;
@@ -9341,14 +9352,14 @@ static int rtw_mp_read_rf(struct net_device *dev,
 					if ( *pnext != '\0' )
 					{
 						  strtou = simple_strtoul (pnext , &ptmp, 16);
-						  sprintf( extra, "%s %d" ,extra ,strtou );
+						  extra_len += sprintf( extra + extra_len, " %d", strtou );
 					}
 					else{
 						  break;
 					}
 					pch = pnext;
 				}
-			wrqu->length = strlen(extra);
+			wrqu->length = extra_len;
 
 	return 0;
 }

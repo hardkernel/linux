@@ -1840,7 +1840,7 @@ u32 mp_query_psd(PADAPTER pAdapter, u8 *data)
 {
 	u32 i, psd_pts=0, psd_start=0, psd_stop=0;
 	u32 psd_data=0;
-
+	size_t data_len = 0;
 
 #ifdef PLATFORM_LINUX
 	if (!netif_running(pAdapter->pnetdev)) {
@@ -1871,7 +1871,7 @@ u32 mp_query_psd(PADAPTER pAdapter, u8 *data)
 		} else {
 			psd_data = rtw_GetPSDData(pAdapter, i);
 		}
-		sprintf(data, "%s%x ", data, psd_data);
+		data_len += sprintf(data + data_len, "%x ", psd_data);
 		i++;
 	}
 

@@ -91,6 +91,9 @@ struct cs_etm_queue {
         bool                    kernel_mapped;
 };
 
+/* RB tree for quick conversion between traceID and metadata pointers */
+static struct intlist *traceid_list;
+
 static int cs_etm__get_trace(struct cs_etm_buffer *buff, struct cs_etm_queue *etmq);
 static int cs_etm__update_queues(struct cs_etm_auxtrace *);
 static int cs_etm__process_queues(struct cs_etm_auxtrace *, u64);

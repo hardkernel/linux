@@ -440,9 +440,11 @@ static void analog_name(struct analog *analog)
 		 hweight8(analog->mask & ANALOG_BTNS_STD) + !!(analog->mask & ANALOG_BTNS_CHF) * 2 +
 		 hweight16(analog->mask & ANALOG_BTNS_GAMEPAD) + !!(analog->mask & ANALOG_HBTN_CHF) * 4);
 
-	if (analog->mask & ANALOG_HATS_ALL)
-		snprintf(analog->name, sizeof(analog->name), "%s %d-hat",
-			 analog->name, hweight16(analog->mask & ANALOG_HATS_ALL));
+	if (analog->mask & ANALOG_HATS_ALL) {
+		size_t len = strnlen(analog->name, sizeof(analog->name));
+		snprintf(analog->name + len, sizeof(analog->name) - len, " %d-hat",
+			hweight16(analog->mask & ANALOG_HATS_ALL));
+	}
 
 	if (analog->mask & ANALOG_HAT_FCS)
 		strlcat(analog->name, " FCS", sizeof(analog->name));

@@ -422,6 +422,16 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 #define __visible
 #endif
 
+#if defined __has_attribute
+# if __has_attribute (__copy__)
+#  define __copy(symbol)                 __attribute__((__copy__(symbol)))
+# else
+#  define __copy(symbol)
+# endif
+#else
+#  define __copy(symbol)
+#endif
+
 /*
  * Assume alignment of return value.
  */
