@@ -1,0 +1,118 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2021 Hardkernel Co., Ltd.
+ *
+ */
+
+/dts-v1/;
+
+#include "rk3568.dtsi"
+#include "rk3568-evb.dtsi"
+
+/ {
+	/delete-node/ adc-keys;
+	/delete-node/ nandc@fe330000;
+	/delete-node/ sdio-pwrseq;
+	/delete-node/ vcc3v3-lcd0-n;
+	/delete-node/ vcc3v3-lcd1-n;
+	/delete-node/ wireless-bluetooth;
+	/delete-node/ wireless-wlan;
+
+	leds: leds {
+		power_led: power {
+			gpios = <&gpio0 RK_PC6 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "default-on";
+		};
+		work_led: work {
+			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+	};
+};
+
+&gmac0 {
+	phy-mode = "rgmii";
+	clock_in_out = "output";
+
+	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	/* Reset time is 20ms, 100ms for rtl8211f */
+	snps,reset-delays-us = <0 20000 100000>;
+
+	assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
+	assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>, <&cru CLK_MAC0_2TOP>;
+	assigned-clock-rates = <0>, <125000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&gmac0_miim
+		&gmac0_tx_bus2
+		&gmac0_rx_bus2
+		&gmac0_rgmii_clk
+		&gmac0_rgmii_bus>;
+
+	tx_delay = <0x4f>;
+	rx_delay = <0x2d>;
+
+	phy-handle = <&rgmii_phy0>;
+	status = "okay";
+};
+
+&i2c1 {
+	status = "disabled";
+
+	/delete-node/ gt1x@14;
+};
+
+&i2c2 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2m1_xfer>;
+};
+
+&i2c5 {
+	status = "disabled";
+
+	/delete-node/ mxc6655xa@15;
+};
+
+&mdio0 {
+	rgmii_phy0: phy@0 {
+		compatible = "ethernet-phy-ieee802.3-c22";
+		reg = <0x0>;
+	};
+};
+
+&pinctrl {
+	/delete-node/ mxc6655xa;
+	/delete-node/ touch;
+	/delete-node/ wifi-enable-h;
+	/delete-node/ wireless-bluetooth;
+
+	fspi {
+		fspi_pins: fspi-pins {
+			rockchip,pins =
+				/* fspi_clk */
+				<1 RK_PD0 1 &pcfg_pull_none>,
+				/* fspi_cs0n */
+				<1 RK_PD3 1 &pcfg_pull_none>,
+				/* fspi_d0 */
+				<1 RK_PD1 1 &pcfg_pull_none>;
+		};
+	};
+};
+
+&pmu_io_domains {
+	vccio4-supply = <&vcc_1v8>;
+};
+
+&rknpu_mmu {
+	status = "disabled";
+};
+
+&rng {
+	status = "okay";
+};
+
+&video_phy0 {
+	status = "okay";
+};
