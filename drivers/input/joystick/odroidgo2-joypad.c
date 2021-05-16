@@ -387,10 +387,10 @@ static struct attribute_group joypad_attr_group = {
 
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
-static void joypad_gpio_check(struct input_polled_dev *poll_dev)
+static int joypad_gpio_check(struct input_polled_dev *poll_dev)
 {
 	struct joypad *joypad = poll_dev->private;
-	int nbtn, value;
+	int nbtn, value, changed = 0;
 
 	for (nbtn = 0; nbtn < joypad->bt_gpio_count; nbtn++) {
 		struct bt_gpio *gpio = &joypad->gpios[nbtn];
@@ -406,16 +406,17 @@ static void joypad_gpio_check(struct input_polled_dev *poll_dev)
 				gpio->linux_code,
 				(value == gpio->active_level) ? 1 : 0);
 			gpio->old_value = value;
+			changed = 1;
 		}
 	}
-	input_sync(poll_dev->input);
+	return changed;
 }
 
 /*----------------------------------------------------------------------------*/
-static void joypad_adc_check(struct input_polled_dev *poll_dev)
+static int joypad_adc_check(struct input_polled_dev *poll_dev)
 {
 	struct joypad *joypad = poll_dev->private;
-	int nbtn, value;
+	int nbtn, value, changed = 0;
 
 	for (nbtn = 0; nbtn < joypad->bt_adc_count; nbtn++) {
 		struct bt_adc *adc = &joypad->adcs[nbtn];
@@ -442,25 +443,31 @@ static void joypad_adc_check(struct input_polled_dev *poll_dev)
 			// adc-x value is default inverted(h/w)
 			input_report_abs(poll_dev->input,
 				adc->report_type, value * (-1));
+			changed = 1;
 		}
 		else
 		{
 			input_report_abs(poll_dev->input,
 				adc->report_type, value);
+			changed = 1;
 		}
 		adc->old_value = value;
 	}
-	input_sync(poll_dev->input);
+	return changed;
 }
 
 /*----------------------------------------------------------------------------*/
 static void joypad_poll(struct input_polled_dev *poll_dev)
 {
 	struct joypad *joypad = poll_dev->private;
+	int changed;
 
 	if (joypad->enable) {
-		joypad_adc_check(poll_dev);
-		joypad_gpio_check(poll_dev);
+		changed = joypad_adc_check(poll_dev);
+		changed |= joypad_gpio_check(poll_dev);
+		if (changed) {
+			input_sync(poll_dev->input);
+		}
 	}
 	if (poll_dev->poll_interval != joypad->poll_interval) {
 		mutex_lock(&joypad->lock);
