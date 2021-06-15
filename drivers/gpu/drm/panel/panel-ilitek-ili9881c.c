@@ -1108,6 +1108,7 @@ static const struct drm_panel_funcs ili9881c_funcs = {
 static int ili9881c_dsi_probe(struct mipi_dsi_device *dsi)
 {
 	struct ili9881c *ctx;
+	u32 val;
 	int ret;
 
 	ctx = devm_kzalloc(&dsi->dev, sizeof(*ctx), GFP_KERNEL);
@@ -1143,9 +1144,14 @@ static int ili9881c_dsi_probe(struct mipi_dsi_device *dsi)
 
 	drm_panel_add(&ctx->panel);
 
-	dsi->mode_flags = ctx->desc->mode_flags;
-	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->lanes = 4;
+	ret = of_property_read_u32(dsi->dev.of_node, "dsi,flags", &val);
+	dsi->mode_flags = ret ? ctx->desc->mode_flags: val;
+
+	ret = of_property_read_u32(dsi->dev.of_node, "dsi,format", &val);
+	dsi->format = ret ? MIPI_DSI_FMT_RGB888 : val;
+
+	ret = of_property_read_u32(dsi->dev.of_node, "dsi,lanes", &val);
+	dsi->lanes = ret ? 4 : val;
 
 	return mipi_dsi_attach(dsi);
 }
