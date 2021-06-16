@@ -415,3 +415,5 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rv1126bp-evb-v14-dual-cam.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rv1126bp-evb1-v12.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rv1126bp-evb1-v12-fastboot-emmc.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-odroid-m1.dtb
+
+subdir-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += overlays/odroidm1
