@@ -13,6 +13,14 @@
 #include <linux/slab.h>
 #include <linux/ctype.h>
 #include <linux/security.h>
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+#include <linux/async.h>
+#endif
+
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+static bool async_long_initcall;
+core_param(async_long_initcall, async_long_initcall, bool, 0644);
+#endif
 
 #ifdef CONFIG_SYSFS
 /* Protects all built-in parameters, modules use their own param_lock */
@@ -953,9 +961,19 @@ struct kobj_type module_ktype = {
 	.sysfs_ops =	&module_sysfs_ops,
 };
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+static void __init async_param_sysfs_builtin(void *data, async_cookie_t cookie)
+{
+	param_sysfs_builtin();
+}
+#endif
+
 /*
  * param_sysfs_init - wrapper for built-in params support
  */
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+static async_cookie_t populate_initrootfs_cookie;
+#endif
 static int __init param_sysfs_init(void)
 {
 	module_kset = kset_create_and_add("module", &module_uevent_ops, NULL);
@@ -967,8 +985,15 @@ static int __init param_sysfs_init(void)
 	module_sysfs_initialized = 1;
 
 	version_sysfs_builtin();
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+	pr_debug("async_long_initcall = %d\n", async_long_initcall);
+	if (!async_long_initcall)
+		param_sysfs_builtin();
+	else if (async_long_initcall)
+		populate_initrootfs_cookie = async_schedule(async_param_sysfs_builtin, NULL);
+#else
 	param_sysfs_builtin();
-
+#endif
 	return 0;
 }
 subsys_initcall(param_sysfs_init);
