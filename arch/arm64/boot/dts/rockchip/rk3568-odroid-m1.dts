@@ -152,6 +152,12 @@
 		"", "", "", "", "", "", "", "";
 };
 
+&i2c3 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m1_xfer>;
+};
+
 &pcie30phy {
 	status = "okay";
 };
@@ -160,6 +166,16 @@
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie>;
 	status = "okay";
+};
+
+&pwm1 {
+	status = "disabled";
+	pinctrl-0 = <&pwm1m1_pins>;
+};
+
+&pwm2 {
+	status = "disabled";
+	pinctrl-0 = <&pwm2m1_pins>;
 };
 
 &sata2 {
@@ -171,4 +187,22 @@
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&fspi_pins>;
+};
+
+&spi0 {
+	status = "disabled";
+
+	pinctrl-0 = <&spi0m1_pins>;
+	pinctrl-1 = <&spi0m1_pins_hs>;
+	num_chipselect = <1>;
+
+	cs-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_LOW>;
+};
+
+&uart1 {
+	status = "disabled";
+	dma-names = "tx", "rx";
+	/* uart1 uart1-with-ctsrts */
+	pinctrl-0 = <&uart1m1_xfer>;
+	pinctrl-1 = <&uart1m1_xfer &uart1m1_ctsn &uart1m1_rtsn>;
 };
