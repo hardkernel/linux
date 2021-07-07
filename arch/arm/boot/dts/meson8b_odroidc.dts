@@ -169,6 +169,16 @@
                 pinctrl-0 = <&ao_uart_pins>;
         };
 
+        uart_0{
+                compatible = "amlogic,aml_uart";
+                port_name = "uart_a";
+                status = "okay";
+                dev_name = "uart_0";
+        pinctrl-names = "default";
+        pinctrl-0 = <&a_uart_pins>;
+        };
+
+
         uart_1{
                 compatible = "amlogic,aml_uart";
                 port_name = "uart_b";
@@ -750,10 +760,12 @@
                         amlogic,pullupen=<1>;
                 };
 
-//              a_uart_pins:a_uart{
-//                      amlogic,setmask=<4 0x3c00>;
-//                      amlogic,pins="GPIOX_12", "GPIOX_13", "GPIOX_14", "GPIOX_15";
-//              };
+                a_uart_pins:a_uart{
+                      amlogic,setmask=<4 0x30000>;
+                      amlogic,pins="GPIOX_4", "GPIOX_5";
+                      amlogic,pullup=<1>;
+                      amlogic,pullupen=<1>;
+                };
 
                 b_uart_pins:b_uart{
                         amlogic,setmask=<4 0x0300>;
