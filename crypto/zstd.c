@@ -12,10 +12,14 @@
 #include <linux/net.h>
 #include <linux/vmalloc.h>
 #include <linux/zstd.h>
+#include <linux/sched/clock.h>
 #include <crypto/internal/scompress.h>
 
-
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static int zstd_def_level = 1;
+#else
 #define ZSTD_DEF_LEVEL	3
+#endif
 
 struct zstd_ctx {
 	ZSTD_CCtx *cctx;
@@ -26,7 +30,11 @@ struct zstd_ctx {
 
 static ZSTD_parameters zstd_params(void)
 {
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+	return ZSTD_getParams(zstd_def_level, 0, 0);
+#else
 	return ZSTD_getParams(ZSTD_DEF_LEVEL, 0, 0);
+#endif
 }
 
 static int zstd_comp_init(struct zstd_ctx *ctx)
@@ -252,6 +260,9 @@ static void __exit zstd_mod_fini(void)
 
 subsys_initcall(zstd_mod_init);
 module_exit(zstd_mod_fini);
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+module_param_named(zstd_level, zstd_def_level, int, 0644);
+#endif
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Zstd Compression Algorithm");
