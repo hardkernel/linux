@@ -109,6 +109,7 @@ ENTRY(vfp_support_entry)
 	VFPFSTMIA r4, r5		@ save the working registers
 	VFPFMRX	r5, FPSCR		@ current status
 #ifndef CONFIG_CPU_FEROCEON
+#ifndef CONFIG_AMLOGIC_ARMV8_AARCH32
 	tst	r1, #FPEXC_EX		@ is there additional state to save?
 	beq	1f
 	VFPFMRX	r6, FPINST		@ FPINST (only if FPEXC.EX is set)
@@ -116,6 +117,7 @@ ENTRY(vfp_support_entry)
 	beq	1f
 	VFPFMRX	r8, FPINST2		@ FPINST2 if needed (and present)
 1:
+#endif
 #endif
 	stmia	r4, {r1, r5, r6, r8}	@ save FPEXC, FPSCR, FPINST, FPINST2
 vfp_reload_hw:
@@ -152,6 +154,7 @@ vfp_reload_hw:
 					@ FPEXC is in a safe state
 	ldmia	r10, {r1, r5, r6, r8}	@ load FPEXC, FPSCR, FPINST, FPINST2
 #ifndef CONFIG_CPU_FEROCEON
+#ifndef CONFIG_AMLOGIC_ARMV8_AARCH32
 	tst	r1, #FPEXC_EX		@ is there additional state to restore?
 	beq	1f
 	VFPFMXR	FPINST, r6		@ restore FPINST (only if FPEXC.EX is set)
@@ -159,6 +162,7 @@ vfp_reload_hw:
 	beq	1f
 	VFPFMXR	FPINST2, r8		@ FPINST2 if needed (and present)
 1:
+#endif
 #endif
 	VFPFMXR	FPSCR, r5		@ restore status
 
@@ -225,6 +229,7 @@ ENTRY(vfp_save_state)
 	DBGSTR1	"save VFP state %p", r0
 	VFPFSTMIA r0, r2		@ save the working registers
 	VFPFMRX	r2, FPSCR		@ current status
+#ifndef CONFIG_AMLOGIC_ARMV8_AARCH32
 	tst	r1, #FPEXC_EX		@ is there additional state to save?
 	beq	1f
 	VFPFMRX	r3, FPINST		@ FPINST (only if FPEXC.EX is set)
@@ -232,6 +237,7 @@ ENTRY(vfp_save_state)
 	beq	1f
 	VFPFMRX	r12, FPINST2		@ FPINST2 if needed (and present)
 1:
+#endif
 	stmia	r0, {r1, r2, r3, r12}	@ save FPEXC, FPSCR, FPINST, FPINST2
 	ret	lr
 ENDPROC(vfp_save_state)

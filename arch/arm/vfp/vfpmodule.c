@@ -357,12 +357,14 @@ void VFP_bounce(u32 trigger, u32 fpexc, struct pt_regs *regs)
 
 	if (fpexc & FPEXC_EX) {
 #ifndef CONFIG_CPU_FEROCEON
+#ifndef CONFIG_AMLOGIC_ARMV8_AARCH32
 		/*
 		 * Asynchronous exception. The instruction is read from FPINST
 		 * and the interrupted instruction has to be restarted.
 		 */
 		trigger = fmrx(FPINST);
 		regs->ARM_pc -= 4;
+#endif
 #endif
 	} else if (!(fpexc & FPEXC_DEX)) {
 		/*
@@ -409,8 +411,9 @@ void VFP_bounce(u32 trigger, u32 fpexc, struct pt_regs *regs)
 	 * before the condition above.
 	 */
 	barrier();
+#ifndef CONFIG_AMLOGIC_ARMV8_AARCH32
 	trigger = fmrx(FPINST2);
-
+#endif
  emulate:
 	exceptions = vfp_emulate_instruction(trigger, orig_fpscr, regs);
 	if (exceptions)
