@@ -61,6 +61,8 @@
 #define DWCMSHC_EMMC_DLL_INC		8
 #define DWCMSHC_EMMC_DLL_BYPASS		BIT(24)
 #define DWCMSHC_EMMC_DLL_DLYENA		BIT(27)
+#define DWCMSHC_EMMC_RST_N		BIT(2)
+#define DWCMSHC_EMMC_RST_N_OE		BIT(3)
 #define DLL_TAP_VALUE_SEL		BIT(25)
 #define DLL_TAP_VALUE_OFFSET		8
 #define DLL_TXCLK_TAPNUM_DEFAULT	0x10
@@ -560,6 +562,23 @@ static void sdhci_dwcmshc_request_done(struct sdhci_host *host, struct mmc_reque
 	mmc_request_done(host->mmc, mrq);
 }
 
+static void dwcmshc_rk_hw_reset(struct sdhci_host *host)
+{
+	u32 reg;
+
+	reg = sdhci_readl(host, DWCMSHC_EMMC_CONTROL);
+	reg |= DWCMSHC_EMMC_RST_N_OE;
+	reg &= ~DWCMSHC_EMMC_RST_N;
+	sdhci_writel(host, reg, DWCMSHC_EMMC_CONTROL);
+	udelay(20);
+
+	reg |= DWCMSHC_EMMC_RST_N;
+	sdhci_writel(host, reg, DWCMSHC_EMMC_CONTROL);
+	udelay(300);
+	return;
+}
+
+
 static const struct sdhci_ops sdhci_dwcmshc_ops = {
 	.set_clock		= sdhci_set_clock,
 	.set_bus_width		= sdhci_set_bus_width,
@@ -579,6 +598,7 @@ static const struct sdhci_ops sdhci_dwcmshc_rk35xx_ops = {
 	.adma_write_desc	= dwcmshc_adma_write_desc,
 	.irq			= dwcmshc_cqe_irq_handler,
 	.request_done		= sdhci_dwcmshc_request_done,
+	.hw_reset		= dwcmshc_rk_hw_reset,
 };
 
 static const struct sdhci_pltfm_data sdhci_dwcmshc_pdata = {
