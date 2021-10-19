@@ -184,6 +184,12 @@
 	pinctrl-0 = <&pwm2m1_pins>;
 };
 
+&reserved_memory {
+	pcie3x2@80900000{
+		reg = <0x0 0x80900000 0x0 0x100000>;
+	};
+};
+
 &sata2 {
 	status = "okay";
 };
