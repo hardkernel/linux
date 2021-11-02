@@ -138,6 +138,38 @@
 	vccio4-supply = <&vcc_1v8>;
 };
 
+&pwm7 {
+	status = "disabled";
+};
+
+&pwm3 {
+	status = "okay";
+
+	compatible = "rockchip,remotectl-pwm";
+	remote_pwm_id = <3>;
+	handle_cpu_id = <1>;
+	remote_support_psci = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm3_pins>;
+
+	ir_key1 {
+		rockchip,usercode = <0x4db2>;
+		rockchip,key_table =
+			<0x23	KEY_POWER>,
+			<0x77	KEY_MUTE>,
+			<0x7d	KEY_HOME>,
+			<0x31	KEY_ENTER>,
+			<0x35	KEY_UP>,
+			<0x66	KEY_LEFT>,
+			<0x3e	KEY_RIGHT>,
+			<0x2d	KEY_DOWN>,
+			<0x3a	KEY_MENU>,
+			<0x65	KEY_BACK>,
+			<0x7e	KEY_VOLUMEDOWN>,
+			<0x7f	KEY_VOLUMEUP>;
+	};
+};
+
 &rk809_codec {
 	#sound-dai-cells = <0>;
 	hp-volume = <3>;
