@@ -42,6 +42,7 @@
 	vcc3v3_pcie: gpio-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_pcie";
+		enable-active-high;
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		gpio = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
