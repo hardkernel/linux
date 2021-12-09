@@ -127,6 +127,18 @@
 	status = "okay";
 };
 
+&sdhci {
+	pinctrl-0 = <&emmc_bus8
+		&emmc_clk
+		&emmc_cmd
+		&emmc_datastrobe
+		&emmc_rstnout>;
+	pinctrl-names = "default";
+
+	mmc-hs200-1_8v;
+	cap-mmc-hw-reset;
+};
+
 &video_phy0 {
 	status = "okay";
 };
