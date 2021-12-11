@@ -679,6 +679,10 @@ static int snor_parse_flash_table(struct SFNOR_DEV *p_dev,
 		else if (i == 2)
 			p_dev->write_status = snor_write_status2;
 
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+		g_spi_flash_info->feature &= ~(FEA_4BIT_PROG | FEA_4BIT_READ);
+#endif
+
 		if (g_spi_flash_info->feature & FEA_4BIT_READ) {
 			ret = SFC_OK;
 			if (g_spi_flash_info->QE_bits)
