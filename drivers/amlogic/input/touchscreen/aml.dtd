@@ -94,5 +94,36 @@
 			fw_file = "/etc/touch/ct36x.dat";
 		};
 #endif
+
+#ifdef CONFIG_GOODIX_GT801_CAPACITIVE_TOUCHSCREEN
+//$$ DEVICE = "touch_gt801"
+//$$ L2 PROP_STR = "status"
+//$$ L2 PROP_STR = "touch_name"
+//$$ L3 PROP_STR = "i2c_bus"
+//$$ L3 PROP_U32 ="reg"
+//$$ L3 PROP_U32 ="irq"
+//$$ L3 PROP_STR = "gpio_interrupt"
+//$$ L3 PROP_STR = "gpio_reset"
+//$$ L3 PROP_U32 ="xres"
+//$$ L3 PROP_U32 ="yres"
+//$$ L3 PROP_U32 ="pol"
+//$$ L3 PROP_STR = "irq_edge"
+//$$ L3 PROP_STR = "config_file"
+			touch_gt801:gt801{
+			           compatible = "goodix,gt801";
+			           status = "okay";
+			           touch_name = "gt801";
+			           i2c_bus = "i2c_bus_a";
+			           reg = <0x55>;
+			           irq = <0>;
+			           gpio_interrupt = "GPIOX_19";
+			           gpio_reset = "GPIOY_8";
+			           xres = <800>;
+			           yres = <480>;
+			           pol = <0x4>;  // bit0 - swap x, bit1 - swap y , bit2 - swap xy
+			           irq_edge= "GPIO_IRQ_LOW"
+			           /*config_file = "/etc/touch/goodix.cfg";*/
+			};
+#endif
    };
 #endif
