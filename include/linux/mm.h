@@ -1143,7 +1143,23 @@ vm_fault_t finish_mkwrite_fault(struct vm_fault *vmf);
  */
 
 /* Page flags: | [SECTION] | [NODE] | ZONE | [LAST_CPUPID] | ... | FLAGS | */
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE_INLINE
+/*
+ * We use high 32bit of page->flags for page trace, Make sure:
+ * __NR_PAGEFLAGS    : about 21 bits
+ * ZONES_WIDTH       : about  2 bits, MAX 4 zone types
+ * NODES_WIDTH       : about  2 bits if open CONFIG_NUMA, else 0 bit
+ * SECTIONS_WIDTH    : 0 bit if defined CONFIG_SPARSEMEM_VMEMMAP otherwise 18
+ *                     bits on ARM64
+ * LAST_CPUPID_SHIFT : 0 bit if not define CONFIG_NUMA_BALANCING, otherwise
+ *                     8 + NR_CPUS_BITS
+ * All of these macros should be using less than 32bits in total, otherwise
+ * compile will fail
+ */
+#define SECTIONS_PGOFF		((sizeof(unsigned int) * 8) - SECTIONS_WIDTH)
+#else
 #define SECTIONS_PGOFF		((sizeof(unsigned long)*8) - SECTIONS_WIDTH)
+#endif /* CONFIG_AMLOGIC_PAGE_TRACE_INLINE */
 #define NODES_PGOFF		(SECTIONS_PGOFF - NODES_WIDTH)
 #define ZONES_PGOFF		(NODES_PGOFF - ZONES_WIDTH)
 #define LAST_CPUPID_PGOFF	(ZONES_PGOFF - LAST_CPUPID_WIDTH)

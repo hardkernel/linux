@@ -24,6 +24,9 @@
 #include <linux/page_owner.h>
 #include <linux/psi.h>
 #include "internal.h"
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+#include <linux/amlogic/page_trace.h>
+#endif
 
 #ifdef CONFIG_COMPACTION
 static inline void count_compact_event(enum vm_event_item item)
@@ -1738,6 +1741,9 @@ static struct page *compaction_alloc(struct page *migratepage,
 	freepage = list_entry(cc->freepages.next, struct page, lru);
 	list_del(&freepage->lru);
 	cc->nr_freepages--;
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	replace_page_trace(freepage, migratepage);
+#endif
 
 	return freepage;
 }

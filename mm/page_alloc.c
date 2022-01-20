@@ -81,6 +81,10 @@
 #include "shuffle.h"
 #include "page_reporting.h"
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+#include <linux/amlogic/page_trace.h>
+#endif
+
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_alloc);
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_free);
 
@@ -1486,6 +1490,9 @@ static __always_inline bool free_pages_prepare(struct page *page,
 
 	debug_pagealloc_unmap_pages(page, 1 << order);
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	reset_page_trace(page, order);
+#endif /* CONFIG_AMLOGIC_PAGE_TRACE */
 	return true;
 }
 
@@ -5624,6 +5631,9 @@ unsigned long __alloc_pages_bulk(gfp_t gfp, int preferred_nid,
 		else
 			page_array[nr_populated] = page;
 		nr_populated++;
+	#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+		set_page_trace(page, 0, gfp, NULL);
+	#endif /* CONFIG_AMLOGIC_PAGE_TRACE */
 	}
 
 	pcp_spin_unlock_irqrestore(pcp, flags);
@@ -5717,6 +5727,9 @@ out:
 	}
 
 	trace_mm_page_alloc(page, order, alloc_gfp, ac.migratetype);
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	set_page_trace(page, order, gfp, NULL);
+#endif /* CONFIG_AMLOGIC_PAGE_TRACE */
 
 	return page;
 }

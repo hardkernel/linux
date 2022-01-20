@@ -63,7 +63,12 @@ void __init mminit_verify_pageflags_layout(void)
 	int shift, width;
 	unsigned long or_mask, add_mask;
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE_INLINE
+	/* high 32bits have been taken by pagetrace, avoid bug in line 117 */
+	shift = 8 * sizeof(unsigned int);
+#else
 	shift = 8 * sizeof(unsigned long);
+#endif
 	width = shift - SECTIONS_WIDTH - NODES_WIDTH - ZONES_WIDTH
 		- LAST_CPUPID_SHIFT - KASAN_TAG_WIDTH - LRU_GEN_WIDTH - LRU_REFS_WIDTH;
 	mminit_dprintk(MMINIT_TRACE, "pageflags_layout_widths",

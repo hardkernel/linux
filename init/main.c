@@ -113,6 +113,10 @@
 
 #include <kunit/test.h>
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+#include <linux/amlogic/page_trace.h>
+#endif
+
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -860,6 +864,10 @@ static void __init mm_init(void)
 	kfence_alloc_pool();
 	report_meminit();
 	stack_depot_init();
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	/* allocate memory before first page allocated */
+	page_trace_mem_init();
+#endif
 	mem_init();
 	mem_init_print_info();
 	/* page_owner must be initialized after buddy is ready */
