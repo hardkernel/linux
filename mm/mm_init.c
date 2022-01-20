@@ -36,6 +36,10 @@
 
 #include <asm/setup.h>
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+#include <linux/amlogic/page_trace.h>
+#endif
+
 #ifdef CONFIG_DEBUG_MEMORY_INIT
 int __meminitdata mminit_loglevel;
 
@@ -82,7 +86,12 @@ void __init mminit_verify_pageflags_layout(void)
 	int shift, width;
 	unsigned long or_mask, add_mask;
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE_INLINE
+	/* high 32bits have been taken by pagetrace, avoid bug in line 117 */
+	shift = 8 * sizeof(unsigned int);
+#else
 	shift = BITS_PER_LONG;
+#endif
 	width = shift - NR_NON_PAGEFLAG_BITS;
 	mminit_dprintk(MMINIT_TRACE, "pageflags_layout_widths",
 		"Section %d Node %d Zone %d Lastcpupid %d Kasantag %d Gen %d Tier %d Flags %d\n",
@@ -2653,6 +2662,10 @@ void __init mm_core_init(void)
 	report_meminit();
 	kmsan_init_shadow();
 	stack_depot_early_init();
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	/* allocate memory before first page allocated */
+	page_trace_mem_init();
+#endif
 	mem_init();
 	kmem_cache_init();
 	/*

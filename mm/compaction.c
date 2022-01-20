@@ -26,6 +26,10 @@
 #include <linux/cpuset.h>
 #include "internal.h"
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+#include <linux/amlogic/page_trace.h>
+#endif
+
 #ifdef CONFIG_COMPACTION
 /*
  * Fragmentation score check interval for proactive compaction purposes.
@@ -1895,6 +1899,9 @@ again:
 	}
 	dst = (struct folio *)freepage;
 
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	replace_page_trace(freepage, folio_page(src, 0));
+#endif
 	post_alloc_hook(&dst->page, order, __GFP_MOVABLE);
 	if (order)
 		prep_compound_page(&dst->page, order);
