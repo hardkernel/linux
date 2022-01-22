@@ -1792,6 +1792,9 @@ static inline struct page *alloc_slab_page(struct kmem_cache *s,
 	else
 		page = __alloc_pages_node(node, flags, order);
 
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	slab_trace_add_page(page, order, s, flags);
+#endif
 	return page;
 }
 
@@ -2013,6 +2016,9 @@ static void __free_slab(struct kmem_cache *s, struct page *page)
 	if (current->reclaim_state)
 		current->reclaim_state->reclaimed_slab += pages;
 	unaccount_slab_page(page, order, s);
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	slab_trace_remove_page(page, order, s);
+#endif
 	__free_pages(page, order);
 }
 
@@ -2977,6 +2983,9 @@ load_freelist:
 	c->freelist = get_freepointer(s, freelist);
 	c->tid = next_tid(c->tid);
 	local_unlock_irqrestore(&s->cpu_slab->lock, flags);
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	slab_trace_mark_object(freelist, addr, s);
+#endif
 	return freelist;
 
 deactivate_slab:
@@ -3086,6 +3095,10 @@ retry_load_page:
 return_single:
 
 	deactivate_slab(s, page, get_freepointer(s, freelist));
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	slab_trace_mark_object(freelist, addr, s);
+#endif
+
 	return freelist;
 }
 
@@ -3227,6 +3240,9 @@ redo:
 		}
 		prefetch_freepointer(s, next_object);
 		stat(s, ALLOC_FASTPATH);
+	#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+		slab_trace_mark_object(object, addr, s);
+	#endif
 	}
 
 	maybe_wipe_obj_freeptr(s, object);
@@ -3459,6 +3475,10 @@ redo:
 	/* Same with comment on barrier() in slab_alloc_node() */
 	barrier();
 
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	slab_trace_remove_object(head, s);
+#endif
+
 	if (likely(page == c->page)) {
 #ifndef CONFIG_PREEMPT_RT
 		void **freelist = READ_ONCE(c->freelist);
@@ -3587,6 +3607,9 @@ int build_detached_freelist(struct kmem_cache *s, size_t size,
 	if (!s) {
 		/* Handle kalloc'ed objects */
 		if (unlikely(!PageSlab(page))) {
+		#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+			slab_trace_remove_page(page, compound_order(page), s);
+		#endif
 			free_nonslab_page(page, object);
 			p[size] = NULL; /* mark object processed */
 			return size;
@@ -4181,6 +4204,13 @@ static int calculate_sizes(struct kmem_cache *s, int forced_order)
 
 	return !!oo_objects(s->oo);
 }
+
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+int get_cache_max_order(struct kmem_cache *s)
+{
+	return oo_order(s->oo);
+}
+#endif
 
 static int kmem_cache_open(struct kmem_cache *s, slab_flags_t flags)
 {
@@ -4856,6 +4886,9 @@ void __init kmem_cache_init(void)
 	/* Now we can use the kmem_cache to allocate kmalloc slabs */
 	setup_kmalloc_cache_index_table();
 	create_kmalloc_caches(0);
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	slab_trace_init();
+#endif
 
 	/* Setup random freelists for each cache */
 	init_freelist_randomization();

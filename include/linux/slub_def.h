@@ -12,6 +12,10 @@
 #include <linux/reciprocal_div.h>
 #include <linux/local_lock.h>
 
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+#include <linux/amlogic/slab_trace.h>
+#endif
+
 enum stat_item {
 	ALLOC_FASTPATH,		/* Allocation from cpu slab */
 	ALLOC_SLOWPATH,		/* Allocation by getting a new cpu slab */
@@ -138,6 +142,9 @@ struct kmem_cache {
 	unsigned int useroffset;	/* Usercopy region offset */
 	unsigned int usersize;		/* Usercopy region size */
 
+#ifdef CONFIG_AMLOGIC_SLAB_TRACE
+	struct slab_trace_group *trace_group;
+#endif
 	struct kmem_cache_node *node[MAX_NUMNODES];
 };
 
