@@ -41,6 +41,16 @@
 
 #include "cma.h"
 
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#include <linux/delay.h>
+#include <linux/sched/clock.h>
+#endif /* CONFIG_AMLOGIC_CMA */
+
+#ifdef CONFIG_AMLOGIC_SEC
+#include <linux/amlogic/secmon.h>
+#endif
+
 struct cma cma_areas[MAX_CMA_AREAS];
 unsigned cma_area_count;
 static DEFINE_MUTEX(cma_mutex);
@@ -155,9 +165,23 @@ static int __init cma_init_reserved_areas(void)
 	for (i = 0; i < cma_area_count; i++)
 		cma_activate_area(&cma_areas[i]);
 
+#ifdef CONFIG_AMLOGIC_SEC
+	/*
+	 * A73 cache speculate prefetch may cause SError when boot.
+	 * because it may prefetch cache line in secure memory range
+	 * which have already reserved by bootloader. So we must
+	 * clear mmu of secmon range before A73 core boot up
+	 */
+	secmon_clear_cma_mmu();
+#endif
 	return 0;
 }
+
+#ifdef CONFIG_AMLOGIC_CMA
+early_initcall(cma_init_reserved_areas);
+#else
 core_initcall(cma_init_reserved_areas);
+#endif
 
 /**
  * cma_init_reserved_mem() - create custom contiguous area from reserved memory
@@ -447,6 +471,14 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 	s64 ts;
 	struct cma_alloc_info cma_info = {0};
 	bool bypass = false;
+#ifdef CONFIG_AMLOGIC_CMA
+	int dummy;
+	unsigned long tick = 0;
+	unsigned long long in_tick, timeout;
+	int timeout_count = 0;
+
+	in_tick = sched_clock();
+#endif
 
 	trace_android_vh_cma_alloc_bypass(cma, count, align, gfp_mask,
 				&page, &bypass);
@@ -461,6 +493,13 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 	pr_debug("%s(cma %p, count %lu, align %d gfp_mask 0x%x)\n", __func__,
 			(void *)cma, count, align, gfp_mask);
 
+#ifdef CONFIG_AMLOGIC_CMA
+	cma_debug(0, NULL, "(cma %p, count %lu, align %d)\n",
+		  (void *)cma, count, align);
+	in_tick = sched_clock();
+	timeout = 2ULL * 1000000 * (1 + ((count * PAGE_SIZE) >> 20));
+#endif
+
 	if (!count)
 		goto out;
 
@@ -473,6 +512,10 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 
 	if (bitmap_count > bitmap_maxno)
 		goto out;
+
+#ifdef CONFIG_AMLOGIC_CMA
+	aml_cma_alloc_pre_hook(&dummy, count, &tick);
+#endif /* CONFIG_AMLOGIC_CMA */
 
 	for (;;) {
 		struct acr_info info = {0};
@@ -518,7 +561,11 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 
 		pfn = cma->base_pfn + (bitmap_no << cma->order_per_bit);
 		mutex_lock(&cma_mutex);
+	#ifdef CONFIG_AMLOGIC_CMA
+		ret = aml_cma_alloc_range(pfn, pfn + count, MIGRATE_CMA, gfp_mask);
+	#else
 		ret = alloc_contig_range(pfn, pfn + count, MIGRATE_CMA, gfp_mask, &info);
+	#endif
 		cma_info.nr_migrated += info.nr_migrated;
 		cma_info.nr_reclaimed += info.nr_reclaimed;
 		cma_info.nr_mapped += info.nr_mapped;
@@ -547,6 +594,7 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 		trace_cma_alloc_busy_retry(cma->name, pfn, pfn_to_page(pfn),
 					   count, align);
 
+	#ifndef CONFIG_AMLOGIC_CMA
 		if (info.failed_pfn && gfp_mask & __GFP_NORETRY) {
 			/* try again from following failed page */
 			start = (pfn_max_align_up(info.failed_pfn + 1) -
@@ -556,7 +604,29 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 			/* try again with a bit different memory target */
 			start = bitmap_no + mask + 1;
 		}
+	#else
+		/*
+		 * CMA allocation time out, for example:
+		 * 1. set isolation failed.
+		 * 2. refcout and mapcount mismatch.
+		 * may blocked on some pages, relax CPU and try later.
+		 */
+		if ((sched_clock() - in_tick) >= timeout) {
+			if (timeout_count > 20) {
+				pr_err("cma: %s alloc too long %lx, %lx\n",
+					cma->name, pfn, count);
+				cma_debug_level = 6;
+			}
+			timeout_count++;
+			usleep_range(1000, 2000);
+		}
+	#endif
 	}
+
+#ifdef CONFIG_AMLOGIC_CMA
+	if (cma_debug_level == 6)
+		cma_debug_level = 0;
+#endif
 
 	trace_cma_alloc_finish(cma->name, pfn, page, count, align);
 	trace_cma_alloc_info(cma->name, page, count, align, &cma_info);
@@ -588,6 +658,9 @@ out:
 		if (cma)
 			cma_sysfs_account_fail_pages(cma, count);
 	}
+#ifdef CONFIG_AMLOGIC_CMA
+	aml_cma_alloc_post_hook(&dummy, count, page, tick, ret);
+#endif
 
 	return page;
 }
@@ -620,7 +693,11 @@ bool cma_release(struct cma *cma, const struct page *pages,
 
 	VM_BUG_ON(pfn + count > cma->base_pfn + cma->count);
 
+#ifdef CONFIG_AMLOGIC_CMA
+	aml_cma_free(pfn, count, 1);
+#else
 	free_contig_range(pfn, count);
+#endif
 	cma_clear_bitmap(cma, pfn, count);
 	trace_cma_release(cma->name, pfn, pages, count);
 

@@ -486,7 +486,11 @@ struct block_device *bdev_alloc(struct gendisk *disk, u8 partno)
 	inode->i_mode = S_IFBLK;
 	inode->i_rdev = 0;
 	inode->i_data.a_ops = &def_blk_aops;
+#ifdef CONFIG_AMLOGIC_CMA
+	mapping_set_gfp_mask(&inode->i_data, GFP_USER | __GFP_NO_CMA);
+#else
 	mapping_set_gfp_mask(&inode->i_data, GFP_USER);
+#endif
 
 	bdev = I_BDEV(inode);
 	mutex_init(&bdev->bd_fsfreeze_mutex);

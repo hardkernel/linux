@@ -608,6 +608,9 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 #define ALLOC_NOFRAGMENT	  0x0
 #endif
 #define ALLOC_KSWAPD		0x800 /* allow waking of kswapd, __GFP_KSWAPD_RECLAIM set */
+#ifdef CONFIG_AMLOGIC_CMA
+#define ALLOC_MOVABLE_USE_CMA_FIRST	0x1000 /* preferred to allocate from cma for movable */
+#endif
 
 enum ttu_flags;
 struct tlbflush_unmap_batch;

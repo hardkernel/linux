@@ -3183,13 +3183,25 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
 	}
 
 	if (is_zero_pfn(pte_pfn(vmf->orig_pte))) {
+	#ifdef CONFIG_AMLOGIC_CMA
+		gfp_t tmp_flag = GFP_HIGHUSER_MOVABLE |
+				 __GFP_NO_CMA | __GFP_ZERO;
+
+		new_page = alloc_page_vma(tmp_flag, vma, vmaddr);
+	#else
 		new_page = alloc_zeroed_user_highpage_movable(vma,
 							      vmf->address);
+	#endif
 		if (!new_page)
 			goto out;
 	} else {
+	#ifdef CONFIG_AMLOGIC_CMA
+		new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE | __GFP_NO_CMA,
+					  vma, vmf->address);
+	#else
 		new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma,
 				vmf->address);
+	#endif
 		if (!new_page)
 			goto out;
 
@@ -4938,6 +4950,12 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
 	pgd_t *pgd;
 	p4d_t *p4d;
 	vm_fault_t ret;
+
+#ifdef CONFIG_AMLOGIC_CMA
+	if (vma->vm_file && vma->vm_file->f_mapping &&
+	    (vma->vm_flags & VM_EXEC))
+		vma->vm_file->f_mapping->gfp_mask |= __GFP_NO_CMA;
+#endif
 
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 	if (flags & FAULT_FLAG_SPECULATIVE) {

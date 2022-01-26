@@ -2125,6 +2125,17 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 	}
 	tree_rmap_item =
 		unstable_tree_search_insert(rmap_item, page, &tree_page);
+#ifdef CONFIG_AMLOGIC_CMA
+	/*
+	 * Now page is inserted to unstable tree, but do not
+	 * let cma page to be kpage, it can be merged with other pages
+	 */
+	if (cma_page(page)) {
+		if (tree_rmap_item)
+			put_page(tree_page);
+		return;
+	}
+#endif /* CONFIG_AMLOGIC_CMA */
 	if (tree_rmap_item) {
 		bool split;
 

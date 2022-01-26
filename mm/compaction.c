@@ -27,6 +27,9 @@
 #ifdef CONFIG_AMLOGIC_PAGE_TRACE
 #include <linux/amlogic/page_trace.h>
 #endif
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#endif
 
 #ifdef CONFIG_COMPACTION
 static inline void count_compact_event(enum vm_event_item item)
@@ -800,6 +803,9 @@ static bool too_many_isolated(pg_data_t *pgdat)
 	isolated = node_page_state(pgdat, NR_ISOLATED_FILE) +
 			node_page_state(pgdat, NR_ISOLATED_ANON);
 
+#ifdef CONFIG_AMLOGIC_CMA
+	check_cma_isolated(&isolated, active, inactive);
+#endif
 	return isolated > (inactive + active) / 2;
 }
 
@@ -907,6 +913,11 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 				cc->contended = true;
 				ret = -EINTR;
 
+			#ifdef CONFIG_AMLOGIC_CMA
+				if (cc->alloc_contig)
+					cma_debug(1, page, "abort by sig, low_pfn:%lx, swap:%ld\n",
+						  low_pfn, SWAP_CLUSTER_MAX);
+			#endif
 				goto fatal_pending;
 			}
 
@@ -927,6 +938,11 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 			if (!cc->ignore_skip_hint && get_pageblock_skip(page)) {
 				low_pfn = end_pfn;
 				page = NULL;
+			#ifdef CONFIG_AMLOGIC_CMA
+				if (cc->alloc_contig)
+					cma_debug(1, page, "abort by skip, low_pfn:%lx\n",
+						  low_pfn);
+			#endif
 				goto isolate_abort;
 			}
 			valid_page = page;
@@ -944,6 +960,11 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 				if (ret == -EBUSY)
 					ret = 0;
 				low_pfn += (1UL << compound_order(page)) - 1;
+			#ifdef CONFIG_AMLOGIC_CMA
+				if (cc->alloc_contig)
+					cma_debug(1, page, "abort by huge, low_pfn:%lx\n",
+						  low_pfn);
+			#endif
 				goto isolate_fail;
 			}
 
@@ -996,6 +1017,11 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 
 			if (likely(order < MAX_ORDER))
 				low_pfn += (1UL << order) - 1;
+		#ifdef CONFIG_AMLOGIC_CMA
+			if (cc->alloc_contig)
+				cma_debug(1, page, "abort by compound, low_pfn:%lx\n",
+					  low_pfn);
+		#endif
 			goto isolate_fail;
 		}
 
@@ -1020,6 +1046,11 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 					goto isolate_success;
 			}
 
+		#ifdef CONFIG_AMLOGIC_CMA
+			if (cc->alloc_contig && page_count(page))
+				cma_debug(1, page, "abort by LRU, low_pfn:%lx\n",
+					  low_pfn);
+		#endif
 			goto isolate_fail;
 		}
 
@@ -1028,8 +1059,17 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 		 * sure the page is not being freed elsewhere -- the
 		 * page release code relies on it.
 		 */
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (unlikely(!get_page_unless_zero(page))) {
+			if (cc->alloc_contig)
+				cma_debug(1, page, "none zero ref, low_pfn:%lx\n",
+					  low_pfn);
+			goto isolate_fail;
+		}
+	#else
 		if (unlikely(!get_page_unless_zero(page)))
 			goto isolate_fail;
+	#endif
 
 		/*
 		 * Migration will fail if an anonymous page is pinned in memory,
@@ -1037,15 +1077,34 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 		 * admittedly racy check.
 		 */
 		mapping = page_mapping(page);
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!mapping && (page_count(page) - 1) > total_mapcount(page)) {
+			if (cc->alloc_contig)
+				cma_debug(1, page, "mc/rc miss match, low_pfn:%lx\n",
+					  low_pfn);
+			goto isolate_fail_put;
+		}
+		check_page_to_cma(cc, mapping, page);
+	#else
 		if (!mapping && (page_count(page) - 1) > total_mapcount(page))
 			goto isolate_fail_put;
+	#endif
 
 		/*
 		 * Only allow to migrate anonymous pages in GFP_NOFS context
 		 * because those do not depend on fs locks.
 		 */
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!(cc->gfp_mask & __GFP_FS) && mapping) {
+			if (cc->alloc_contig)
+				cma_debug(1, page, "no fs ctx, low_pfn:%lx\n",
+					  low_pfn);
+			goto isolate_fail_put;
+		}
+	#else
 		if (!(cc->gfp_mask & __GFP_FS) && mapping)
 			goto isolate_fail_put;
+	#endif
 
 		/* Only take pages on LRU: a check now makes later tests safe */
 		if (!PageLRU(page))
@@ -1087,8 +1146,17 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 		}
 
 		/* Try isolate the page */
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!TestClearPageLRU(page)) {
+			if (cc->alloc_contig)
+				cma_debug(1, page, "clear lru fail, low_pfn:%lx, mode:%x\n",
+					  low_pfn, mode);
+			goto isolate_fail_put;
+		}
+	#else
 		if (!TestClearPageLRU(page))
 			goto isolate_fail_put;
+	#endif
 
 		lruvec = mem_cgroup_page_lruvec(page);
 
@@ -1105,8 +1173,17 @@ isolate_migratepages_block(struct compact_control_ext *cc_ext, unsigned long low
 			/* Try get exclusive access under lock */
 			if (!skip_updated) {
 				skip_updated = true;
+			#ifdef CONFIG_AMLOGIC_CMA
+				if (test_and_set_skip(cc, page, low_pfn)) {
+					if (cc->alloc_contig)
+						cma_debug(1, page, "skip fail, low_pfn:%lx, mode:%x\n",
+							  low_pfn, mode);
+					goto isolate_abort;
+				}
+			#else
 				if (test_and_set_skip(cc, page, low_pfn))
 					goto isolate_abort;
+			#endif
 			}
 
 			/*
@@ -1613,6 +1690,9 @@ static void isolate_freepages(struct compact_control_ext *cc_ext)
 	struct list_head *freelist = &cc->freepages;
 	unsigned int stride;
 	bool bypass = false;
+#ifdef CONFIG_AMLOGIC_CMA
+	int migrate_type;
+#endif /* CONFIG_AMLOGIC_CMA */
 
 	/* Try a small search of the free lists for a candidate */
 	isolate_start_pfn = fast_isolate_freepages(cc);
@@ -1671,6 +1751,16 @@ static void isolate_freepages(struct compact_control_ext *cc_ext)
 		trace_android_vh_isolate_freepages(cc, page, &bypass);
 		if (bypass)
 			continue;
+
+	#ifdef CONFIG_AMLOGIC_CMA
+		/* avoid compact to cma area */
+		migrate_type = get_pageblock_migratetype(page);
+		if (is_migrate_isolate(migrate_type))
+			continue;
+		if (is_migrate_cma(migrate_type) &&
+		    test_bit(FORBID_TO_CMA_BIT, &cc->total_migrate_scanned))
+			continue;
+	#endif /* CONFIG_AMLOGIC_CMA */
 
 		/* Found a block suitable for isolating free pages from. */
 		nr_isolated = isolate_freepages_block(cc, &isolate_start_pfn,
@@ -1738,9 +1828,13 @@ static struct page *compaction_alloc(struct page *migratepage,
 			return NULL;
 	}
 
+#ifdef CONFIG_AMLOGIC_CMA
+	freepage = get_compact_page(migratepage, cc);
+#else
 	freepage = list_entry(cc->freepages.next, struct page, lru);
 	list_del(&freepage->lru);
 	cc->nr_freepages--;
+#endif
 #ifdef CONFIG_AMLOGIC_PAGE_TRACE
 	replace_page_trace(freepage, migratepage);
 #endif
@@ -2559,6 +2653,9 @@ out:
 			cc->zone->compact_cached_free_pfn = free_pfn;
 	}
 
+#ifdef CONFIG_AMLOGIC_CMA
+	__clear_bit(FORBID_TO_CMA_BIT, &cc->total_migrate_scanned);
+#endif
 	count_compact_events(COMPACTMIGRATE_SCANNED, cc->total_migrate_scanned);
 	count_compact_events(COMPACTFREE_SCANNED, cc->total_free_scanned);
 

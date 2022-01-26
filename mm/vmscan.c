@@ -74,6 +74,10 @@
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/mm.h>
 
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#endif
+
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_vmscan_direct_reclaim_begin);
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_vmscan_direct_reclaim_end);
 
@@ -1875,13 +1879,21 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 	struct page *page, *next;
 	LIST_HEAD(clean_pages);
 	unsigned int noreclaim_flag;
+#ifdef CONFIG_AMLOGIC_CMA
+	LIST_HEAD(high_active_pages);
+#endif
 
 	list_for_each_entry_safe(page, next, page_list, lru) {
 		if (!PageHuge(page) && page_is_file_lru(page) &&
 		    !PageDirty(page) && !__PageMovable(page) &&
 		    !PageUnevictable(page)) {
+		#ifdef CONFIG_AMLOGIC_CMA
+			cma_keep_high_active(page, &high_active_pages,
+					     &clean_pages);
+		#else
 			ClearPageActive(page);
 			list_move(&page->lru, &clean_pages);
+		#endif
 		}
 	}
 
@@ -1897,6 +1909,9 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 	memalloc_noreclaim_restore(noreclaim_flag);
 
 	list_splice(&clean_pages, page_list);
+#ifdef CONFIG_AMLOGIC_CMA
+	list_splice(&high_active_pages, page_list);
+#endif
 	mod_node_page_state(zone->zone_pgdat, NR_ISOLATED_FILE,
 			    -(long)nr_reclaimed);
 	/*
@@ -2144,6 +2159,9 @@ static int too_many_isolated(struct pglist_data *pgdat, int file,
 	if ((sc->gfp_mask & (__GFP_IO | __GFP_FS)) == (__GFP_IO | __GFP_FS))
 		inactive >>= 3;
 
+#ifdef CONFIG_AMLOGIC_CMA
+	check_cma_isolated(&isolated, inactive, inactive);
+#endif
 	return isolated > inactive;
 }
 

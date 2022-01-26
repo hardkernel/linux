@@ -202,6 +202,11 @@ void page_cache_ra_unbounded(struct readahead_control *ractl,
 	 */
 	unsigned int nofs = memalloc_nofs_save();
 
+#ifdef CONFIG_AMLOGIC_CMA
+	if (ractl && ractl->file &&
+	    (ractl->file->f_mode & (FMODE_WRITE | FMODE_WRITE_IOCTL)))
+		gfp_mask |= __GFP_WRITE;
+#endif /* CONFIG_AMLOGIC_CMA */
 	filemap_invalidate_lock_shared(mapping);
 	/*
 	 * Preallocate as many pages as we will need.

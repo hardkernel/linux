@@ -50,6 +50,10 @@
 #include <linux/ptrace.h>
 #include <linux/oom.h>
 #include <linux/memory.h>
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#include <linux/delay.h>
+#endif
 
 #include <asm/tlbflush.h>
 
@@ -296,6 +300,9 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 	pte_t pte;
 	swp_entry_t entry;
 	struct page *page;
+#ifdef CONFIG_AMLOGIC_CMA
+	bool need_wait = 0;
+#endif
 
 	spin_lock(ptl);
 	pte = *ptep;
@@ -307,6 +314,17 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 		goto out;
 
 	page = pfn_swap_entry_to_page(entry);
+#ifdef CONFIG_AMLOGIC_CMA
+	/* This page is under cma allocating, do not increase it ref */
+	if (in_cma_allocating(page)) {
+		pr_debug("%s, Page:%lx, flags:%lx, m:%d, c:%d, map:%p\n",
+			 __func__, page_to_pfn(page), page->flags,
+			page_mapcount(page), page_count(page),
+			page->mapping);
+		need_wait = 1;
+		goto out;
+	}
+#endif
 	page = compound_head(page);
 
 	/*
@@ -321,6 +339,10 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 	return;
 out:
 	pte_unmap_unlock(ptep, ptl);
+#ifdef CONFIG_AMLOGIC_CMA
+	if (need_wait)
+		usleep_range(1000, 1100);
+#endif
 }
 
 void migration_entry_wait(struct mm_struct *mm, pmd_t *pmd,
@@ -392,6 +414,11 @@ int migrate_page_move_mapping(struct address_space *mapping,
 
 	if (!mapping) {
 		/* Anonymous page without mapping */
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (page_count(page) != expected_count)
+			cma_debug(2, page, " anon page cnt miss match, e:%d\n",
+				  expected_count);
+	#endif
 		if (page_count(page) != expected_count)
 			return -EAGAIN;
 
@@ -410,11 +437,19 @@ int migrate_page_move_mapping(struct address_space *mapping,
 	xas_lock_irq(&xas);
 	if (page_count(page) != expected_count || xas_load(&xas) != page) {
 		xas_unlock_irq(&xas);
+	#ifdef CONFIG_AMLOGIC_CMA
+		cma_debug(2, page, " anon page cnt miss match, e:%d, p:%d\n",
+			  expected_count, page_has_private(page));
+	#endif
 		return -EAGAIN;
 	}
 
 	if (!page_ref_freeze(page, expected_count)) {
 		xas_unlock_irq(&xas);
+	#ifdef CONFIG_AMLOGIC_CMA
+		cma_debug(2, page, " page free fail, e:%d, p:%d\n",
+			  expected_count, page_has_private(page));
+	#endif
 		return -EAGAIN;
 	}
 
@@ -1533,6 +1568,9 @@ retry:
 
 				/* Hugetlb migration is unsupported */
 				nr_failed++;
+			#ifdef CONFIG_AMLOGIC_CMA
+				cma_debug(2, page, " NO SYS\n");
+			#endif
 				break;
 			case -ENOMEM:
 				/*
@@ -1551,6 +1589,9 @@ retry:
 					goto out;
 				}
 				nr_failed++;
+			#ifdef CONFIG_AMLOGIC_CMA
+				cma_debug(2, page, " NO MEM\n");
+			#endif
 				goto out;
 			case -EAGAIN:
 				if (is_thp) {
@@ -1580,6 +1621,9 @@ retry:
 					break;
 				}
 				nr_failed++;
+			#ifdef CONFIG_AMLOGIC_CMA
+				cma_debug(2, page, " failed:%d\n", rc);
+			#endif
 				break;
 			}
 		}
