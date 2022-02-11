@@ -12,6 +12,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	pwm1.dtbo \
 	pwm2.dtbo \
 	pwm9.dtbo \
+	rknpu.dtbo \
 	spi0.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
