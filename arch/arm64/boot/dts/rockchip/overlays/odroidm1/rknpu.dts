@@ -1,0 +1,22 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		// npu@fde40000
+		target = <&rknpu>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		// iommu@fde4b000
+		target = <&rknpu_mmu>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};
