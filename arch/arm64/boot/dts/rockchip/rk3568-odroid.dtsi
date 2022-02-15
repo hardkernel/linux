@@ -186,7 +186,18 @@
 };
 
 &pwm7 {
+	compatible = "rockchip,rk3568-pwm", "rockchip,rk3328-pwm";
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm7_pins>;
+
 	status = "disabled";
+
+	/delete-property/ remote_pwm_id;
+	/delete-property/ handle_cpu_id;
+	/delete-property/ remote_support_psci;
+	/delete-node/ ir_key1;
+	/delete-node/ ir_key2;
+	/delete-node/ ir_key3;
 };
 
 &rknpu_mmu {
