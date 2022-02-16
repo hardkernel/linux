@@ -41,6 +41,10 @@
 
 #include "mm.h"
 
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+#include <linux/amlogic/mem_debug.h>
+#endif
+
 #ifdef CONFIG_CPU_CP15_MMU
 unsigned long __init __clear_cr(unsigned long mask)
 {
@@ -331,6 +335,9 @@ void __init mem_init(void)
 
 	free_highpages();
 
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+	dump_mem_layout_boot_phase();
+#endif
 	/*
 	 * Check boundaries twice: Some fundamental inconsistencies can
 	 * be detected at build time already.

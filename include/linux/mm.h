@@ -48,6 +48,10 @@ extern int sysctl_page_lock_unfairness;
 
 void init_mm_internals(void);
 
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+int pagemap_enabled(void);
+#endif
+
 #ifndef CONFIG_NUMA		/* Don't use mapnrs, do it properly */
 extern unsigned long max_mapnr;
 

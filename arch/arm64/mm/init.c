@@ -46,6 +46,9 @@
 #include <asm/alternative.h>
 #include <asm/xen/swiotlb-xen.h>
 
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+#include <linux/amlogic/mem_debug.h>
+#endif
 /*
  * We need to be able to catch inadvertent references to memstart_addr
  * that occur (potentially in generic code) before arm64_memblock_init()
@@ -430,6 +433,9 @@ void __init mem_init(void)
 	/* this will put all unused low memory onto the freelists */
 	memblock_free_all();
 
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+	dump_mem_layout_boot_phase();
+#endif
 	/*
 	 * Check boundaries twice: Some fundamental inconsistencies can be
 	 * detected at build time already.

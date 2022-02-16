@@ -1648,6 +1648,11 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 
 	/* do not disclose physical addresses: attack vector */
 	pm.show_pfn = file_ns_capable(file, &init_user_ns, CAP_SYS_ADMIN);
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+	/* enable it if pagemap_enable() is true*/
+	if (!pm.show_pfn && pagemap_enabled())
+		pm.show_pfn = 1;
+#endif
 
 	pm.len = (PAGEMAP_WALK_SIZE >> PAGE_SHIFT);
 	pm.buffer = kmalloc_array(pm.len, PM_ENTRY_BYTES, GFP_KERNEL);
