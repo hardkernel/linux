@@ -385,6 +385,23 @@ static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
 	return 0;
 }
 
+#ifdef CONFIG_AMLOGIC_ETH_PRIVE
+static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac *dwmac)
+{
+	struct device_node *np = pdev->dev.of_node;
+	unsigned int mc_val = 0;
+
+	pr_info("aml_cust_setting\n");
+
+	if (of_property_read_u32(np, "mc_val", &mc_val) == 0) {
+		pr_info("cover mc_val as 0x%x\n", mc_val);
+		writel(mc_val, dwmac->regs + PRG_ETH0);
+	}
+
+	return 0;
+}
+#endif
+
 static int meson8b_dwmac_probe(struct platform_device *pdev)
 {
 	struct plat_stmmacenet_data *plat_dat;
@@ -484,7 +501,9 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 	ret = stmmac_dvr_probe(&pdev->dev, plat_dat, &stmmac_res);
 	if (ret)
 		goto err_remove_config_dt;
-
+#ifdef CONFIG_AMLOGIC_ETH_PRIVE
+	aml_custom_setting(pdev, dwmac);
+#endif
 	return 0;
 
 err_remove_config_dt:

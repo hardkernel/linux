@@ -109,14 +109,24 @@ config DWMAC_MEDIATEK
 
 config DWMAC_MESON
 	tristate "Amlogic Meson dwmac support"
-	default ARCH_MESON
-	depends on OF && COMMON_CLK && (ARCH_MESON || COMPILE_TEST)
+	depends on OF && COMMON_CLK
 	help
 	  Support for Ethernet controller on Amlogic Meson SoCs.
 
 	  This selects the Amlogic Meson SoC glue layer support for
 	  the stmmac device driver. This driver is used for Meson6,
 	  Meson8, Meson8b and GXBB SoCs.
+
+config AMLOGIC_ETH_PRIVE
+	tristate "Amlogic private ethernet code"
+	default n
+	depends on OF
+	help
+	  Support for Ethernet controller on Amlogic Meson SoCs.
+
+	  This selects the Amlogic Meson SoC glue layer support for
+	  the stmmac device driver. This driver is used for amlogic
+	  private driver.
 
 config DWMAC_OXNAS
 	tristate "Oxford Semiconductor OXNAS dwmac support"

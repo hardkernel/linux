@@ -384,6 +384,51 @@ static int stmmac_of_get_mac_mode(struct device_node *np)
 	return -ENODEV;
 }
 
+#ifdef CONFIG_AMLOGIC_ETH_PRIVE
+static int setup_aml_clk(struct platform_device *pdev)
+{
+	struct clk *pipe_clk;
+	struct clk *gp_clk;
+	struct clk *gp_clk_mux;
+	struct clk *fix_clk_50m;
+	int rtn;
+
+	pipe_clk = devm_clk_get(&pdev->dev, "ethpipe");
+	if (IS_ERR(pipe_clk)) {
+		dev_warn(&pdev->dev, "Cannot get pipe line clock\n");
+		pipe_clk = NULL;
+	}
+	clk_prepare_enable(pipe_clk);
+	/*GP_MCLK2*/
+	gp_clk_mux = devm_clk_get(&pdev->dev, "gp_mclk2_mux");
+	if (IS_ERR(gp_clk_mux)) {
+		dev_warn(&pdev->dev, "Cannot get gp clock\n");
+		gp_clk_mux = NULL;
+	}
+	fix_clk_50m = devm_clk_get(&pdev->dev, "fixpll_50m");
+	if (IS_ERR(fix_clk_50m)) {
+		dev_warn(&pdev->dev, "Cannot get gp clock\n");
+		fix_clk_50m = NULL;
+	}
+	rtn = clk_set_parent(gp_clk_mux, fix_clk_50m);
+
+	gp_clk = devm_clk_get(&pdev->dev, "gp_mclk2");
+	if (IS_ERR(gp_clk)) {
+		dev_warn(&pdev->dev, "Cannot get gp clock\n");
+		gp_clk = NULL;
+	}
+	rtn = clk_set_rate(gp_clk, 50 * 1000 * 1000);
+	if (rtn)
+		pr_info("set gpclk error\n");
+
+	rtn = clk_prepare_enable(gp_clk);
+	if (rtn)
+		pr_info("enable gpclk error\n");
+
+	return rtn;
+}
+#endif
+
 /**
  * stmmac_probe_config_dt - parse device-tree driver parameters
  * @pdev: platform_device structure
@@ -584,7 +629,9 @@ stmmac_probe_config_dt(struct platform_device *pdev, u8 *mac)
 		}
 		clk_prepare_enable(plat->stmmac_clk);
 	}
-
+#ifdef CONFIG_AMLOGIC_ETH_PRIVE
+	setup_aml_clk(pdev);
+#endif
 	plat->pclk = devm_clk_get_optional(&pdev->dev, "pclk");
 	if (IS_ERR(plat->pclk)) {
 		ret = plat->pclk;
