@@ -330,6 +330,47 @@ static struct rng_alg jent_alg = {
 	}
 };
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+static struct delayed_work jent_work;
+static void __jent_mod_init(struct work_struct *work)
+{
+	SHASH_DESC_ON_STACK(desc, tfm);
+	struct crypto_shash *tfm;
+	int ret = 0;
+
+	jent_testing_init();
+
+	tfm = crypto_alloc_shash(JENT_CONDITIONING_HASH, 0, 0);
+	if (IS_ERR(tfm)) {
+		jent_testing_exit();
+		return;
+	}
+
+	desc->tfm = tfm;
+	crypto_shash_init(desc);
+	ret = jent_entropy_init(CONFIG_CRYPTO_JITTERENTROPY_OSR, 0, desc, NULL);
+	shash_desc_zero(desc);
+	crypto_free_shash(tfm);
+	if (ret) {
+		/* Handle permanent health test error */
+		if (fips_enabled)
+			panic("jitterentropy: Initialization failed with host not compliant with requirements: %d\n", ret);
+
+		jent_testing_exit();
+		pr_info("jitterentropy: Initialization failed with host not compliant with requirements: %d\n", ret);
+		return;
+	}
+	crypto_register_rng(&jent_alg);
+}
+
+static int __init jent_mod_init(void)
+{
+	INIT_DELAYED_WORK(&jent_work, __jent_mod_init);
+	schedule_delayed_work(&jent_work, msecs_to_jiffies(1000));
+
+	return 0;
+}
+#else
 static int __init jent_mod_init(void)
 {
 	SHASH_DESC_ON_STACK(desc, tfm);
@@ -360,6 +401,7 @@ static int __init jent_mod_init(void)
 	}
 	return crypto_register_rng(&jent_alg);
 }
+#endif
 
 static void __exit jent_mod_exit(void)
 {

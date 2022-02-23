@@ -15,6 +15,9 @@
 #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/string.h>
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+#include <linux/async.h>
+#endif
 
 #ifdef CONFIG_SYSFS
 /* Protects all built-in parameters, modules use their own param_lock */
@@ -979,6 +982,14 @@ static int __init param_sysfs_init(void)
 }
 subsys_initcall(param_sysfs_init);
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+static void __init async_param_sysfs_builtin(void *data, async_cookie_t cookie)
+{
+	version_sysfs_builtin();
+	param_sysfs_builtin();
+}
+#endif
+
 /*
  * param_sysfs_builtin_init - add sysfs version and parameter
  * attributes for built-in modules
@@ -988,8 +999,12 @@ static int __init param_sysfs_builtin_init(void)
 	if (!module_kset)
 		return -ENOMEM;
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
+	async_schedule(async_param_sysfs_builtin, NULL);
+#else
 	version_sysfs_builtin();
 	param_sysfs_builtin();
+#endif
 
 	return 0;
 }
