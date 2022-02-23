@@ -197,6 +197,7 @@ static struct rng_alg jent_alg = {
 	}
 };
 
+#if !IS_ENABLED(CONFIG_AMLOGIC_BOOT_TIME)
 static int __init jent_mod_init(void)
 {
 	int ret = 0;
@@ -208,6 +209,32 @@ static int __init jent_mod_init(void)
 	}
 	return crypto_register_rng(&jent_alg);
 }
+#else
+static struct delayed_work jent_work;
+static void __jent_mod_init(struct work_struct *work)
+{
+	int ret = 0;
+
+	ret = jent_entropy_init();
+	if (ret) {
+		pr_info("jitterentropy: Initialization failed with : %d\n", ret);
+		return;
+	}
+	ret = crypto_register_rng(&jent_alg);
+	if (ret) {
+		pr_err("registering jent_alg failed: %d\n", ret);
+		return;
+	}
+}
+
+static int __init jent_mod_init(void)
+{
+	INIT_DELAYED_WORK(&jent_work, __jent_mod_init);
+	schedule_delayed_work(&jent_work, msecs_to_jiffies(1000));
+
+	return 0;
+}
+#endif
 
 static void __exit jent_mod_exit(void)
 {
