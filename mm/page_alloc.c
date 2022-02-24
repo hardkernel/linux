@@ -89,6 +89,10 @@
 #include <linux/amlogic/aml_cma.h>
 #endif
 
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+#include <linux/amlogic/memory.h>
+#endif
+
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_alloc);
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_free);
 
@@ -1062,6 +1066,10 @@ static inline void add_to_free_list(struct page *page, struct zone *zone,
 
 	list_add(&page->buddy_list, &area->free_list[migratetype]);
 	area->nr_free++;
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+	count_free_migrate(area, page,
+		&area->free_list[migratetype], FREE_LIST_ADD);
+#endif
 }
 
 /* Used for pages not on another list */
@@ -1072,6 +1080,10 @@ static inline void add_to_free_list_tail(struct page *page, struct zone *zone,
 
 	list_add_tail(&page->buddy_list, &area->free_list[migratetype]);
 	area->nr_free++;
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+	count_free_migrate(area, page,
+		&area->free_list[migratetype], FREE_LIST_ADD);
+#endif
 }
 
 /*
@@ -1085,6 +1097,10 @@ static inline void move_to_free_list(struct page *page, struct zone *zone,
 	struct free_area *area = &zone->free_area[order];
 
 	list_move_tail(&page->buddy_list, &area->free_list[migratetype]);
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+	count_free_migrate(area, page,
+		&area->free_list[migratetype], FREE_LIST_MOVE);
+#endif
 }
 
 static inline void del_page_from_free_list(struct page *page, struct zone *zone,
@@ -1098,6 +1114,9 @@ static inline void del_page_from_free_list(struct page *page, struct zone *zone,
 	__ClearPageBuddy(page);
 	set_page_private(page, 0);
 	zone->free_area[order].nr_free--;
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+	count_free_migrate(&zone->free_area[order], page, NULL, FREE_LIST_RM);
+#endif
 }
 
 /*
@@ -5805,6 +5824,9 @@ struct page *__alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
 	 */
 	alloc_flags |= alloc_flags_nofragment(ac.preferred_zoneref->zone, gfp);
 
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	should_wakeup_kswap(gfp, order, &ac);
+#endif
 	/* First allocation attempt */
 	page = get_page_from_freelist(alloc_gfp, order, alloc_flags, &ac);
 	if (likely(page))
@@ -6484,6 +6506,9 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 		unsigned int order;
 		unsigned long nr[MAX_ORDER], flags, total = 0;
 		unsigned char types[MAX_ORDER];
+	#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+		unsigned long free_mt[MIGRATE_TYPES] = {0};
+	#endif
 
 		if (show_mem_node_skip(filter, zone_to_nid(zone), nodemask))
 			continue;
@@ -6500,6 +6525,9 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 
 			types[order] = 0;
 			for (type = 0; type < MIGRATE_TYPES; type++) {
+			#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+				free_mt[type] += (area->free_mt[type] << order);
+			#endif
 				if (!free_area_empty(area, type))
 					types[order] |= 1 << type;
 			}
@@ -6512,6 +6540,12 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 				show_migration_types(types[order]);
 		}
 		printk(KERN_CONT "= %lukB\n", K(total));
+	#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+		for (order = 0; order < MIGRATE_TYPES; order++) {
+			pr_info("Free_%s:%ld\n", migratetype_names[order],
+					free_mt[order]);
+		}
+	#endif
 	}
 
 	hugetlb_show_meminfo();
@@ -9975,6 +10009,41 @@ bool take_page_off_buddy(struct page *page)
 	return ret;
 }
 #endif
+
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+void count_free_migrate(struct free_area *area, struct page *page,
+			struct list_head *list, int op)
+{
+	int page_mt = -1;
+	int list_mt = -1;
+
+	page_mt = get_pcppage_migratetype(page);
+	if (list)
+		list_mt = ((void *)list - (void *)area) / (sizeof(*list));
+
+	switch (op) {
+	case FREE_LIST_ADD:
+		WARN_ON(list_mt == -1);
+		set_pcppage_migratetype(page, list_mt);
+		area->free_mt[list_mt]++;
+		break;
+
+	case FREE_LIST_MOVE:
+		WARN_ON(list_mt == -1);
+		set_pcppage_migratetype(page, list_mt);
+		area->free_mt[list_mt]++;
+		area->free_mt[page_mt]--;
+		break;
+
+	case FREE_LIST_RM:
+		area->free_mt[page_mt]--;
+		break;
+
+	default:
+		break;
+	}
+}
+#endif /* CONFIG_AMLOGIC_MEMORY_STAT */
 
 #ifdef CONFIG_ZONE_DMA
 bool has_managed_dma(void)

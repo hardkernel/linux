@@ -3184,7 +3184,11 @@ void d_tmpfile(struct dentry *dentry, struct inode *inode)
 }
 EXPORT_SYMBOL(d_tmpfile);
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static unsigned long dhash_entries __initdata = 65536;
+#else
 static __initdata unsigned long dhash_entries;
+#endif
 static int __init set_dhash_entries(char *str)
 {
 	if (!str)

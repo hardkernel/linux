@@ -23,7 +23,11 @@
  * cache before the transfer is done, causing old data to be seen by
  * the CPU.
  */
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+#else
 #define ARCH_DMA_MINALIGN	(64)
+#endif
 
 #ifdef CONFIG_KASAN_SW_TAGS
 #define ARCH_SLAB_MINALIGN	(1ULL << KASAN_SHADOW_SCALE_SHIFT)
