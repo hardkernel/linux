@@ -53,6 +53,10 @@
 #include <asm/ptrace.h>
 #include <asm/virt.h>
 
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+#include <linux/amlogic/freertos.h>
+#endif
+
 #include <trace/events/ipi.h>
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/debug.h>
@@ -88,6 +92,9 @@ enum ipi_msg_type {
 	 */
 	IPI_CPU_BACKTRACE = NR_IPI,
 	IPI_KGDB_ROUNDUP,
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	IPI_FREERTOS = 7,
+#endif
 	MAX_IPI
 };
 
@@ -844,6 +851,9 @@ static const char *ipi_types[MAX_IPI] __tracepoint_string = {
 	[IPI_CPU_STOP_NMI]	= "CPU stop NMIs",
 	[IPI_TIMER]		= "Timer broadcast interrupts",
 	[IPI_IRQ_WORK]		= "IRQ work interrupts",
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	[IPI_FREERTOS]		= "CPU freertos interrupts",
+#endif
 	[IPI_CPU_BACKTRACE]	= "CPU backtrace interrupts",
 	[IPI_KGDB_ROUNDUP]	= "KGDB roundup interrupts",
 };
@@ -882,6 +892,13 @@ void arch_send_call_function_single_ipi(int cpu)
 void arch_irq_work_raise(void)
 {
 	smp_cross_call(cpumask_of(smp_processor_id()), IPI_IRQ_WORK);
+}
+#endif
+
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS_IPI_SEND)
+void arch_send_ipi_rtos(int cpu)
+{
+	smp_cross_call(cpumask_of(cpu), IPI_FREERTOS);
 }
 #endif
 
@@ -1016,6 +1033,10 @@ static void do_handle_IPI(int ipinr)
 		break;
 
 	case IPI_KGDB_ROUNDUP:
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+		if (!freertos_finish())
+			break;
+#endif
 		kgdb_nmicallback(cpu, get_irq_regs());
 		break;
 

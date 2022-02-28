@@ -48,6 +48,10 @@
 #include <asm/mach/arch.h>
 #include <asm/mpu.h>
 
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+#include <linux/amlogic/freertos.h>
+#endif
+
 #include <trace/events/ipi.h>
 
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_raise);
@@ -75,6 +79,9 @@ enum ipi_msg_type {
 	IPI_IRQ_WORK,
 	IPI_COMPLETION,
 	NR_IPI,
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	IPI_FREERTOS = NR_IPI,
+#endif
 	/*
 	 * CPU_BACKTRACE is special and not included in NR_IPI
 	 * or tracable with trace_ipi_*
@@ -686,6 +693,13 @@ static void do_handle_IPI(int ipinr)
 		break;
 
 	case IPI_CPU_BACKTRACE:
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS_NOFITIER) && IS_ENABLED(CONFIG_AMLOGIC_FREERTOS_C3)
+		call_freertos_notifiers(1, NULL);
+#endif
+		if (!freertos_finish())
+			break;
+#endif
 		printk_deferred_enter();
 		nmi_cpu_backtrace(get_irq_regs());
 		printk_deferred_exit();
@@ -764,6 +778,14 @@ void arch_smp_send_reschedule(int cpu)
 {
 	smp_cross_call(cpumask_of(cpu), IPI_RESCHEDULE);
 }
+
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS_IPI_SEND)
+void arch_send_ipi_rtos(int cpu)
+{
+	smp_cross_call(cpumask_of(cpu), IPI_FREERTOS);
+}
+EXPORT_SYMBOL(arch_send_ipi_rtos);
+#endif
 
 void smp_send_stop(void)
 {
