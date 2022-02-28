@@ -48,6 +48,10 @@
 
 #include "irq-gic-common.h"
 
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+#include <linux/amlogic/freertos.h>
+#endif
+
 #ifdef CONFIG_ARM64
 #include <asm/cpufeature.h>
 
@@ -466,15 +470,21 @@ static void gic_cpu_if_up(struct gic_chip_data *gic)
 	writel_relaxed(bypass | mode | GICC_ENABLE, cpu_base + GIC_CPU_CTRL);
 }
 
-
 static void gic_dist_init(struct gic_chip_data *gic)
 {
 	unsigned int i;
 	u32 cpumask;
 	unsigned int gic_irqs = gic->gic_irqs;
 	void __iomem *base = gic_data_dist_base(gic);
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	u32 tmp;
+#endif
 
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	/*disable gic distributor will result in freertos lost interrupt*/
+#else
 	writel_relaxed(GICD_DISABLE, base + GIC_DIST_CTRL);
+#endif
 
 	/*
 	 * Set all global interrupts to this CPU only.
@@ -482,8 +492,16 @@ static void gic_dist_init(struct gic_chip_data *gic)
 	cpumask = gic_get_cpumask(gic);
 	cpumask |= cpumask << 8;
 	cpumask |= cpumask << 16;
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	for (i = 32; i < gic_irqs; i += 4) {
+		tmp = readl_relaxed(base + GIC_DIST_TARGET + i * 4 / 4);
+		tmp = freertos_get_irqregval(cpumask, tmp, i, 4);
+		writel_relaxed(tmp, base + GIC_DIST_TARGET + i * 4 / 4);
+	}
+#else
 	for (i = 32; i < gic_irqs; i += 4)
 		writel_relaxed(cpumask, base + GIC_DIST_TARGET + i * 4 / 4);
+#endif
 
 	gic_dist_config(base, gic_irqs, NULL);
 

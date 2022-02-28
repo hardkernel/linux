@@ -10,6 +10,10 @@
 
 #include "irq-gic-common.h"
 
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+#include <linux/amlogic/freertos.h>
+#endif
+
 static DEFINE_RAW_SPINLOCK(irq_controller_lock);
 
 void gic_enable_of_quirks(const struct device_node *np,
@@ -94,30 +98,62 @@ void gic_dist_config(void __iomem *base, int gic_irqs,
 		     void (*sync_access)(void))
 {
 	unsigned int i;
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	u32 tmp;
+#endif
 
 	/*
 	 * Set all global interrupts to be level triggered, active low.
 	 */
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	for (i = 32; i < gic_irqs; i += 16) {
+		tmp = readl_relaxed(base + GIC_DIST_CONFIG + i / 4);
+		tmp = freertos_get_irqregval
+			(GICD_INT_ACTLOW_LVLTRIG, tmp, i, 16);
+		writel_relaxed(tmp, base + GIC_DIST_CONFIG + i / 4);
+	}
+#else
 	for (i = 32; i < gic_irqs; i += 16)
 		writel_relaxed(GICD_INT_ACTLOW_LVLTRIG,
 					base + GIC_DIST_CONFIG + i / 4);
+#endif
 
 	/*
 	 * Set priority on all global interrupts.
 	 */
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	for (i = 32; i < gic_irqs; i += 4) {
+		tmp = readl_relaxed(base + GIC_DIST_PRI + i);
+		tmp = freertos_get_irqregval
+			(GICD_INT_DEF_PRI_X4, tmp, i, 4);
+		writel_relaxed(tmp, base + GIC_DIST_PRI + i);
+	}
+#else
 	for (i = 32; i < gic_irqs; i += 4)
 		writel_relaxed(GICD_INT_DEF_PRI_X4, base + GIC_DIST_PRI + i);
+#endif
 
 	/*
 	 * Deactivate and disable all SPIs. Leave the PPI and SGIs
 	 * alone as they are in the redistributor registers on GICv3.
 	 */
+#if IS_ENABLED(CONFIG_AMLOGIC_FREERTOS)
+	for (i = 32; i < gic_irqs; i += 32) {
+		writel_relaxed
+			(freertos_get_irqregval(GICD_INT_EN_CLR_X32, 0, i, 32),
+			 base + GIC_DIST_ACTIVE_CLEAR + i / 8);
+		writel_relaxed
+			(freertos_get_irqregval(GICD_INT_EN_CLR_X32, 0, i, 32),
+			 base + GIC_DIST_ENABLE_CLEAR + i / 8);
+	}
+#else
 	for (i = 32; i < gic_irqs; i += 32) {
 		writel_relaxed(GICD_INT_EN_CLR_X32,
 			       base + GIC_DIST_ACTIVE_CLEAR + i / 8);
 		writel_relaxed(GICD_INT_EN_CLR_X32,
 			       base + GIC_DIST_ENABLE_CLEAR + i / 8);
 	}
+#endif
 
 	if (sync_access)
 		sync_access();
