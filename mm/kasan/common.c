@@ -26,6 +26,10 @@
 #include <linux/string.h>
 #include <linux/types.h>
 #include <linux/bug.h>
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+#include "../internal.h"
+#include <linux/amlogic/memory.h>
+#endif
 
 #include "kasan.h"
 #include "../slab.h"
@@ -405,6 +409,9 @@ void * __must_check __kasan_kmalloc_large(const void *ptr, size_t size,
 	redzone_start = round_up((unsigned long)(ptr + size),
 				KASAN_GRANULE_SIZE);
 	redzone_end = (unsigned long)ptr + page_size(virt_to_page(ptr));
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	adjust_redzone_end(ptr, size, &redzone_end);
+#endif
 	kasan_poison((void *)redzone_start, redzone_end - redzone_start,
 		     KASAN_PAGE_REDZONE, false);
 

@@ -142,9 +142,6 @@ struct kmem_cache {
 	unsigned int useroffset;	/* Usercopy region offset */
 	unsigned int usersize;		/* Usercopy region size */
 
-#ifdef CONFIG_AMLOGIC_SLAB_TRACE
-	struct slab_trace_group *trace_group;
-#endif
 	struct kmem_cache_node *node[MAX_NUMNODES];
 };
 
