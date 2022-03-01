@@ -33,6 +33,9 @@
 #include <asm/mach/time.h>
 #include <asm/tls.h>
 #include <asm/vdso.h>
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+#include <linux/amlogic/user_fault.h>
+#endif
 
 #include "signal.h"
 
@@ -127,6 +130,9 @@ void __show_regs(struct pt_regs *regs)
 
 	printk("PC is at %pS\n", (void *)instruction_pointer(regs));
 	printk("LR is at %pS\n", (void *)regs->ARM_lr);
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	show_user_fault_info(regs, 0, 0);
+#endif
 	printk("pc : [<%08lx>]    lr : [<%08lx>]    psr: %08lx\n",
 	       regs->ARM_pc, regs->ARM_lr, regs->ARM_cpsr);
 	printk("sp : %08lx  ip : %08lx  fp : %08lx\n",
@@ -147,6 +153,10 @@ void __show_regs(struct pt_regs *regs)
 	buf[2] = flags & PSR_C_BIT ? 'C' : 'c';
 	buf[3] = flags & PSR_V_BIT ? 'V' : 'v';
 	buf[4] = '\0';
+
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	show_vmalloc_pfn(regs);
+#endif
 
 #ifndef CONFIG_CPU_V7M
 	{
@@ -186,6 +196,9 @@ void __show_regs(struct pt_regs *regs)
 
 		printk("Control: %08x%s\n", ctrl, buf);
 	}
+#endif
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	show_extra_reg_data(regs);
 #endif
 }
 

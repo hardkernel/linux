@@ -21,6 +21,9 @@
 #include <asm/system_misc.h>
 #include <asm/system_info.h>
 #include <asm/tlbflush.h>
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+#include <linux/amlogic/user_fault.h>
+#endif
 
 #include "fault.h"
 
@@ -142,13 +145,28 @@ __do_user_fault(unsigned long addr, unsigned int fsr, unsigned int sig,
 		harden_branch_predictor();
 
 #ifdef CONFIG_DEBUG_USER
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	if (unhandled_signal(tsk, sig) &&
+	    (((user_debug & UDBG_SEGV) && sig == SIGSEGV) ||
+	     ((user_debug & UDBG_BUS)  && sig == SIGBUS))) {
+#else
 	if (((user_debug & UDBG_SEGV) && (sig == SIGSEGV)) ||
 	    ((user_debug & UDBG_BUS)  && (sig == SIGBUS))) {
+#endif
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+		pr_info("%s: unhandled page fault (%d) at 0x%08lx, code 0x%03x\n",
+			tsk->comm, sig, addr, fsr);
+#else
 		pr_err("8<--- cut here ---\n");
 		pr_err("%s: unhandled page fault (%d) at 0x%08lx, code 0x%03x\n",
 		       tsk->comm, sig, addr, fsr);
+#endif
 		show_pte(KERN_ERR, tsk->mm, addr);
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+		show_debug_ratelimited(regs, 1);
+#else
 		show_regs(regs);
+#endif
 	}
 #endif
 #ifndef CONFIG_KUSER_HELPERS

@@ -57,6 +57,9 @@
 #include <asm/stacktrace.h>
 #include <asm/switch_to.h>
 #include <asm/system_misc.h>
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+#include <linux/amlogic/user_fault.h>
+#endif
 
 #if defined(CONFIG_STACKPROTECTOR) && !defined(CONFIG_STACKPROTECTOR_PER_TASK)
 #include <linux/stackprotector.h>
@@ -215,6 +218,10 @@ void __show_regs(struct pt_regs *regs)
 		top_reg = 29;
 	}
 
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	show_user_fault_info(regs, lr, sp);
+#endif /* CONFIG_AMLOGIC_USER_FAULT */
+
 	show_regs_print_info(KERN_DEFAULT);
 	print_pstate(regs);
 
@@ -241,6 +248,9 @@ void __show_regs(struct pt_regs *regs)
 
 		pr_cont("\n");
 	}
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	show_extra_reg_data(regs);
+#endif /* CONFIG_AMLOGIC_USER_FAULT */
 }
 
 void show_regs(struct pt_regs *regs)
