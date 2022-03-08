@@ -159,6 +159,11 @@
 		"", "", "", "", "", "", "", "";
 };
 
+&hdmi_sound {
+	simple-audio-card,name = "ODROID-M1-HDMI";
+	status = "okay";
+};
+
 &i2c3 {
 	status = "disabled";
 	pinctrl-names = "default";
@@ -189,6 +194,11 @@
 	pcie3x2@80900000{
 		reg = <0x0 0x80900000 0x0 0x100000>;
 	};
+};
+
+&rk809_sound {
+	rockchip,card-name = "ODROID-M1-FRONT";
+	status = "okay";
 };
 
 &sata2 {
