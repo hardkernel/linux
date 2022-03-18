@@ -1,0 +1,14 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		//can@fe570000
+		target = <&can0>;
+
+		__overlay__ {
+			status = "okay";
+			assigned-clock-rates = <200000000>;
+		};
+	};
+};
