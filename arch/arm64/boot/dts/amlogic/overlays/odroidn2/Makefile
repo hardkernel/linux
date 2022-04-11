@@ -16,6 +16,7 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDN2) +=	\
 					keymatrix.dtbo		\
 					odroidn2-opp.dtbo	\
 					odroidn2_plus-opp.dtbo	\
+					odroidn2l-opp.dtbo	\
 					onewire.dtbo		\
 					otg_host_mode.dtbo	\
 					pwm_backlight.dtbo	\

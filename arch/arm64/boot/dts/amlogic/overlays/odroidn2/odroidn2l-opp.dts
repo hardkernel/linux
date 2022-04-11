@@ -1,0 +1,160 @@
+/*
+ * arch/arm64/boot/dts/amlogic/overlays/odroidn2/odroidn2l-opp.dts
+ *
+ * Copyright (C) 2020 Hardkernel Co,. Ltd. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ */
+// cpu opp table
+
+/dts-v1/;
+/plugin/;
+
+/{
+	fragment@0 {
+		target= <&cpu_opp_table0>;
+
+		__overlay__ {
+			opp00 {
+				opp-hz = /bits/ 64 <500000000>;
+				opp-microvolt = <730000>;
+			};
+			opp01 {
+				opp-hz = /bits/ 64 <667000000>;
+				opp-microvolt = <730000>;
+			};
+			opp02 {
+				opp-hz = /bits/ 64 <1000000000>;
+				opp-microvolt = <760000>;
+			};
+			opp03 {
+				opp-hz = /bits/ 64 <1200000000>;
+				opp-microvolt = <780000>;
+			};
+			opp04 {
+				opp-hz = /bits/ 64 <1398000000>;
+				opp-microvolt = <810000>;
+			};
+			opp05 {
+				opp-hz = /bits/ 64 <1512000000>;
+				opp-microvolt = <860000>;
+			};
+			opp06 {
+				opp-hz = /bits/ 64 <1608000000>;
+				opp-microvolt = <900000>;
+			};
+			opp07 {
+				opp-hz = /bits/ 64 <1704000000>;
+				opp-microvolt = <960000>;
+			};
+			opp08 {
+				opp-hz = /bits/ 64 <1800000000>;
+				opp-microvolt = <1020000>;
+			};
+			opp09 {
+				opp-hz = /bits/ 64 <1908000000>;
+				opp-microvolt = <1030000>;
+			};
+			opp10 {
+				opp-hz = /bits/ 64 <2016000000>;
+				opp-microvolt = <1040000>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target= <&cpu_opp_table1>;
+
+		__overlay__ {
+			opp00 {
+				opp-hz = /bits/ 64 <500000000>;
+				opp-microvolt = <730000>;
+			};
+			opp01 {
+				opp-hz = /bits/ 64 <667000000>;
+				opp-microvolt = <730000>;
+			};
+			opp02 {
+				opp-hz = /bits/ 64 <1000000000>;
+				opp-microvolt = <730000>;
+			};
+			opp03 {
+				opp-hz = /bits/ 64 <1200000000>;
+				opp-microvolt = <750000>;
+			};
+			opp04 {
+				opp-hz = /bits/ 64 <1398000000>;
+				opp-microvolt = <770000>;
+			};
+			opp05 {
+				opp-hz = /bits/ 64 <1512000000>;
+				opp-microvolt = <770000>;
+			};
+			opp06 {
+				opp-hz = /bits/ 64 <1608000000>;
+				opp-microvolt = <780000>;
+			};
+			opp07 {
+				opp-hz = /bits/ 64 <1704000000>;
+				opp-microvolt = <790000>;
+			};
+			opp08 {
+				opp-hz = /bits/ 64 <1800000000>;
+				opp-microvolt = <830000>;
+			};
+			opp09 {
+				opp-hz = /bits/ 64 <1908000000>;
+				opp-microvolt = <860000>;
+			};
+			opp10 {
+				opp-hz = /bits/ 64 <2016000000>;
+				opp-microvolt = <910000>;
+			};
+			opp11 {
+				opp-hz = /bits/ 64 <2100000000>;
+				opp-microvolt = <960000>;
+			};
+			opp12 {
+				opp-hz = /bits/ 64 <2208000000>;
+				opp-microvolt = <1030000>;
+			};
+			opp13 {
+				opp-hz = /bits/ 64 <2304000000>;
+				opp-microvolt = <1030000>;
+			};
+			opp14 {
+				opp-hz = /bits/ 64 <2400000000>;
+				opp-microvolt = <1040000>;
+			};
+		};
+		/delete-node/ gpio-reset;
+	};
+
+	fragment@2 {
+		target-path = "/";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		__overlay__ {
+			model = "Hardkernel ODROID-N2L";
+		};
+	};
+
+	fragment@3 {
+		target = <&ethmac>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+};
