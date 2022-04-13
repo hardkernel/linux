@@ -9,6 +9,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	display_waveshare_1inch47.dtbo \
 	display_waveshare_1inch69.dtbo \
 	fiq0_to_uart2.dtbo \
+	gpio_shortcut.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
