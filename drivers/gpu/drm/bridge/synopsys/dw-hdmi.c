@@ -347,6 +347,21 @@ struct dw_hdmi {
 	(HDMI_PHY_RX_SENSE0 | HDMI_PHY_RX_SENSE1 | \
 	 HDMI_PHY_RX_SENSE2 | HDMI_PHY_RX_SENSE3)
 
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+static bool disableHPD = false;
+
+static  int __init disableHPD_setup(char *s)
+{
+	if (!(strcmp(s, "true")))
+		disableHPD = true;
+	else
+		disableHPD = false;
+
+	return 0;
+}
+__setup("disablehpd=", disableHPD_setup);
+#endif
+
 static inline void hdmi_writeb(struct dw_hdmi *hdmi, u8 val, int offset)
 {
 	regmap_write(hdmi->regm, offset << hdmi->reg_shift, val);
@@ -3140,6 +3155,10 @@ static enum drm_connector_status dw_hdmi_detect(struct dw_hdmi *hdmi)
 	}
 	mutex_unlock(&hdmi->mutex);
 
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+	if (disableHPD)
+		result = connector_status_connected;
+#endif
 	if (result == connector_status_connected)
 		extcon_set_state_sync(hdmi->extcon, EXTCON_DISP_HDMI, true);
 	else
