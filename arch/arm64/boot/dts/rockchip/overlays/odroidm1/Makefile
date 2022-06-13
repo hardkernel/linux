@@ -1,6 +1,7 @@
 # Overlays for the Odroid platform
 
 dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
+	dht11.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	onewire.dtbo \
