@@ -89,6 +89,14 @@
 };
 
 &pinctrl {
+	can_pins {
+		mcp2515_int_pins: mcp2515_int_pins {
+			rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+&pinctrl {
 	/delete-node/ mxc6655xa;
 	/delete-node/ touch;
 	/delete-node/ wifi-enable-h;
