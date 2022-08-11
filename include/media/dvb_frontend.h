@@ -51,7 +51,11 @@
  * Maximum number of Delivery systems per frontend. It
  * should be smaller or equal to 32
  */
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+#define MAX_DELSYS	32
+#else
 #define MAX_DELSYS	8
+#endif
 
 /* Helper definitions to be used at frontend drivers */
 #define kHz 1000UL
@@ -266,6 +270,10 @@ struct dvb_tuner_ops {
 	 */
 	int (*set_frequency)(struct dvb_frontend *fe, u32 frequency);
 	int (*set_bandwidth)(struct dvb_frontend *fe, u32 bandwidth);
+
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+	int (*get_strength)(struct dvb_frontend *fe, s16 *strength);
+#endif
 };
 
 /**
@@ -337,6 +345,11 @@ struct dtv_frontend_properties;
  */
 struct dvb_frontend_internal_info {
 	char	name[128];
+
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+	enum fe_type type;
+#endif
+
 	u32	frequency_min_hz;
 	u32	frequency_max_hz;
 	u32	frequency_stepsize_hz;
@@ -491,6 +504,11 @@ struct dvb_frontend_ops {
 
 	struct dvb_tuner_ops tuner_ops;
 	struct analog_demod_ops analog_ops;
+
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+	int (*set_property)(struct dvb_frontend *fe, struct dtv_property *tvp);
+	int (*get_property)(struct dvb_frontend *fe, struct dtv_property *tvp);
+#endif
 };
 
 #ifdef __DVB_CORE__
@@ -821,5 +839,10 @@ void dvb_frontend_reinitialise(struct dvb_frontend *fe);
  * calling this function directly.
  */
 void dvb_frontend_sleep_until(ktime_t *waketime, u32 add_usec);
-
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+/**
+ * dvb_frontend_add_event() - add event for the dvb frontend
+ */
+void dvb_frontend_add_event(struct dvb_frontend *fe, enum fe_status status);
+#endif
 #endif
