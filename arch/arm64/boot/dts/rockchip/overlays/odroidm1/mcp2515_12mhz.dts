@@ -7,7 +7,7 @@
 	fragment@1 {
 		__overlay__ {
 			can0_clk: can0_clk {
-				clock-frequency = <8000000>;
+				clock-frequency = <12000000>;
 			};
 		};
 	};

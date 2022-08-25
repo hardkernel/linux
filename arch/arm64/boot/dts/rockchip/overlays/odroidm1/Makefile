@@ -11,6 +11,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	imx219.dtbo \
 	imx477.dtbo \
 	mcp2515.dtbo \
+	mcp2515_12mhz.dtbo \
+	mcp2515_16mhz.dtbo \
 	onewire.dtbo \
 	ov5647.dtbo \
 	pwm1.dtbo \
