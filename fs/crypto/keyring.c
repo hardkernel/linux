@@ -21,6 +21,9 @@
 #include <asm/unaligned.h>
 #include <crypto/skcipher.h>
 #include <linux/key-type.h>
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE)
+#include <keys/trusted-type.h>
+#endif
 #include <linux/random.h>
 #include <linux/seq_file.h>
 
@@ -654,7 +657,33 @@ static int get_keyring_key(u32 key_id, u32 type,
 	if (IS_ERR(ref))
 		return PTR_ERR(ref);
 	key = key_ref_to_ptr(ref);
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE)
+	if (key->type == &key_type_fscrypt_provisioning) {
+		payload = key->payload.data[0];
 
+		/* Don't allow fscrypt v1 keys to be used as v2 keys and vice versa. */
+		if (payload->type != type)
+			goto bad_key;
+
+		secret->size = key->datalen - sizeof(*payload);
+		memcpy(secret->raw, payload->raw, secret->size);
+		err = 0;
+		goto out_put;
+	} else if (!strncmp(key->type->name, "trusted", strlen(key->type->name))) {
+		struct trusted_key_payload *payload = NULL;
+
+		payload = key->payload.rcu_data0;
+
+		//dump_payload(payload);
+
+		secret->size = payload->key_len;
+		memcpy(secret->raw, payload->key, secret->size);
+		err = 0;
+		goto out_put;
+	} else {
+		goto bad_key;
+	}
+#else
 	if (key->type != &key_type_fscrypt_provisioning)
 		goto bad_key;
 	payload = key->payload.data[0];
@@ -667,7 +696,7 @@ static int get_keyring_key(u32 key_id, u32 type,
 	memcpy(secret->raw, payload->raw, secret->size);
 	err = 0;
 	goto out_put;
-
+#endif
 bad_key:
 	err = -EKEYREJECTED;
 out_put:
