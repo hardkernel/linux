@@ -2412,10 +2412,17 @@ static void clear_vm_uninitialized_flag(struct vm_struct *vm)
 	vm->flags &= ~VM_UNINITIALIZED;
 }
 
+#ifdef CONFIG_AMLOGIC_VMAP
+struct vm_struct *__get_vm_area_node(unsigned long size,
+		unsigned long align, unsigned long shift, unsigned long flags,
+		unsigned long start, unsigned long end, int node,
+		gfp_t gfp_mask, const void *caller)
+#else
 static struct vm_struct *__get_vm_area_node(unsigned long size,
 		unsigned long align, unsigned long shift, unsigned long flags,
 		unsigned long start, unsigned long end, int node,
 		gfp_t gfp_mask, const void *caller)
+#endif
 {
 	struct vmap_area *va;
 	struct vm_struct *area;

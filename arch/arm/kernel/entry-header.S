@@ -200,7 +200,11 @@
 	.endm
 
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	.macro  svc_exit, rpsr, irq = 0, vmap = 0
+#else
 	.macro	svc_exit, rpsr, irq = 0
+#endif /* CONFIG_AMLOGIC_VMAP */
 	.if	\irq != 0
 	@ IRQs already off
 #ifdef CONFIG_TRACE_IRQFLAGS
@@ -225,7 +229,16 @@
 	msr	spsr_cxsf, \rpsr
 #if defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_32v6K)
 	@ We must avoid clrex due to Cortex-A15 erratum #830321
+#ifdef CONFIG_AMLOGIC_VMAP
+	.if \vmap
+	ldr     r0, [sp, #(SVC_REGS_SIZE + TI_VMAP_BACK_SP)]
+	sub     r0, r0, #4                      @ uninhabited address
+	.else
+	sub     r0, sp, #4                      @ uninhabited address
+	.endif
+#else
 	sub	r0, sp, #4			@ uninhabited address
+#endif /* CONFIG_AMLOGIC_VMAP */
 	strex	r1, r2, [r0]			@ clear the exclusive monitor
 #endif
 	ldmia	sp, {r0 - pc}^			@ load r0 - pc, cpsr

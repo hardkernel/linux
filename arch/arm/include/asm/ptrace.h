@@ -159,9 +159,16 @@ static inline unsigned long user_stack_pointer(struct pt_regs *regs)
 	return regs->ARM_sp;
 }
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#define current_pt_regs(void)({ (struct pt_regs *)			\
+		((current_stack_pointer | (THREAD_SIZE - 1)) - 7 -	\
+		 THREAD_INFO_SIZE) - 1;					\
+})
+#else
 #define current_pt_regs(void) ({ (struct pt_regs *)			\
 		((current_stack_pointer | (THREAD_SIZE - 1)) - 7) - 1;	\
 })
+#endif
 
 
 /*

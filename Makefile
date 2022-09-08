@@ -843,9 +843,11 @@ ifneq ($(CONFIG_FRAME_WARN),0)
 KBUILD_CFLAGS += -Wframe-larger-than=$(CONFIG_FRAME_WARN)
 endif
 
+ifndef CONFIG_AMLOGIC_STACKPROTECTOR
 stackp-flags-y                                    := -fno-stack-protector
 stackp-flags-$(CONFIG_STACKPROTECTOR)             := -fstack-protector
 stackp-flags-$(CONFIG_STACKPROTECTOR_STRONG)      := -fstack-protector-strong
+endif
 
 KBUILD_CFLAGS += $(stackp-flags-y)
 
@@ -880,6 +882,11 @@ KBUILD_CFLAGS += $(call cc-disable-warning, dangling-pointer)
 
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
+ifdef CONFIG_AMLOGIC_VMAP
+ifdef CONFIG_ARM64
+KBUILD_CFLAGS	+= -mno-omit-leaf-frame-pointer
+endif
+endif
 else
 # Some targets (ARM with Thumb2, for example), can't be built with frame
 # pointers.  For those, we don't have FUNCTION_TRACER automatically

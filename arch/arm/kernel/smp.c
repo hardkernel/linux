@@ -386,11 +386,20 @@ void arch_cpu_idle_dead(void)
 	 * cpu initialisation.  There's some initialisation which needs
 	 * to be repeated to undo the effects of taking the CPU offline.
 	 */
+#ifdef CONFIG_AMLOGIC_VMAP
+	__asm__("mov	sp, %0\n"
+	"	mov	fp, #0\n"
+	"	b	secondary_start_kernel"
+		:
+		: "r" (task_stack_page(current) + THREAD_SIZE - 8 -
+		       THREAD_INFO_SIZE));
+#else
 	__asm__("mov	sp, %0\n"
 	"	mov	fp, #0\n"
 	"	b	secondary_start_kernel"
 		:
 		: "r" (task_stack_page(current) + THREAD_SIZE - 8));
+#endif
 }
 #endif /* CONFIG_HOTPLUG_CPU */
 

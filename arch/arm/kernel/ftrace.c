@@ -207,6 +207,12 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
 	unsigned long return_hooker = (unsigned long) &return_to_handler;
 	unsigned long old;
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	/* some special case current may not copied to stack end */
+	if (unlikely(!current))
+		return;
+#endif
+
 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
 		return;
 

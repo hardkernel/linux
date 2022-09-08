@@ -59,6 +59,9 @@
 #include <asm/unwind.h>
 #include <asm/memblock.h>
 #include <asm/virt.h>
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
 #include <asm/kasan.h>
 
 #include "atags.h"
@@ -581,6 +584,9 @@ void notrace cpu_init(void)
 	      "I" (offsetof(struct stack, fiq[0])),
 	      PLC_l (PSR_F_BIT | PSR_I_BIT | SVC_MODE)
 	    : "r14");
+#ifdef CONFIG_AMLOGIC_VMAP
+	__setup_vmap_stack(cpu);
+#endif
 #endif
 }
 

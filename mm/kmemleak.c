@@ -100,6 +100,9 @@
 #include <linux/kfence.h>
 #include <linux/kmemleak.h>
 #include <linux/memory_hotplug.h>
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
 
 /*
  * Kmemleak configuration and common defines.
@@ -1406,6 +1409,24 @@ static void scan_gray_list(void)
 	WARN_ON(!list_empty(&gray_list));
 }
 
+#ifdef CONFIG_AMLOGIC_VMAP
+static void vmap_stack_scan(void *stack)
+{
+	int sum = 0;
+
+	if (likely(is_vmap_addr((unsigned long)stack))) {
+		while (!check_pte_exist((unsigned long)stack)) {
+			stack += PAGE_SIZE;
+			sum += PAGE_SIZE;
+			if (sum >= THREAD_SIZE)
+				break;
+		}
+	}
+	if (likely(sum < THREAD_SIZE))
+		scan_block(stack, stack + THREAD_SIZE - sum, NULL);
+}
+#endif
+
 /*
  * Scan data sections and all the referenced memory blocks allocated via the
  * kernel's standard allocators. This function must be called with the
@@ -1490,7 +1511,11 @@ static void kmemleak_scan(void)
 		for_each_process_thread(g, p) {
 			void *stack = try_get_task_stack(p);
 			if (stack) {
+			#ifdef CONFIG_AMLOGIC_VMAP
+				vmap_stack_scan(stack);
+			#else
 				scan_block(stack, stack + THREAD_SIZE, NULL);
+			#endif
 				put_task_stack(p);
 			}
 		}

@@ -295,5 +295,11 @@ bool vmalloc_dump_obj(void *object);
 #else
 static inline bool vmalloc_dump_obj(void *object) { return false; }
 #endif
+#ifdef CONFIG_AMLOGIC_VMAP
+struct vm_struct *__get_vm_area_node(unsigned long size,
+		unsigned long align, unsigned long shift, unsigned long flags,
+		unsigned long start, unsigned long end, int node,
+		gfp_t gfp_mask, const void *caller);
+#endif
 
 #endif /* _LINUX_VMALLOC_H */

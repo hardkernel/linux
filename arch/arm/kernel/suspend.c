@@ -13,6 +13,10 @@
 #include <asm/suspend.h>
 #include <asm/tlbflush.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 extern int __cpu_suspend(unsigned long, int (*)(unsigned long), u32 cpuid);
 extern void cpu_resume_mmu(void);
 
@@ -76,7 +80,11 @@ void __cpu_suspend_save(u32 *ptr, u32 ptrsz, u32 sp, u32 *save_ptr)
 {
 	u32 *ctx = ptr;
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	*save_ptr = save_suspend_context(ptr);
+#else
 	*save_ptr = virt_to_phys(ptr);
+#endif
 
 	/* This must correspond to the LDM in cpu_resume() assembly */
 	*ptr++ = virt_to_phys(idmap_pgd);

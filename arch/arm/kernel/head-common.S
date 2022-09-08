@@ -115,6 +115,9 @@ __mmap_switched:
 	bl	kasan_early_init
 #endif
 	mov	lr, #0
+#ifdef CONFIG_AMLOGIC_VMAP
+	bl      fixup_init_thread_union
+#endif
 	b	start_kernel
 ENDPROC(__mmap_switched)
 
@@ -132,7 +135,11 @@ __mmap_switched_data:
 
 	.long	__bss_start			@ r0
 	.long	__bss_stop			@ r1
+#ifdef CONFIG_AMLOGIC_VMAP
+	.long   init_thread_union + TI_THREAD_START_SP @ sp
+#else
 	.long	init_thread_union + THREAD_START_SP @ sp
+#endif
 
 	.long	processor_id			@ r0
 	.long	__machine_arch_type		@ r1

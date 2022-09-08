@@ -174,5 +174,14 @@ int main(void)
   DEFINE(KEXEC_INDIR_PAGE,	offsetof(struct kexec_relocate_data, kexec_indirection_page));
   DEFINE(KEXEC_MACH_TYPE,	offsetof(struct kexec_relocate_data, kexec_mach_type));
   DEFINE(KEXEC_R2,		offsetof(struct kexec_relocate_data, kexec_r2));
+
+#ifdef CONFIG_AMLOGIC_VMAP
+	DEFINE(TI_THREAD_START_SP,	THREAD_START_SP);
+	DEFINE(TI_VMAP_BACK_SP,		VMAP_BACK_SP);
+	DEFINE(TI_VMAP_RESERVE_LEN,	VMAP_RESERVE_SIZE);
+	DEFINE(TI_THREAD_SIZE,		THREAD_SIZE);
+	DEFINE(TI_THREAD_INFO_SIZE,	sizeof(struct thread_info));
+#endif
+
   return 0; 
 }
