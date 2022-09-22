@@ -34,6 +34,10 @@
 #include <linux/amlogic/efuse.h>
 #endif
 
+#ifdef CONFIG_AMLOGIC_CPU_INFO
+#include <linux/amlogic/cpu_version.h>
+#endif
+
 #define EFUSE_MODULE_NAME   "efuse"
 #define EFUSE_DRIVER_NAME	"efuse"
 #define EFUSE_DEVICE_NAME   "efuse"
@@ -457,6 +461,10 @@ ssize_t efuse_user_attr_show(char *name, char *buf)
 	int i;
 	struct efusekey_info info;
 	loff_t pos;
+#ifdef CONFIG_AMLOGIC_CPU_INFO
+	unsigned char chipid[CHIPID_LEN];
+	int j;
+#endif
 
 	if (efuse_getinfo(name, &info) < 0) {
 		pr_err("%s is not found\n", name);
@@ -491,6 +499,13 @@ ssize_t efuse_user_attr_show(char *name, char *buf)
 			len += sprintf(buf + len, "%02x ", local_buf[i]);
 		}
 	} else {
+#ifdef CONFIG_AMLOGIC_CPU_INFO
+		if (strlen(local_buf) == 0) {
+			cpuinfo_get_chipid(chipid, CHIPID_LEN);
+			for (i = 0, j = 0; i < 16; i++, j += 2)
+				sprintf(local_buf + j, "%02x", chipid[i]);
+		}
+#endif
 		for (i = 0; i < info.size; i++) {
 			if ((i == 8) || (i == 12) || (i == 16) || (i == 20))
 				len += sprintf(buf + len, "-");

@@ -32,6 +32,10 @@
 #include <linux/amlogic/secmon.h>
 #include <linux/arm-smccc.h>
 #include <asm/cacheflush.h>
+#ifdef CONFIG_AMLOGIC_CPU_INFO
+#include <linux/amlogic/cpu_version.h>
+#endif
+
 
 static long meson64_efuse_fn_smc(struct efuse_hal_api_arg *arg)
 {
@@ -233,6 +237,10 @@ ssize_t efuse_read_usr(char *buf, size_t count, loff_t *ppos)
 	char *pdata = NULL;
 	ssize_t ret;
 	loff_t pos;
+#ifdef CONFIG_AMLOGIC_CPU_INFO
+	unsigned char chipid[CHIPID_LEN];
+	int i, j;
+#endif
 
 	if (count > EFUSE_BYTES)
 		count = EFUSE_BYTES;
@@ -241,6 +249,14 @@ ssize_t efuse_read_usr(char *buf, size_t count, loff_t *ppos)
 	pdata = data;
 	pos = *ppos;
 	ret = _efuse_read(pdata, count, (loff_t *)&pos);
+
+#ifdef CONFIG_AMLOGIC_CPU_INFO
+	if (strlen(pdata) == 0) {
+		cpuinfo_get_chipid(chipid, CHIPID_LEN);
+		for (i = 0, j = 0; i < 16; i++, j += 2)
+			sprintf(data + j, "%02x", chipid[i]);
+	}
+#endif
 
 	memcpy(buf, data, count);
 
