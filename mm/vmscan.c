@@ -68,6 +68,9 @@
 #ifdef CONFIG_AMLOGIC_CMA
 #include <linux/amlogic/aml_cma.h>
 #endif
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 #include "internal.h"
 #include "swap.h"
@@ -1380,6 +1383,12 @@ retry:
 			enum ttu_flags flags = TTU_BATCH_FLUSH;
 			bool was_swapbacked = folio_test_swapbacked(folio);
 
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+			mapping = folio_mapping(folio);
+			if (test_bit(AS_LOCK_MAPPING, &mapping->flags) &&
+				!aml_is_pin_locked_file(folio_page(folio, 0)) && !folio_test_mlocked(folio))
+				flags |= TTU_IGNORE_MLOCK;
+#endif
 			if (folio_test_pmd_mappable(folio))
 				flags |= TTU_SPLIT_HUGE_PMD;
 			/*

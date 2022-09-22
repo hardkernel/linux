@@ -27,6 +27,9 @@
 #include <linux/mm_inline.h>
 #include <linux/secretmem.h>
 #include <linux/page_size_compat.h>
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 #include "internal.h"
 
@@ -38,6 +41,10 @@ struct mlock_fbatch {
 static DEFINE_PER_CPU(struct mlock_fbatch, mlock_fbatch) = {
 	.lock = INIT_LOCAL_LOCK(lock),
 };
+
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+extern const struct sched_class rt_sched_class;
+#endif
 
 bool can_do_mlock(void)
 {
@@ -550,6 +557,15 @@ static int apply_vma_lock_flags(unsigned long start, size_t len,
 		tmp = vma->vm_end;
 		if (tmp > end)
 			tmp = end;
+	#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+		if (current->sched_class != &rt_sched_class) {
+			char name[sizeof(current->comm)];
+
+			get_task_comm(name, current);
+			pr_debug("rt mlock name: %s\n", name);
+			reset_page_vma_flags(vma, flags);
+		}
+	#endif
 		error = mlock_fixup(&vmi, vma, &prev, nstart, tmp, newflags);
 		if (error)
 			return error;
@@ -602,6 +618,7 @@ static unsigned long count_mm_mlocked_page_nr(struct mm_struct *mm,
 /*
  * convert get_user_pages() return value to posix mlock() error
  */
+#ifndef CONFIG_AMLOGIC_PIN_LOCKED_FILE_V2
 static int __mlock_posix_error_return(long retval)
 {
 	if (retval == -EFAULT)
@@ -610,6 +627,7 @@ static int __mlock_posix_error_return(long retval)
 		retval = -EAGAIN;
 	return retval;
 }
+#endif
 
 static __must_check int do_mlock(unsigned long start, size_t len, vm_flags_t flags)
 {
@@ -652,9 +670,11 @@ static __must_check int do_mlock(unsigned long start, size_t len, vm_flags_t fla
 	if (error)
 		return error;
 
+#ifndef CONFIG_AMLOGIC_PIN_LOCKED_FILE_V2
 	error = __mm_populate(start, len, 0);
 	if (error)
 		return __mlock_posix_error_return(error);
+#endif
 	return 0;
 }
 

@@ -90,6 +90,10 @@
 
 #include "internal.h"
 
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
+
 static struct kmem_cache *anon_vma_cachep;
 static struct kmem_cache *anon_vma_chain_cachep;
 
@@ -855,7 +859,13 @@ static bool folio_referenced_one(struct folio *folio,
 		if (vma->vm_flags & VM_LOCKED) {
 			if (!folio_test_large(folio) || !pvmw.pte) {
 				/* Restore the mlock which got missed */
+			#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+				/* only keep refault pages */
+				if (aml_is_pin_locked_file(folio_page(folio, 0)))
+					mlock_vma_folio(folio, vma);
+			#else
 				mlock_vma_folio(folio, vma);
+			#endif
 				page_vma_mapped_walk_done(&pvmw);
 				pra->vm_flags |= VM_LOCKED;
 				return false; /* To break the loop */

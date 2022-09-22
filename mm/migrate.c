@@ -48,6 +48,9 @@
 #include <linux/amlogic/aml_cma.h>
 #include <linux/delay.h>
 #endif
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 #include <asm/tlbflush.h>
 
@@ -1453,6 +1456,10 @@ out_unlock_both:
 		put_anon_vma(anon_vma);
 	folio_unlock(src);
 	migrate_folio_done(src, reason);
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+	if (reason == MR_CONTIG_RANGE && rc == MIGRATEPAGE_SUCCESS)
+		aml_clear_pin_locked_file(folio_page(src, 0));
+#endif
 
 	return rc;
 out:

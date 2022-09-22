@@ -24,7 +24,6 @@
 
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
-
 #include "internal.h"
 
 struct follow_page_context {
