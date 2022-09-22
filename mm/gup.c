@@ -21,6 +21,9 @@
 
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 #include "internal.h"
 
@@ -624,6 +627,21 @@ retry:
 		 * when it attempts to reclaim the page.
 		 */
 		if (page->mapping && trylock_page(page)) {
+		#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+			struct address_space *mapping;
+
+			mapping = page_mapping(page);
+			if (mapping &&
+			    test_bit(AS_LOCK_MAPPING, &mapping->flags) &&
+			    sysctrl_shrink_unevictable) {
+				unlock_page(page);
+			} else {
+				/* same as #else */
+				lru_add_drain();
+				mlock_vma_page(page);
+				unlock_page(page);
+			}
+		#else
 			lru_add_drain();  /* push cached pages to LRU */
 			/*
 			 * Because we lock page here, and migration is
@@ -633,6 +651,7 @@ retry:
 			 */
 			mlock_vma_page(page);
 			unlock_page(page);
+		#endif
 		}
 	}
 out:

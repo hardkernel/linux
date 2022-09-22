@@ -54,6 +54,9 @@
 #include <linux/amlogic/aml_cma.h>
 #include <linux/delay.h>
 #endif
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 #include <asm/tlbflush.h>
 
@@ -1295,6 +1298,10 @@ out:
 		else
 			put_page(newpage);
 	}
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+	if (reason == MR_CONTIG_RANGE && rc == MIGRATEPAGE_SUCCESS)
+		aml_clear_pin_locked_file(page);
+#endif
 
 	return rc;
 }

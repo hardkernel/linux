@@ -77,6 +77,9 @@
 #ifdef CONFIG_AMLOGIC_CMA
 #include <linux/amlogic/aml_cma.h>
 #endif
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_vmscan_direct_reclaim_begin);
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_vmscan_direct_reclaim_end);
@@ -1674,6 +1677,13 @@ retry:
 			enum ttu_flags flags = TTU_BATCH_FLUSH;
 			bool was_swapbacked = PageSwapBacked(page);
 
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+			if (mapping &&
+			    test_bit(AS_LOCK_MAPPING, &mapping->flags) &&
+			    !aml_is_pin_locked_file(page) &&
+			    !PageMlocked(page))
+				flags |= TTU_IGNORE_MLOCK;
+#endif
 			if (unlikely(PageTransHuge(page)))
 				flags |= TTU_SPLIT_HUGE_PMD;
 

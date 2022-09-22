@@ -80,6 +80,9 @@
 #include <trace/events/tlb.h>
 
 #include <trace/hooks/mm.h>
+#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+#include <linux/amlogic/pin_file.h>
+#endif
 
 #include "internal.h"
 
@@ -1471,8 +1474,14 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			 * cleared).  But stop unmapping even in those cases.
 			 */
 			if (!PageTransCompound(page) || (PageHead(page) &&
-			     !PageDoubleMap(page) && !PageAnon(page)))
+			    !PageDoubleMap(page) && !PageAnon(page)))
+			#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+				/* only keep refault pages */
+				if (aml_is_pin_locked_file(page))
+					mlock_vma_page(page);
+			#else
 				mlock_vma_page(page);
+			#endif
 			page_vma_mapped_walk_done(&pvmw);
 			ret = false;
 			break;
@@ -2036,7 +2045,13 @@ static bool page_mlock_one(struct page *page, struct vm_area_struct *vma,
 			 * nor on an Anon THP (which may still be PTE-mapped
 			 * after DoubleMap was cleared).
 			 */
+		#ifdef CONFIG_AMLOGIC_PIN_LOCKED_FILE
+			/* only keep refault pages */
+			if (aml_is_pin_locked_file(page))
+				mlock_vma_page(page);
+		#else
 			mlock_vma_page(page);
+		#endif
 			/*
 			 * No need to scan further once the page is marked
 			 * as mlocked.
