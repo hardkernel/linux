@@ -33,6 +33,10 @@
 #include <asm/vector.h>
 #include <asm/irq_stack.h>
 
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+#include <linux/amlogic/user_fault.h>
+#endif
+
 int show_unhandled_signals = 1;
 
 static DEFINE_RAW_SPINLOCK(die_lock);
@@ -122,6 +126,9 @@ void do_trap(struct pt_regs *regs, int signo, int code, unsigned long addr)
 		print_vma_addr(KERN_CONT " in ", instruction_pointer(regs));
 		pr_cont("\n");
 		__show_regs(regs);
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+		show_all_pfn(current, regs);
+#endif
 		dump_instr(KERN_INFO, regs);
 	}
 

@@ -38,6 +38,10 @@
 
 #include "../kernel/head.h"
 
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+#include <linux/amlogic/mem_debug.h>
+#endif
+
 u64 new_vmalloc[NR_CPUS / sizeof(u64) + 1];
 
 struct kernel_mapping kernel_map __ro_after_init;
@@ -193,6 +197,10 @@ void __init mem_init(void)
 
 	swiotlb_init(swiotlb, SWIOTLB_VERBOSE);
 	memblock_free_all();
+
+#ifdef CONFIG_AMLOGIC_MEM_DEBUG
+	dump_mem_layout_boot_phase();
+#endif
 
 	print_vm_layout();
 }
