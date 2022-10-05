@@ -17,6 +17,9 @@
 
 #ifndef __AML_LCD_TCON_H__
 #define __AML_LCD_TCON_H__
+#include <linux/dma-contiguous.h>
+#include <linux/dma-mapping.h>
+#include <linux/mm.h>
 #include <linux/amlogic/media/vout/lcd/lcd_vout.h>
 
 #define REG_LCD_TCON_MAX    0xffff
@@ -37,10 +40,17 @@ struct lcd_tcon_data_s {
 	unsigned int ctrl_timing_offset;
 	unsigned int ctrl_timing_cnt;
 
-	unsigned int axi_offset_addr;
+	unsigned int axi_mem_size;
 	unsigned char *reg_table;
 
 	int (*tcon_enable)(struct lcd_config_s *pconf);
+};
+
+struct tcon_rmem_s {
+	unsigned char flag;
+	void *mem_vaddr;
+	phys_addr_t mem_paddr;
+	unsigned int mem_size;
 };
 
 /* **********************************
@@ -54,8 +64,8 @@ struct lcd_tcon_data_s {
 
 #define BIT_TOP_EN_TL1                   4
 
-#define REG_CORE_OD_TL1                  0x5c
-#define BIT_OD_EN_TL1                    6
+#define REG_CORE_OD_TL1                  0x247
+#define BIT_OD_EN_TL1                    0
 #define REG_CORE_CTRL_TIMING_BASE_TL1    0x1b
 #define CTRL_TIMING_OFFSET_TL1           12
 #define CTRL_TIMING_CNT_TL1              0

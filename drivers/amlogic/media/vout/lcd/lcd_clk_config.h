@@ -25,9 +25,11 @@
  * clk config
  * **********************************
  */
+#define PLL_RETRY_MAX		20
 #define LCD_CLK_CTRL_EN      0
 #define LCD_CLK_CTRL_RST     1
-#define LCD_CLK_CTRL_FRAC    2
+#define LCD_CLK_CTRL_M	     2
+#define LCD_CLK_CTRL_FRAC    3
 #define LCD_CLK_CTRL_END     0xffff
 
 #define LCD_CLK_REG_END      0xffff
@@ -57,18 +59,26 @@ struct lcd_clk_data_s {
 	unsigned int div_in_fmax;
 	unsigned int div_out_fmax;
 	unsigned int xd_out_fmax;
-	unsigned int ss_level_max;
 
 	unsigned char clk_path_valid;
 	unsigned char vclk_sel;
 	struct lcd_clk_ctrl_s *pll_ctrl_table;
-	char **pll_ss_table;
+
+	unsigned int ss_level_max;
+	unsigned int ss_freq_max;
+	unsigned int ss_mode_max;
+	char **ss_level_table;
+	char **ss_freq_table;
+	char **ss_mode_table;
 
 	void (*clk_generate_parameter)(struct lcd_config_s *pconf);
 	void (*pll_frac_generate)(struct lcd_config_s *pconf);
-	void (*set_spread_spectrum)(unsigned int ss_level);
+	void (*set_ss_level)(unsigned int level);
+	void (*set_ss_advance)(unsigned int freq, unsigned int mode);
 	void (*clk_set)(struct lcd_config_s *pconf);
 	void (*clk_gate_switch)(struct aml_lcd_drv_s *lcd_drv, int status);
+	void (*clk_gate_optional_switch)(struct aml_lcd_drv_s *lcd_drv,
+			int status);
 	void (*clktree_probe)(void);
 	void (*clktree_remove)(void);
 	void (*clk_config_init_print)(void);
@@ -89,11 +99,13 @@ struct lcd_clk_config_s { /* unit: kHz */
 	unsigned int pll_od1_sel;
 	unsigned int pll_od2_sel;
 	unsigned int pll_od3_sel;
-	unsigned int pll_pi_div_sel; /* for tcon */
+	unsigned int pll_tcon_div_sel;
 	unsigned int pll_level;
 	unsigned int pll_frac;
 	unsigned int pll_fout;
 	unsigned int ss_level;
+	unsigned int ss_freq;
+	unsigned int ss_mode;
 	unsigned int div_sel;
 	unsigned int xd;
 	unsigned int div_sel_max;
@@ -105,6 +117,7 @@ struct lcd_clk_config_s { /* unit: kHz */
 
 struct lcd_clktree_s {
 	unsigned char clk_gate_state;
+	unsigned char clk_gate_optional_state;
 
 	struct clk *encl_top_gate;
 	struct clk *encl_int_gate;
@@ -127,8 +140,8 @@ extern struct lcd_clk_config_s *get_lcd_clk_config(void);
 extern int lcd_clk_config_print(char *buf, int offset);
 extern int lcd_encl_clk_msr(void);
 extern void lcd_pll_reset(void);
-extern char *lcd_get_spread_spectrum(void);
-extern void lcd_set_spread_spectrum(unsigned int ss_level);
+extern int lcd_get_ss(char *buf);
+extern int lcd_set_ss(unsigned int level, unsigned int freq, unsigned int mode);
 extern void lcd_clk_update(struct lcd_config_s *pconf);
 extern void lcd_clk_set(struct lcd_config_s *pconf);
 extern void lcd_clk_disable(void);

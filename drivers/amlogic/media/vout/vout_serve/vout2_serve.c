@@ -346,22 +346,16 @@ static void set_vout2_axis(char *para)
 	int parsed[MAX_NUMBER_PARA] = {};
 
 	/* parse window para */
-	if (parse_para(para, 8, parsed) >= 4) {
-		pt = &disp_rect[0].x;
-		memcpy(pt, &parsed[0], sizeof(struct disp_rect_s));
-		pt = &disp_rect[1].x;
-		memcpy(pt, &parsed[4], sizeof(struct disp_rect_s));
-	}
+	if (parse_para(para, 8, parsed) >= 4)
+		memcpy(pt, parsed, sizeof(struct disp_rect_s) * OSD_COUNT);
 	/* if ((count >= 4) && (count < 8))
 	 *	disp_rect[1] = disp_rect[0];
 	 */
 
 	VOUTPR("vout2: osd0=> x:%d,y:%d,w:%d,h:%d\n"
 		"osd1=> x:%d,y:%d,w:%d,h:%d\n",
-			disp_rect[0].x, disp_rect[0].y,
-			disp_rect[0].w, disp_rect[0].h,
-			disp_rect[1].x, disp_rect[1].y,
-			disp_rect[1].w, disp_rect[1].h);
+			*pt, *(pt + 1), *(pt + 2), *(pt + 3),
+			*(pt + 4), *(pt + 5), *(pt + 6), *(pt + 7));
 	vout2_notifier_call_chain(VOUT_EVENT_OSD_DISP_AXIS, &disp_rect[0]);
 }
 

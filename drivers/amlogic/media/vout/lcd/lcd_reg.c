@@ -195,7 +195,7 @@ static inline void __iomem *check_lcd_tcon_reg(unsigned int _reg)
 
 	reg_offset = LCD_REG_OFFSET(_reg);
 	if (reg_offset >= lcd_reg_map[reg_bus].size) {
-		LCDERR("invalid dsi_phy reg offset: 0x%04x\n", _reg);
+		LCDERR("invalid tcon reg offset: 0x%04x\n", _reg);
 		return NULL;
 	}
 	p = lcd_reg_map[reg_bus].p + reg_offset;
@@ -214,7 +214,7 @@ static inline void __iomem *check_lcd_tcon_reg_byte(unsigned int _reg)
 
 	reg_offset = LCD_REG_OFFSET_BYTE(_reg);
 	if (reg_offset >= lcd_reg_map[reg_bus].size) {
-		LCDERR("invalid dsi_phy reg offset: 0x%04x\n", _reg);
+		LCDERR("invalid tcon reg offset: 0x%04x\n", _reg);
 		return NULL;
 	}
 	p = lcd_reg_map[reg_bus].p + reg_offset;

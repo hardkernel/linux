@@ -924,8 +924,6 @@ static int refresh_tvout_mode(void)
 		 * When systemcontrol bootup, it will set the correct mode and
 		 * colorspace according to current EDID from kernel.
 		 */
-		VOUTPR("hdmichecksum [%s], kernel hdmichecksum [%s]\n",
-				hdmichecksum, info->hdmichecksum);
 		if ((memcmp(hdmichecksum, info->hdmichecksum, 10)) &&
 			(memcmp(emptychecksum, info->hdmichecksum, 10)) &&
 			(memcmp(invalidchecksum, hdmichecksum, 10))) {

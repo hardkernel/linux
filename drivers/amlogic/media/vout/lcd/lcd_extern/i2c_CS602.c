@@ -79,16 +79,23 @@ static int lcd_extern_init_check(int len)
 
 	if (i2c_dev->client == NULL) {
 		EXTERR("%s: invalid i2c client\n", __func__);
+		kfree(chk_table);
+		chk_table = NULL;
 		return -1;
 	}
 	ret = lcd_extern_i2c_read(i2c_dev->client, chk_table, len);
 	if (ret == 0) {
 		for (i = 0; i < len; i++) {
-			if (chk_table[i] != ext_config->table_init_on[i+3])
+			if (chk_table[i] != ext_config->table_init_on[i+3]) {
+				kfree(chk_table);
+				chk_table = NULL;
 				return -1;
+			}
 		}
 	}
 
+	kfree(chk_table);
+	chk_table = NULL;
 	return 0;
 }
 

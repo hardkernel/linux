@@ -58,6 +58,23 @@
 #define PERIPHS_PIN_MUX_11                         0x37
 #define PERIPHS_PIN_MUX_12                         0x38
 
+#define PERIPHS_PIN_MUX_0_TL1                      0x0b0
+#define PERIPHS_PIN_MUX_1_TL1                      0x0b1
+#define PERIPHS_PIN_MUX_2_TL1                      0x0b2
+#define PERIPHS_PIN_MUX_3_TL1                      0x0b3
+#define PERIPHS_PIN_MUX_4_TL1                      0x0b4
+#define PERIPHS_PIN_MUX_5_TL1                      0x0b5
+#define PERIPHS_PIN_MUX_6_TL1                      0x0b6
+#define PERIPHS_PIN_MUX_7_TL1                      0x0b7
+#define PERIPHS_PIN_MUX_8_TL1                      0x0b8
+#define PERIPHS_PIN_MUX_9_TL1                      0x0b9
+#define PERIPHS_PIN_MUX_A_TL1                      0x0ba
+#define PERIPHS_PIN_MUX_B_TL1                      0x0bb
+#define PERIPHS_PIN_MUX_C_TL1                      0x0bc
+#define PERIPHS_PIN_MUX_D_TL1                      0x0bd
+#define PERIPHS_PIN_MUX_E_TL1                      0x0be
+#define PERIPHS_PIN_MUX_F_TL1                      0x0bf
+
 
 /* HIU:  HHI_CBUS_BASE = 0x10 */
 #define HHI_GCLK_MPEG0                             0x50
@@ -139,14 +156,13 @@
 
 #define HHI_DSI_LVDS_EDP_CNTL0                     0xd1
 #define HHI_DSI_LVDS_EDP_CNTL1                     0xd2
-#define HHI_DIF_CSI_PHY_CNTL0                      0xd8
 #define HHI_DIF_CSI_PHY_CNTL1                      0xd9
 #define HHI_DIF_CSI_PHY_CNTL2                      0xda
 #define HHI_DIF_CSI_PHY_CNTL3                      0xdb
-#define HHI_DIF_CSI_PHY_CNTL4                      0xdc
-#define HHI_DIF_CSI_PHY_CNTL5                      0xdd
 #define HHI_LVDS_TX_PHY_CNTL0                      0xde
 #define HHI_LVDS_TX_PHY_CNTL1                      0xdf
+#define HHI_LVDS_TX_PHY_CNTL0_TL1                  0x9a
+#define HHI_LVDS_TX_PHY_CNTL1_TL1                  0x9b
 #define HHI_VID2_PLL_CNTL                          0xe0
 #define HHI_VID2_PLL_CNTL2                         0xe1
 #define HHI_VID2_PLL_CNTL3                         0xe2
@@ -154,6 +170,19 @@
 #define HHI_VID2_PLL_CNTL5                         0xe4
 #define HHI_VID2_PLL_CNTL6                         0xe5
 #define HHI_VID_LOCK_CLK_CNTL                      0xf2
+
+#define HHI_DIF_CSI_PHY_CNTL10                     0x8e
+#define HHI_DIF_CSI_PHY_CNTL11                     0x8f
+#define HHI_DIF_CSI_PHY_CNTL12                     0x90
+#define HHI_DIF_CSI_PHY_CNTL13                     0x91
+#define HHI_DIF_CSI_PHY_CNTL14                     0x92
+#define HHI_DIF_CSI_PHY_CNTL15                     0x93
+#define HHI_DIF_CSI_PHY_CNTL16                     0xde
+#define HHI_DIF_CSI_PHY_CNTL4                      0xe9
+#define HHI_DIF_CSI_PHY_CNTL6                      0xea
+#define HHI_DIF_CSI_PHY_CNTL7                      0xeb
+#define HHI_DIF_CSI_PHY_CNTL8                      0xec
+#define HHI_DIF_CSI_PHY_CNTL9                      0xed
 
 /* AXG use PLL   0xff63c000 */
 #define HHI_GP0_PLL_CNTL_AXG                       0x10
@@ -175,14 +204,14 @@
 #define HHI_MIPIDSI_PHY_CLK_CNTL                   0x95
 
 
-#define	HHI_MIPI_CNTL0                             0x00
-#define	HHI_MIPI_CNTL1                             0x01
-#define	HHI_MIPI_CNTL2                             0x02
+#define HHI_MIPI_CNTL0                             0x00
+#define HHI_MIPI_CNTL1                             0x01
+#define HHI_MIPI_CNTL2                             0x02
 
 #define HHI_DIF_TCON_CNTL0                         0x3c
 #define HHI_DIF_TCON_CNTL1                         0x3d
 #define HHI_DIF_TCON_CNTL2                         0x3e
-#define HHI_TCON_CLK_CNTL                          0xf0
+#define HHI_TCON_CLK_CNTL                          0x9c
 
 /*  Global control:  RESET_CBUS_BASE = 0x11 */
 #define VERSION_CTRL                               0x1100
@@ -711,6 +740,9 @@
  *   G5B10  Other
  */
 #define LCD_MCU_DATA_1                             0x14df
+#define LVDS_CH_SWAP0                              0x14e1
+#define LVDS_CH_SWAP1                              0x14e2
+#define LVDS_CH_SWAP2                              0x14e3
 /* LVDS */
 #define LVDS_GEN_CNTL                              0x14e0
 #define LVDS_PHY_CNTL0                             0x14e1
@@ -822,7 +854,9 @@
 #define VBO_TMCHK_VDE_STATE_H                      0x14f7
 #define VBO_INTR_STATE                             0x14f8
 #define VBO_INFILTER_CTRL                          0x14f9
+#define VBO_INFILTER_TICK_PERIOD_L                 0x14f9
 #define VBO_INSGN_CTRL                             0x14fa
+#define VBO_INFILTER_TICK_PERIOD_H                 0x1477
 
 /* ********************************
  * Video Interface:  VENC_VCBUS_BASE = 0x1b
@@ -909,8 +943,13 @@
 #define ENCL_DACSEL_0                              0x1cc9
 #define ENCL_DACSEL_1                              0x1cca
 
+#define ENCL_VIDEO_H_PRE_DE_END                    0x1ccf
+#define ENCL_VIDEO_H_PRE_DE_BEGIN                  0x1cd0
+#define ENCL_VIDEO_V_PRE_DE_ELINE                  0x1cd1
+#define ENCL_VIDEO_V_PRE_DE_BLINE                  0x1cd2
 #define ENCL_INBUF_CNTL0                           0x1cd3
 #define ENCL_INBUF_CNTL1                           0x1cd4
+#define ENCL_INBUF_CNT                             0x1cd5
 
 /* ********************************
  * TCON TOP:  TCON_TOP_BASE = 0x2000
@@ -920,6 +959,7 @@
 
 #define TCON_CTRL_TIMING_BASE                      0x01b0
 
+#define TCON_TOP_BASE                              0x2000
 #define TCON_TOP_CTRL                              0x2000
 #define TCON_RGB_IN_MUX                            0x2001
 #define TCON_OUT_CH_SEL0                           0x2002
@@ -941,8 +981,13 @@
 #define TCON_GPO_CTRL0                             0x2015
 #define TCON_GPO_CTRL1                             0x2016
 #define TCON_GPO_CTRL2                             0x2017
+#define TCON_INTR_WR                               0x2020
+#define TCON_INTR_CLR                              0x2021
 #define TCON_INTR_MASKN                            0x2022
-#define TCON_INTR                                  0x2023 /* read only */
+#define TCON_INTR_RO                               0x2023 /* read only */
+
+#define P2P_CH_SWAP0                               0x4200
+#define P2P_CH_SWAP1                               0x4201
 
 /* ********************************
  * Video post-processing:  VPP_VCBUS_BASE = 0x1d

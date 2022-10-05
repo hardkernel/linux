@@ -105,14 +105,10 @@ static int lcd_extern_reg_read(unsigned char reg, unsigned char *buf)
 	return ret;
 }
 
-static int lcd_extern_reg_write(unsigned char reg, unsigned char value)
+static int lcd_extern_reg_write(unsigned char *buf, unsigned int len)
 {
 	struct aml_lcd_extern_i2c_dev_s *i2c_dev;
-	unsigned char tmp[2];
 	int ret = 0;
-
-	tmp[0] = reg;
-	tmp[1] = value;
 
 	if (ext_config->addr_sel)
 		i2c_dev = i2c1_dev;
@@ -122,7 +118,7 @@ static int lcd_extern_reg_write(unsigned char reg, unsigned char value)
 		EXTERR("invalid i2c device\n");
 		return -1;
 	}
-	lcd_extern_i2c_write(i2c_dev->client, tmp, 2);
+	lcd_extern_i2c_write(i2c_dev->client, buf, 2);
 
 	return ret;
 }

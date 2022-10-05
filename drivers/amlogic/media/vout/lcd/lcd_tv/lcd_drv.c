@@ -73,187 +73,24 @@ static int lcd_type_supported(struct lcd_config_s *pconf)
 	return ret;
 }
 
-static void lcd_vbyone_phy_set(struct lcd_config_s *pconf, int status)
-{
-	unsigned int vswing, preem, ext_pullup;
-	unsigned int data32;
-	unsigned int rinner_table[] = {0xa, 0xa, 0x6, 0x4};
-
-	if (lcd_debug_print_flag)
-		LCDPR("%s: %d\n", __func__, status);
-
-	if (status) {
-		ext_pullup = (pconf->lcd_control.vbyone_config->phy_vswing >> 4)
-				& 0x3;
-		vswing = pconf->lcd_control.vbyone_config->phy_vswing & 0xf;
-		preem = pconf->lcd_control.vbyone_config->phy_preem;
-		if (vswing > 7) {
-			LCDERR("%s: wrong vswing_level=%d, use default\n",
-				__func__, vswing);
-			vswing = VX1_PHY_VSWING_DFT;
-		}
-		if (preem > 7) {
-			LCDERR("%s: wrong preemphasis_level=%d, use default\n",
-				__func__, preem);
-			preem = VX1_PHY_PREEM_DFT;
-		}
-		if (ext_pullup)
-			data32 = VX1_PHY_CNTL1_G9TV_PULLUP | (vswing << 3);
-		else
-			data32 = VX1_PHY_CNTL1_G9TV | (vswing << 3);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, data32);
-		data32 = VX1_PHY_CNTL2_G9TV | (preem << 20) |
-			(rinner_table[ext_pullup] << 8);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, data32);
-		data32 = VX1_PHY_CNTL3_G9TV;
-		/*lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, 0x00000a7c);*/
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, data32);
-	} else {
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, 0x0);
-	}
-}
-
-static void lcd_lvds_phy_set(struct lcd_config_s *pconf, int status)
-{
-	unsigned int vswing, preem, clk_vswing, clk_preem, channel_on;
-	unsigned int data32;
-
-	if (lcd_debug_print_flag)
-		LCDPR("%s: %d\n", __func__, status);
-
-	if (status) {
-		vswing = pconf->lcd_control.lvds_config->phy_vswing;
-		preem = pconf->lcd_control.lvds_config->phy_preem;
-		clk_vswing = pconf->lcd_control.lvds_config->phy_clk_vswing;
-		clk_preem = pconf->lcd_control.lvds_config->phy_clk_preem;
-		if (vswing > 7) {
-			LCDERR("%s: wrong vswing=%d, use default\n",
-				__func__, vswing);
-			vswing = LVDS_PHY_VSWING_DFT;
-		}
-		channel_on = lcd_lvds_channel_on_value(pconf);
-
-		if (preem > 7) {
-			LCDERR("%s: wrong preem=%d, use default\n",
-				__func__, preem);
-			preem = LVDS_PHY_PREEM_DFT;
-		}
-		if (clk_vswing > 3) {
-			LCDERR("%s: wrong clk_vswing=%d, use default\n",
-				__func__, clk_vswing);
-			clk_vswing = LVDS_PHY_CLK_VSWING_DFT;
-		}
-		if (clk_preem > 7) {
-			LCDERR("%s: wrong clk_preem=%d, use default\n",
-				__func__, clk_preem);
-			clk_preem = LVDS_PHY_CLK_PREEM_DFT;
-		}
-
-		data32 = LVDS_PHY_CNTL1_G9TV |
-			(vswing << 26) | (preem << 0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, data32);
-		data32 = LVDS_PHY_CNTL2_G9TV;
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, data32);
-		data32 = LVDS_PHY_CNTL3_G9TV |
-			(channel_on << 16) |
-			(clk_vswing << 8) | (clk_preem << 5);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, data32);
-	} else {
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, 0x0);
-	}
-}
-
-static void lcd_mlvds_phy_set(struct lcd_config_s *pconf, int status)
-{
-	unsigned int vswing, preem;
-	unsigned int data32;
-
-	if (lcd_debug_print_flag)
-		LCDPR("%s: %d\n", __func__, status);
-
-	if (status) {
-		vswing = pconf->lcd_control.mlvds_config->phy_vswing;
-		preem = pconf->lcd_control.mlvds_config->phy_preem;
-		if (vswing > 7) {
-			LCDERR("%s: wrong vswing_level=%d, use default\n",
-				__func__, vswing);
-			vswing = LVDS_PHY_VSWING_DFT;
-		}
-		if (preem > 3) {
-			LCDERR("%s: wrong preemphasis_level=%d, use default\n",
-				__func__, preem);
-			preem = LVDS_PHY_PREEM_DFT;
-		}
-
-		data32 = MLVDS_PHY_CNTL1_TL1 |
-			(vswing << 3) | (vswing << 0) | (preem << 23);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, data32);
-		data32 = MLVDS_PHY_CNTL2_TL1 |
-			(preem << 14) | (preem << 12) |
-			(preem << 26) | (preem << 24);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, data32);
-		data32 = MLVDS_PHY_CNTL3_TL1 |
-			(preem << 6) | (preem << 4) |
-			(preem << 2) | (preem << 0) | (preem << 30);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, data32);
-	} else {
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, 0x0);
-	}
-}
-
-static void lcd_p2p_phy_set(struct lcd_config_s *pconf, int status)
-{
-	unsigned int vswing, preem;
-	unsigned int data32;
-
-	if (lcd_debug_print_flag)
-		LCDPR("%s: %d\n", __func__, status);
-
-	if (status) {
-		vswing = pconf->lcd_control.p2p_config->phy_vswing;
-		preem = pconf->lcd_control.p2p_config->phy_preem;
-		if (vswing > 7) {
-			LCDERR("%s: wrong vswing_level=%d, use default\n",
-				__func__, vswing);
-			vswing = LVDS_PHY_VSWING_DFT;
-		}
-		if (preem > 3) {
-			LCDERR("%s: wrong preemphasis_level=%d, use default\n",
-				__func__, preem);
-			preem = LVDS_PHY_PREEM_DFT;
-		}
-
-		data32 = MLVDS_PHY_CNTL1_TL1 |
-			(vswing << 3) | (vswing << 0) | (preem << 23);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, data32);
-		data32 = MLVDS_PHY_CNTL2_TL1 |
-			(preem << 14) | (preem << 12) |
-			(preem << 26) | (preem << 24);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, data32);
-		data32 = MLVDS_PHY_CNTL3_TL1 |
-			(preem << 6) | (preem << 4) |
-			(preem << 2) | (preem << 0) | (preem << 30);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, data32);
-	} else {
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL1, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL2, 0x0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL3, 0x0);
-	}
-}
-
 static void lcd_encl_tcon_set(struct lcd_config_s *pconf)
 {
+	unsigned int lcd_bits;
+
 	lcd_vcbus_write(L_RGB_BASE_ADDR, 0);
 	lcd_vcbus_write(L_RGB_COEFF_ADDR, 0x400);
 	aml_lcd_notifier_call_chain(LCD_EVENT_GAMMA_UPDATE, NULL);
 
-	switch (pconf->lcd_basic.lcd_bits) {
+	switch (pconf->lcd_basic.lcd_type) {
+	case LCD_MLVDS:
+	case LCD_P2P:
+		lcd_bits = 10;
+		break;
+	default:
+		lcd_bits = pconf->lcd_basic.lcd_bits;
+		break;
+	}
+	switch (lcd_bits) {
 	case 8:
 		lcd_vcbus_write(L_DITH_CNTL_ADDR,  0x400);
 		break;
@@ -318,6 +155,20 @@ static void lcd_venc_set(struct lcd_config_s *pconf)
 	lcd_vcbus_write(ENCL_VIDEO_HAVON_END,   h_active - 1 + video_on_pixel);
 	lcd_vcbus_write(ENCL_VIDEO_VAVON_BLINE, video_on_line);
 	lcd_vcbus_write(ENCL_VIDEO_VAVON_ELINE, v_active - 1  + video_on_line);
+	switch (pconf->lcd_basic.lcd_type) {
+	case LCD_P2P:
+		lcd_vcbus_write(ENCL_VIDEO_V_PRE_DE_BLINE,
+			video_on_line - 1 - 4);
+		lcd_vcbus_write(ENCL_VIDEO_V_PRE_DE_ELINE,
+			video_on_line - 1);
+		lcd_vcbus_write(ENCL_VIDEO_H_PRE_DE_BEGIN,
+			video_on_pixel + PRE_DE_DELAY);
+		lcd_vcbus_write(ENCL_VIDEO_H_PRE_DE_END,
+			h_active - 1 + video_on_pixel + PRE_DE_DELAY);
+		break;
+	default:
+		break;
+	}
 
 	lcd_vcbus_write(ENCL_VIDEO_HSO_BEGIN,   pconf->lcd_timing.hs_hs_addr);
 	lcd_vcbus_write(ENCL_VIDEO_HSO_END,     pconf->lcd_timing.hs_he_addr);
@@ -358,7 +209,21 @@ static void lcd_venc_set(struct lcd_config_s *pconf)
 
 static void lcd_lvds_clk_util_set(struct lcd_config_s *pconf)
 {
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	unsigned int phy_div;
+	unsigned int reg_cntl0, reg_cntl1;
+
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
+		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
+		break;
+	default:
+		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0;
+		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1;
+		break;
+	}
 
 	if (pconf->lcd_control.lvds_config->dual_port)
 		phy_div = 2;
@@ -366,19 +231,28 @@ static void lcd_lvds_clk_util_set(struct lcd_config_s *pconf)
 		phy_div = 1;
 
 	/* set fifo_clk_sel: div 7 */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL0, (1 << 6));
+	lcd_hiu_write(reg_cntl0, (1 << 6));
 	/* set cntl_ser_en:  8-channel to 1 */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0, 0xfff, 16, 12);
+	lcd_hiu_setb(reg_cntl0, 0xfff, 16, 12);
+	switch (lcd_drv->data->chip_type) { /* pn swap */
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		lcd_hiu_setb(reg_cntl0, 1, 2, 1);
+		break;
+	default:
+		break;
+	}
 
 	/* decoupling fifo enable, gated clock enable */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL1,
+	lcd_hiu_write(reg_cntl1,
 		(1 << 30) | ((phy_div - 1) << 25) | (1 << 24));
 	/* decoupling fifo write enable after fifo enable */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1, 1, 31, 1);
+	lcd_hiu_setb(reg_cntl1, 1, 31, 1);
 }
 
 static void lcd_lvds_control_set(struct lcd_config_s *pconf)
 {
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	unsigned int bit_num = 1;
 	unsigned int pn_swap, port_swap, lane_reverse;
 	unsigned int dual_port, fifo_mode;
@@ -429,10 +303,18 @@ static void lcd_lvds_control_set(struct lcd_config_s *pconf)
 		(1 << 12) |	/* g_select  //0:R, 1:G, 2:B, 3:0 */
 		(2 << 14));	/* b_select  //0:R, 1:G, 2:B, 3:0 */
 
-	lcd_vcbus_setb(LCD_PORT_SWAP, port_swap, 12, 1);
-
-	if (lane_reverse)
-		lcd_vcbus_setb(LVDS_GEN_CNTL, 0x03, 13, 2);
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		lcd_vcbus_write(P2P_CH_SWAP0, 0x76543210);
+		lcd_vcbus_write(P2P_CH_SWAP1, 0xba98);
+		break;
+	default:
+		lcd_vcbus_setb(LCD_PORT_SWAP, port_swap, 12, 1);
+		if (lane_reverse)
+			lcd_vcbus_setb(LVDS_GEN_CNTL, 0x03, 13, 2);
+		break;
+	}
 
 	lcd_vcbus_write(LVDS_GEN_CNTL,
 		(lcd_vcbus_read(LVDS_GEN_CNTL) | (1 << 4) | (fifo_mode << 0)));
@@ -445,13 +327,16 @@ static void lcd_lvds_disable(void)
 	lcd_vcbus_setb(LVDS_GEN_CNTL, 0, 3, 1); /* disable lvds fifo */
 }
 
-static void lcd_mlvds_clk_util_set(struct lcd_config_s *pconf)
+static void lcd_mlvds_control_set(struct lcd_config_s *pconf)
 {
-	unsigned int lcd_bits, div_sel;
+	unsigned int div_sel;
+	unsigned int channel_sel0, channel_sel1;
 
-	lcd_bits = pconf->lcd_basic.lcd_bits;
+	if (lcd_debug_print_flag)
+		LCDPR("%s\n", __func__);
 
-	switch (lcd_bits) {
+	/* phy_div: 0=div6, 1=div 7, 2=div8, 3=div10 */
+	switch (pconf->lcd_basic.lcd_bits) {
 	case 6:
 		div_sel = 0;
 		break;
@@ -463,60 +348,22 @@ static void lcd_mlvds_clk_util_set(struct lcd_config_s *pconf)
 		break;
 	}
 
-	/* set fifo_clk_sel */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL0, (div_sel << 6));
-	/* set cntl_ser_en:  8-channel to 1 */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0, 0xfff, 16, 12);
+	/* fifo_clk_sel[7:6]: 0=div6, 1=div 7, 2=div8, 3=div10 */
+	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL0_TL1, (div_sel << 6));
+	/* serializer_en[27:16] */
+	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0_TL1, 0xfff, 16, 12);
+	/* pn swap[2] */
+	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0_TL1, 1, 2, 1);
 
-	/* decoupling fifo enable, gated clock enable */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL1,
-		(1 << 30) | (0 << 25) | (1 << 24));
-	/* decoupling fifo write enable after fifo enable */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1, 1, 31, 1);
-}
+	/* fifo enable[30], phy_clock gating[24] */
+	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL1_TL1, (1 << 30) | (1 << 24));
+	/* fifo write enable[31] */
+	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1_TL1, 1, 31, 1);
 
-static void lcd_mlvds_control_set(struct lcd_config_s *pconf)
-{
-	unsigned int bit_num = 1;
-
-	if (lcd_debug_print_flag)
-		LCDPR("%s\n", __func__);
-
-	lcd_mlvds_clk_util_set(pconf);
-
-	switch (pconf->lcd_basic.lcd_bits) {
-	case 10:
-		bit_num = 0;
-		break;
-	case 8:
-		bit_num = 1;
-		break;
-	case 6:
-		bit_num = 2;
-		break;
-	case 4:
-		bit_num = 3;
-		break;
-	default:
-		bit_num = 1;
-		break;
-	}
-
-	lcd_vcbus_write(LVDS_PACK_CNTL_ADDR,
-			(1 << 0) | // repack //[1:0]
-			(0 << 3) |	 // reserve
-			(0 << 4) |	 // lsb first
-			(0 << 5) |	 // pn swap
-			(1 << 6) |	 // dual port
-			(0 << 7) |	 // use tcon control
-			(bit_num << 8) | // 0:10bits, 1:8bits, 2:6bits, 3:4bits.
-			(0 << 10) |	 //r_select  //0:R, 1:G, 2:B, 3:0
-			(1 << 12) |	 //g_select  //0:R, 1:G, 2:B, 3:0
-			(2 << 14));	 //b_select  //0:R, 1:G, 2:B, 3:0;
-
-	lcd_vcbus_write(LVDS_GEN_CNTL,
-		(lcd_vcbus_read(LVDS_GEN_CNTL) | (1 << 4) | (0x3 << 0)));
-	lcd_vcbus_setb(LVDS_GEN_CNTL, 1, 3, 1);
+	channel_sel0 = pconf->lcd_control.mlvds_config->channel_sel0;
+	channel_sel1 = pconf->lcd_control.mlvds_config->channel_sel1;
+	lcd_vcbus_write(P2P_CH_SWAP0, channel_sel0);
+	lcd_vcbus_write(P2P_CH_SWAP1, channel_sel1);
 
 	lcd_tcon_enable(pconf);
 }
@@ -524,8 +371,6 @@ static void lcd_mlvds_control_set(struct lcd_config_s *pconf)
 static void lcd_mlvds_disable(void)
 {
 	lcd_tcon_disable();
-
-	lcd_vcbus_setb(LVDS_GEN_CNTL, 0, 3, 1); /* disable lvds fifo */
 }
 
 #if 0
@@ -554,6 +399,20 @@ static void lcd_vbyone_clk_util_set(struct lcd_config_s *pconf)
 {
 	unsigned int lcd_bits;
 	unsigned int div_sel, phy_div;
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	unsigned int reg_cntl0, reg_cntl1;
+
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
+		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
+		break;
+	default:
+		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0;
+		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1;
+		break;
+	}
 
 	phy_div = pconf->lcd_control.vbyone_config->phy_div;
 	lcd_bits = pconf->lcd_basic.lcd_bits;
@@ -573,15 +432,23 @@ static void lcd_vbyone_clk_util_set(struct lcd_config_s *pconf)
 		break;
 	}
 	/* set fifo_clk_sel */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL0, (div_sel << 6));
+	lcd_hiu_write(reg_cntl0, (div_sel << 6));
 	/* set cntl_ser_en:  8-channel to 1 */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0, 0xfff, 16, 12);
+	lcd_hiu_setb(reg_cntl0, 0xfff, 16, 12);
+	switch (lcd_drv->data->chip_type) { /* pn swap */
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		lcd_hiu_setb(reg_cntl0, 1, 2, 1);
+		break;
+	default:
+		break;
+	}
 
 	/* decoupling fifo enable, gated clock enable */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL1,
+	lcd_hiu_write(reg_cntl1,
 		(1 << 30) | ((phy_div - 1) << 25) | (1 << 24));
 	/* decoupling fifo write enable after fifo enable */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1, 1, 31, 1);
+	lcd_hiu_setb(reg_cntl1, 1, 31, 1);
 }
 
 static int lcd_vbyone_lanes_set(int lane_num, int byte_mode, int region_num,
@@ -651,6 +518,71 @@ static int lcd_vbyone_lanes_set(int lane_num, int byte_mode, int region_num,
 	/* lcd_vcbus_setb(VBO_CTRL_L,enable,0,1); */
 
 	return 0;
+}
+
+static void lcd_vbyone_hw_filter(int flag)
+{
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct vbyone_config_s *vx1_conf;
+	unsigned int temp, period;
+	unsigned int tick_period[] = {
+		0xfff,
+		0xff,    /* 1: 0.8us */
+		0x1ff,   /* 2: 1.7us */
+		0x3ff,   /* 3: 3.4us */
+		0x7ff,   /* 4: 6.9us */
+		0xfff,   /* 5: 13.8us */
+		0x1fff,  /* 6: 27us */
+		0x3fff,  /* 7: 55us */
+		0x7fff,  /* 8: 110us */
+		0xffff,  /* 9: 221us */
+		0x1ffff, /* 10: 441us */
+		0x3ffff, /* 11: 883us */
+		0x7ffff, /* 12: 1.76ms */
+		0xfffff, /* 13: 3.53ms */
+	};
+
+	vx1_conf = lcd_drv->lcd_config->lcd_control.vbyone_config;
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		if (flag) {
+			period = vx1_conf->hw_filter_time & 0xff;
+			if (period >=
+				(sizeof(tick_period) / sizeof(unsigned int)))
+				period = tick_period[0];
+			else
+				period = tick_period[period];
+			temp = period & 0xffff;
+			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_L, temp);
+			temp = (period >> 16) & 0xf;
+			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_H, temp);
+			/* hpd */
+			temp = vx1_conf->hw_filter_cnt & 0xf;
+			temp = (temp == 0) ? 0x7 : temp;
+			lcd_vcbus_setb(VBO_INSGN_CTRL, temp, 8, 4);
+			/* lockn */
+			temp = (vx1_conf->hw_filter_cnt >> 8) & 0xf;
+			temp = (temp == 0) ? 0x7 : temp;
+			lcd_vcbus_setb(VBO_INSGN_CTRL, temp, 12, 4);
+		} else {
+			temp = (vx1_conf->hw_filter_time >> 8) & 0x1;
+			if (temp) {
+				lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_L,
+						0xff);
+				lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_H,
+						0x0);
+				lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 8, 4);
+				lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 12, 4);
+				LCDPR("%s: %d change to min for debug\n",
+				       __func__, flag);
+			}
+		}
+		break;
+	default:
+		lcd_vcbus_write(VBO_INFILTER_CTRL, 0xff77);
+		break;
+	}
 }
 
 static void lcd_vbyone_sw_reset(void)
@@ -781,8 +713,9 @@ static void lcd_vbyone_control_set(struct lcd_config_s *pconf)
 	/* lcd_vcbus_setb(LCD_PORT_SWAP, 1, 8, 1);//reverse lane output order */
 
 	/* Mux pads in combo-phy: 0 for dsi; 1 for lvds or vbyone; 2 for edp */
-	lcd_hiu_write(HHI_DSI_LVDS_EDP_CNTL0, 0x1);
-	lcd_vcbus_write(VBO_INFILTER_CTRL, 0xff77);
+	/*lcd_hiu_write(HHI_DSI_LVDS_EDP_CNTL0, 0x1);*/
+
+	lcd_vbyone_hw_filter(0);
 	lcd_vcbus_setb(VBO_INSGN_CTRL, 0, 2, 2);
 	lcd_vcbus_setb(VBO_CTRL_L, 1, 0, 1);
 
@@ -820,6 +753,7 @@ void lcd_vbyone_interrupt_enable(int flag)
 
 	vx1_conf = lcd_drv->lcd_config->lcd_control.vbyone_config;
 	if (flag) {
+		lcd_vbyone_hw_filter(1);
 		if (vx1_conf->intr_en) {
 			vx1_fsm_acq_st = 0;
 			/* clear interrupt */
@@ -862,6 +796,7 @@ void lcd_vbyone_interrupt_enable(int flag)
 		lcd_vcbus_write(VBO_INTR_UNMASK, 0x0);
 		/* release hold in FSM_ACQ */
 		lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0, 0, 16);
+		lcd_vbyone_hw_filter(0);
 		lcd_vx1_intr_request = 0;
 	}
 }
@@ -874,6 +809,7 @@ static void lcd_vbyone_interrupt_init(struct aml_lcd_drv_s *lcd_drv)
 
 	/* release sw filter ctrl in uboot */
 	lcd_vcbus_setb(VBO_INSGN_CTRL, 0, 0, 1);
+	lcd_vbyone_hw_filter(1);
 
 	/* set hold in FSM_ACQ */
 	if (vx1_conf->vsync_intr_en == 3)
@@ -1108,19 +1044,23 @@ static irqreturn_t lcd_vbyone_vsync_isr(int irq, void *dev_id)
 		if (vsync_cnt < VSYNC_CNT_VX1_RESET)
 			vsync_cnt++;
 		else if (vsync_cnt == VSYNC_CNT_VX1_RESET) {
+			lcd_vbyone_hw_filter(0);
 			lcd_vbyone_sw_reset();
 			vsync_cnt++;
 		} else if ((vsync_cnt > VSYNC_CNT_VX1_RESET) &&
 			(vsync_cnt < VSYNC_CNT_VX1_STABLE)) {
-			if (lcd_vcbus_read(VBO_STATUS_L) & 0x20)
+			if (lcd_vcbus_read(VBO_STATUS_L) & 0x20) {
 				vsync_cnt = VSYNC_CNT_VX1_STABLE;
-			else
+				lcd_vbyone_hw_filter(1);
+			} else {
 				vsync_cnt++;
+			}
 		}
 	} else if (vx1_conf->vsync_intr_en == 2) {
 		if (vsync_cnt >= 5) {
 			vsync_cnt = 0;
 			if (!(lcd_vcbus_read(VBO_STATUS_L) & 0x20)) {
+				lcd_vbyone_hw_filter(0);
 				lcd_vbyone_sw_reset();
 				LCDPR("vx1 sw_reset 2\n");
 				while (lcd_vcbus_read(VBO_STATUS_L) & 0x4)
@@ -1128,6 +1068,8 @@ static irqreturn_t lcd_vbyone_vsync_isr(int irq, void *dev_id)
 
 				lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 0, 15, 1);
 				lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 1, 15, 1);
+			} else {
+				lcd_vbyone_hw_filter(1);
 			}
 		} else
 			vsync_cnt++;
@@ -1290,6 +1232,7 @@ static irqreturn_t lcd_vbyone_interrupt_handler(int irq, void *dev_id)
 #if (VX1_FSM_ACQ_NEXT == VX1_FSM_ACQ_NEXT_RELEASE_HOLDER)
 			lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0xffff, 0, 16);
 #endif
+			lcd_vbyone_hw_filter(1);
 			LCDPR("vx1 fsm stable\n");
 		}
 	}
@@ -1301,10 +1244,52 @@ static irqreturn_t lcd_vbyone_interrupt_handler(int irq, void *dev_id)
 
 static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 {
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	unsigned int reg_cntl0, reg_cntl1;
+	unsigned int phy_div;
+	unsigned int channel_sel0, channel_sel1;
+
 	if (lcd_debug_print_flag)
 		LCDPR("%s\n", __func__);
 
-	lcd_vbyone_control_set(pconf);
+	/* phy_div: 0=div6, 1=div 7, 2=div8, 3=div10 */
+	switch (pconf->lcd_control.p2p_config->p2p_type) {
+	case P2P_CHPI: /* 8/10 coding */
+		phy_div = 3;
+		break;
+	default:
+		phy_div = 2;
+		break;
+	}
+
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
+		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
+		break;
+	default:
+		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0;
+		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1;
+		break;
+	}
+
+	/* fifo_clk_sel[7:6]: 0=div6, 1=div 7, 2=div8, 3=div10 */
+	lcd_hiu_write(reg_cntl0, (phy_div << 6));
+	/* serializer_en[27:16] */
+	lcd_hiu_setb(reg_cntl0, 0xfff, 16, 12);
+	/* pn swap[2] */
+	lcd_hiu_setb(reg_cntl0, 1, 2, 1);
+
+	/* fifo enable[30], phy_clock gating[24] */
+	lcd_hiu_write(reg_cntl1, (1 << 30) | (1 << 24));
+	/* fifo write enable[31] */
+	lcd_hiu_setb(reg_cntl1, 1, 31, 1);
+
+	channel_sel0 = pconf->lcd_control.p2p_config->channel_sel0;
+	channel_sel1 = pconf->lcd_control.p2p_config->channel_sel1;
+	lcd_vcbus_write(P2P_CH_SWAP0, channel_sel0);
+	lcd_vcbus_write(P2P_CH_SWAP1, channel_sel1);
 
 	lcd_tcon_enable(pconf);
 }
@@ -1312,8 +1297,6 @@ static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 static void lcd_p2p_disable(void)
 {
 	lcd_tcon_disable();
-
-	lcd_vbyone_disable();
 }
 
 static unsigned int vbyone_lane_num[] = {
@@ -1359,8 +1342,8 @@ static void lcd_vbyone_config_set(struct lcd_config_s *pconf)
 		LCDPR("change to min lane_num %d\n", minlane);
 	}
 
-	bit_rate = band_width / minlane;
-	phy_div = lane_count / minlane;
+	bit_rate = band_width / lane_count;
+	phy_div = lane_count / lane_count;
 	if (phy_div == 8) {
 		phy_div /= 2;
 		bit_rate /= 2;
@@ -1376,7 +1359,7 @@ static void lcd_vbyone_config_set(struct lcd_config_s *pconf)
 	bit_rate = bit_rate * 1000; /* Hz */
 
 	pconf->lcd_control.vbyone_config->phy_div = phy_div;
-	pconf->lcd_control.vbyone_config->bit_rate = bit_rate;
+	pconf->lcd_timing.bit_rate = bit_rate;
 
 	if (lcd_debug_print_flag) {
 		LCDPR("lane_count=%u, bit_rate = %uMHz, pclk=%u.%03uMhz\n",
@@ -1389,7 +1372,7 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 {
 	unsigned int bit_rate, pclk;
 	unsigned int lcd_bits, channel_num;
-	unsigned int channel_sel0, channel_sel1, pi_clk_sel;
+	unsigned int channel_sel0, channel_sel1, pi_clk_sel = 0;
 	unsigned int i, temp;
 
 	if (lcd_debug_print_flag)
@@ -1400,7 +1383,7 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 	pclk = pconf->lcd_timing.lcd_clk / 1000;
 	bit_rate = lcd_bits * 3 * pclk / channel_num;
 
-	pconf->lcd_control.mlvds_config->bit_rate = bit_rate * 1000;
+	pconf->lcd_timing.bit_rate = bit_rate * 1000;
 
 	if (lcd_debug_print_flag) {
 		LCDPR("channel_num=%u, bit_rate=%u.%03uMHz, pclk=%u.%03uMhz\n",
@@ -1409,27 +1392,30 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 	}
 
 	/* pi_clk select */
-	/* mlvds channel:    //tx 10 channels
-	 *    0: d0_a
-	 *    1: d1_a
-	 *    2: d2_a
-	 *    3: clk_a
-	 *    4: d0_b
-	 *    5: d1_b
-	 *    6: d2_b
-	 *    7: clk_b
-	 */
 	channel_sel0 = pconf->lcd_control.mlvds_config->channel_sel0;
 	channel_sel1 = pconf->lcd_control.mlvds_config->channel_sel1;
-	pi_clk_sel = 0;
+	/* mlvds channel:    //tx 12 channels
+	 *    0: clk_a
+	 *    1: d0_a
+	 *    2: d1_a
+	 *    3: d2_a
+	 *    4: d3_a
+	 *    5: d4_a
+	 *    6: clk_b
+	 *    7: d0_b
+	 *    8: d1_b
+	 *    9: d2_b
+	 *   10: d3_b
+	 *   11: d4_b
+	 */
 	for (i = 0; i < 8; i++) {
 		temp = (channel_sel0 >> (i*4)) & 0xf;
-		if ((temp == 3) || (temp == 7))
+		if ((temp == 0) || (temp == 6))
 			pi_clk_sel |= (1 << i);
 	}
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 4; i++) {
 		temp = (channel_sel1 >> (i*4)) & 0xf;
-		if ((temp == 3) || (temp == 7))
+		if ((temp == 0) || (temp == 6))
 			pi_clk_sel |= (1 << (i + 8));
 	}
 	pconf->lcd_control.mlvds_config->pi_clk_sel = pi_clk_sel;
@@ -1437,6 +1423,41 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 		LCDPR(
 		"channel_sel0=0x%08x, channel_sel1=0x%08x, pi_clk_sel=0x%03x\n",
 			channel_sel0, channel_sel1, pi_clk_sel);
+	}
+}
+
+static void lcd_p2p_config_set(struct lcd_config_s *pconf)
+{
+	unsigned int bit_rate, pclk;
+	unsigned int lcd_bits, lane_num;
+
+	if (lcd_debug_print_flag)
+		LCDPR("%s\n", __func__);
+
+	lcd_bits = pconf->lcd_basic.lcd_bits;
+	lane_num = pconf->lcd_control.p2p_config->lane_num;
+	pclk = pconf->lcd_timing.lcd_clk / 1000;
+	switch (pconf->lcd_control.p2p_config->p2p_type) {
+	case P2P_CEDS:
+		if (pclk >= 600000)
+			bit_rate = pclk * 3 * lcd_bits / lane_num;
+		else
+			bit_rate = pclk * (3 * lcd_bits + 4) / lane_num;
+		break;
+	case P2P_CHPI: /* 8/10 coding */
+		bit_rate = (pclk * 3 * lcd_bits * 10 / 8) / lane_num;
+		break;
+	default:
+		bit_rate = pclk * 3 * lcd_bits / lane_num;
+		break;
+	}
+
+	pconf->lcd_timing.bit_rate = bit_rate * 1000;
+
+	if (lcd_debug_print_flag) {
+		LCDPR("lane_num=%u, bit_rate=%u.%03uMHz, pclk=%u.%03uMhz\n",
+			lane_num, (bit_rate / 1000), (bit_rate % 1000),
+			(pclk / 1000), (pclk % 1000));
 	}
 }
 
@@ -1451,6 +1472,9 @@ void lcd_tv_clk_config_change(struct lcd_config_s *pconf)
 		break;
 	case LCD_MLVDS:
 		lcd_mlvds_config_set(pconf);
+		break;
+	case LCD_P2P:
+		lcd_p2p_config_set(pconf);
 		break;
 	default:
 		break;
@@ -1491,6 +1515,9 @@ void lcd_tv_config_update(struct lcd_config_s *pconf)
 		break;
 	case LCD_MLVDS:
 		lcd_mlvds_config_set(pconf);
+		break;
+	case LCD_P2P:
+		lcd_p2p_config_set(pconf);
 		break;
 	default:
 		break;
@@ -1588,9 +1615,9 @@ int lcd_tv_driver_init(void)
 		lcd_mlvds_phy_set(pconf, 1);
 		break;
 	case LCD_P2P:
-		lcd_p2p_control_set(pconf);
 		lcd_tcon_pinmux_set(1);
 		lcd_p2p_phy_set(pconf, 1);
+		lcd_p2p_control_set(pconf);
 		break;
 	default:
 		break;
@@ -1669,17 +1696,7 @@ int lcd_tv_driver_change(void)
 				lcd_vbyone_interrupt_enable(0);
 		}
 
-		switch (pconf->lcd_timing.clk_change) {
-		case LCD_CLK_PLL_CHANGE:
-			lcd_clk_generate_parameter(pconf);
-			lcd_clk_set(pconf);
-			break;
-		case LCD_CLK_FRAC_UPDATE:
-			lcd_clk_update(pconf);
-			break;
-		default:
-			break;
-		}
+		lcd_clk_change(pconf);
 		lcd_venc_change(pconf);
 
 		if (pconf->lcd_basic.lcd_type == LCD_VBYONE) {

@@ -33,56 +33,18 @@
 /* 20180827: add pinmux off support */
 /* 20180928: tl1 support, optimize clk config */
 /* 20181012: tl1 support tcon */
-#define LCD_DRV_VERSION    "20181012"
+/* 20181212: tl1 update p2p config and pll setting */
+/* 20181225: update phy config */
+/* 20190108: tl1 support tablet mode */
+/* 20190115: tl1 tcon all interface support */
+/* 20190225: optimize unifykey read flow to avoid crash */
+/* 20190308: add more panel clk_ss_level step for tl1 */
+/* 20190520: add vbyone hw filter user define support */
+/* 20190911: add lcd_init_level for tl1 */
+/* 20191025: tcon chpi phy setting update */
+#define LCD_DRV_VERSION    "20191025"
 
 #define VPP_OUT_SATURATE            (1 << 0)
-
-/* -------------------------- */
-/* lvsd phy parameters define */
-/* -------------------------- */
-#define LVDS_PHY_CNTL1_G9TV    0x606cca80
-#define LVDS_PHY_CNTL2_G9TV    0x0000006c
-#define LVDS_PHY_CNTL3_G9TV    0x00000800
-
-#define LVDS_PHY_CNTL1_TL1     0x6c60ca80
-#define LVDS_PHY_CNTL2_TL1     0x00000070
-#define LVDS_PHY_CNTL3_TL1     0x03ff0c00
-/* -------------------------- */
-
-/* -------------------------- */
-/* vbyone phy parameters define */
-/* -------------------------- */
-#define VX1_PHY_CNTL1_G9TV            0x6e0ec900
-#define VX1_PHY_CNTL1_G9TV_PULLUP     0x6e0f4d00
-#define VX1_PHY_CNTL2_G9TV            0x0000007c
-#define VX1_PHY_CNTL3_G9TV            0x00ff0800
-/* -------------------------- */
-
-/* -------------------------- */
-/* minilvds phy parameters define */
-/* -------------------------- */
-#define MLVDS_PHY_CNTL1_TL1    0x6c60ca80
-#define MLVDS_PHY_CNTL2_TL1    0x00000070
-#define MLVDS_PHY_CNTL3_TL1    0x03ff0c00
-
-
-/* ******** mipi_dsi_phy ******** */
-/* bit[15:11] */
-#define MIPI_PHY_LANE_BIT        11
-#define MIPI_PHY_LANE_WIDTH       5
-
-/* MIPI-DSI */
-#define DSI_LANE_0              (1 << 4)
-#define DSI_LANE_1              (1 << 3)
-#define DSI_LANE_CLK            (1 << 2)
-#define DSI_LANE_2              (1 << 1)
-#define DSI_LANE_3              (1 << 0)
-#define DSI_LANE_COUNT_1        (DSI_LANE_CLK | DSI_LANE_0)
-#define DSI_LANE_COUNT_2        (DSI_LANE_CLK | DSI_LANE_0 | DSI_LANE_1)
-#define DSI_LANE_COUNT_3        (DSI_LANE_CLK | DSI_LANE_0 |\
-					DSI_LANE_1 | DSI_LANE_2)
-#define DSI_LANE_COUNT_4        (DSI_LANE_CLK | DSI_LANE_0 |\
-					DSI_LANE_1 | DSI_LANE_2 | DSI_LANE_3)
 
 extern struct mutex lcd_vout_mutex;
 extern unsigned char lcd_resume_flag;
@@ -100,7 +62,7 @@ extern unsigned int lcd_cpu_gpio_get(unsigned int index);
 extern void lcd_ttl_pinmux_set(int status);
 extern void lcd_vbyone_pinmux_set(int status);
 extern void lcd_tcon_pinmux_set(int status);
-extern unsigned int lcd_lvds_channel_on_value(struct lcd_config_s *pconf);
+
 extern int lcd_power_load_from_dts(struct lcd_config_s *pconf,
 		struct device_node *child);
 extern int lcd_power_load_from_unifykey(struct lcd_config_s *pconf,
@@ -113,10 +75,24 @@ extern int lcd_vlock_param_load_from_unifykey(struct lcd_config_s *pconf,
 extern void lcd_optical_vinfo_update(void);
 extern void lcd_timing_init_config(struct lcd_config_s *pconf);
 extern int lcd_vmode_change(struct lcd_config_s *pconf);
+extern void lcd_clk_change(struct lcd_config_s *pconf);
 extern void lcd_venc_change(struct lcd_config_s *pconf);
 extern void lcd_if_enable_retry(struct lcd_config_s *pconf);
+extern void lcd_vout_notify_mode_change_pre(void);
+extern void lcd_vout_notify_mode_change(void);
+
+/* lcd phy */
+extern void lcd_lvds_phy_set(struct lcd_config_s *pconf, int status);
+extern void lcd_vbyone_phy_set(struct lcd_config_s *pconf, int status);
+extern void lcd_mlvds_phy_set(struct lcd_config_s *pconf, int status);
+extern void lcd_p2p_phy_set(struct lcd_config_s *pconf, int status);
+extern void lcd_mipi_phy_set(struct lcd_config_s *pconf, int status);
+int lcd_phy_probe(void);
+void lcd_phy_tcon_chpi_bbc_init_tl1(int delay);
 
 /* lcd tcon */
+extern unsigned int lcd_tcon_reg_read(unsigned int addr);
+extern void lcd_tcon_reg_write(unsigned int addr, unsigned int val);
 extern void lcd_tcon_reg_table_print(void);
 extern void lcd_tcon_reg_readback_print(void);
 extern int lcd_tcon_info_print(char *buf, int offset);

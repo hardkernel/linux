@@ -232,20 +232,15 @@
 /* video */
 #define CLK_DIV_IN_MAX_TL1          (3100 * 1000)
 #define CRT_VID_CLK_IN_MAX_TL1      (3100 * 1000)
-#define ENCL_CLK_IN_MAX_TL1         (400 * 1000)
+#define ENCL_CLK_IN_MAX_TL1         (750 * 1000)
 
 
 /* **********************************
  * Spread Spectrum
  * **********************************
  */
-#define SS_LEVEL_MAX_GXL            0
-#define SS_LEVEL_MAX_AXG            0
-#define SS_LEVEL_MAX_GP0_G12A       0
-#define SS_LEVEL_MAX_HPLL_G12A      0
 
-#define SS_LEVEL_MAX_TXL            5
-static char *lcd_pll_ss_table_txl[] = {
+static char *lcd_ss_level_table_txl[] = {
 	"0, disable",
 	"1, +/-0.3%",
 	"2, +/-0.4%",
@@ -253,8 +248,7 @@ static char *lcd_pll_ss_table_txl[] = {
 	"4, +/-1.2%",
 };
 
-#define SS_LEVEL_MAX_TXLX            6
-static char *lcd_pll_ss_table_txlx[] = {
+static char *lcd_ss_level_table_txlx[] = {
 	"0, disable",
 	"1, +/-0.3%",
 	"2, +/-0.5%",
@@ -263,7 +257,55 @@ static char *lcd_pll_ss_table_txlx[] = {
 	"5, +/-3.0%",
 };
 
-#define SS_LEVEL_MAX_TL1            0
+static char *lcd_ss_level_table_tl1[] = {
+	"0, disable",
+	"1, 2000ppm",
+	"2, 4000ppm",
+	"3, 6000ppm",
+	"4, 8000ppm",
+	"5, 10000ppm",
+	"6, 12000ppm",
+	"7, 14000ppm",
+	"8, 16000ppm",
+	"9, 18000ppm",
+	"10, 20000ppm",
+	"11, 22000ppm",
+	"12, 24000ppm",
+	"13, 25000ppm",
+	"14, 28000ppm",
+	"15, 30000ppm",
+	"16, 32000ppm",
+	"17, 33000ppm",
+	"18, 36000ppm",
+	"19, 38500ppm",
+	"20, 40000ppm",
+	"21, 42000ppm",
+	"22, 44000ppm",
+	"23, 45000ppm",
+	"24, 48000ppm",
+	"25, 50000ppm",
+	"26, 50000ppm",
+	"27, 54000ppm",
+	"28, 55000ppm",
+	"29, 55000ppm",
+	"30, 60000ppm",
+};
+
+static char *lcd_ss_freq_table_tl1[] = {
+	"0, 29.5KHz",
+	"1, 31.5KHz",
+	"2, 50KHz",
+	"3, 75KHz",
+	"4, 100KHz",
+	"5, 150KHz",
+	"6, 200KHz",
+};
+
+static char *lcd_ss_mode_table_tl1[] = {
+	"0, center ss",
+	"1, up ss",
+	"2, down ss",
+};
 
 
 static unsigned int pll_ss_reg_txl[][2] = {
@@ -275,7 +317,6 @@ static unsigned int pll_ss_reg_txl[][2] = {
 	{((1 << 14) | (0xc << 10)), (0x3 << 2)}, /* 4: +/-1.2% */
 };
 
-
 static unsigned int pll_ss_reg_txlx[][3] = {
 	/* cntl3                    cntl4       cntl5 */
 	{                        0,          0,           0}, /* disable */
@@ -286,6 +327,57 @@ static unsigned int pll_ss_reg_txlx[][3] = {
 	{((1 << 14) | (0xa << 10)), (0x3 << 2), (0x2 << 30)}, /* 5: +/-3.0% */
 };
 
+static unsigned int pll_ss_reg_tl1[][2] = {
+	/* dep_sel,  str_m  */
+#if 0
+	{ 0,          0}, /* 0: disable */
+	{10,          1}, /* 1: +/-0.25% */
+	{10,          2}, /* 2: +/-0.50% */
+	{10,          3}, /* 3: +/-0.75% */
+	{10,          4}, /* 4: +/-1.00% */
+	{10,          5}, /* 5: +/-1.25% */
+	{10,          6}, /* 6: +/-1.50% */
+	{10,          7}, /* 7: +/-1.75% */
+	{10,          8}, /* 8: +/-2.00% */
+	{10,          9}, /* 9: +/-2.25% */
+	{10,         10}, /* 10: +/-2.50% */
+	{11,         10}, /* 11: +/-2.75% */
+	{12,         10}, /* 12: +/-3.00% */
+#else
+	{ 0,          0}, /* 0: disable */
+	{ 4,          1}, /* 1: +/-0.1% */
+	{ 4,          2}, /* 2: +/-0.2% */
+	{ 4,          3}, /* 3: +/-0.3% */
+	{ 4,          4}, /* 4: +/-0.4% */
+	{ 4,          5}, /* 5: +/-0.5% */
+	{ 4,          6}, /* 6: +/-0.6% */
+	{ 4,          7}, /* 7: +/-0.7% */
+	{ 4,          8}, /* 8: +/-0.8% */
+	{ 4,          9}, /* 9: +/-0.9% */
+	{ 4,         10}, /* 10: +/-1.0% */
+	{ 11,         4}, /* 11: +/-1.1% */
+	{ 12,         4}, /* 12: +/-1.2% */
+	{ 10,         5}, /* 13: +/-1.25% */
+	{ 8,          7}, /* 14: +/-1.4% */
+	{ 6,         10}, /* 15: +/-1.5% */
+	{ 8,          8}, /* 16: +/-1.6% */
+	{ 11,         6}, /* 17: +/-1.65% */
+	{ 8,          9}, /* 18: +/-1.8% */
+	{ 11,         7}, /* 19: +/-1.925% */
+	{ 10,         8}, /* 20: +/-2.0% */
+	{ 12,         7}, /* 21: +/-2.1% */
+	{ 11,         8}, /* 22: +/-2.2% */
+	{ 9,         10}, /* 23: +/-2.25% */
+	{ 12,         8}, /* 24: +/-2.4% */
+	{ 10,        10}, /* 25: +/-2.5% */
+	{ 10,        10}, /* 26: +/-2.5% */
+	{ 12,         9}, /* 27: +/-2.7% */
+	{ 11,        10}, /* 28: +/-2.75% */
+	{ 11,        10}, /* 29: +/-2.75% */
+	{ 12,        10}, /* 30: +/-3.0% */
+#endif
+};
+
 /* **********************************
  * pll control
  * **********************************
@@ -294,6 +386,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_txl[] = {
 	/* flag             reg                 bit              len*/
 	{LCD_CLK_CTRL_EN,   HHI_HDMI_PLL_CNTL,  LCD_PLL_EN_TXL,   1},
 	{LCD_CLK_CTRL_RST,  HHI_HDMI_PLL_CNTL,  LCD_PLL_RST_TXL,  1},
+	{LCD_CLK_CTRL_M,    HHI_HDMI_PLL_CNTL,  LCD_PLL_M_TXL,    9},
 	{LCD_CLK_CTRL_FRAC, HHI_HDMI_PLL_CNTL2,               0, 12},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                  0,  0},
 };
@@ -302,6 +395,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_axg[] = {
 	/* flag             reg                   bit              len*/
 	{LCD_CLK_CTRL_EN,   HHI_GP0_PLL_CNTL_AXG, LCD_PLL_EN_AXG,   1},
 	{LCD_CLK_CTRL_RST,  HHI_GP0_PLL_CNTL_AXG, LCD_PLL_RST_AXG,  1},
+	{LCD_CLK_CTRL_M,    HHI_GP0_PLL_CNTL_AXG, LCD_PLL_M_AXG,    9},
 	{LCD_CLK_CTRL_FRAC, HHI_GP0_PLL_CNTL1_AXG,              0, 12},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                    0,  0},
 };
@@ -310,6 +404,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_g12a_path0[] = {
 	/* flag             reg                 bit                    len*/
 	{LCD_CLK_CTRL_EN,   HHI_HDMI_PLL_CNTL,  LCD_PLL_EN_HPLL_G12A,   1},
 	{LCD_CLK_CTRL_RST,  HHI_HDMI_PLL_CNTL,  LCD_PLL_RST_HPLL_G12A,  1},
+	{LCD_CLK_CTRL_M,    HHI_HDMI_PLL_CNTL,  LCD_PLL_M_HPLL_G12A,    8},
 	{LCD_CLK_CTRL_FRAC, HHI_HDMI_PLL_CNTL2,                     0, 19},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                        0,  0},
 };
@@ -318,6 +413,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_g12a_path1[] = {
 	/* flag             reg                     bit                   len*/
 	{LCD_CLK_CTRL_EN,   HHI_GP0_PLL_CNTL0_G12A, LCD_PLL_EN_GP0_G12A,   1},
 	{LCD_CLK_CTRL_RST,  HHI_GP0_PLL_CNTL0_G12A, LCD_PLL_RST_GP0_G12A,  1},
+	{LCD_CLK_CTRL_M,    HHI_GP0_PLL_CNTL0_G12A, LCD_PLL_M_GP0_G12A,    8},
 	{LCD_CLK_CTRL_FRAC, HHI_GP0_PLL_CNTL1_G12A,                    0, 19},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                           0,  0},
 };
@@ -326,6 +422,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_tl1[] = {
 	/* flag             reg                 bit              len*/
 	{LCD_CLK_CTRL_EN,   HHI_TCON_PLL_CNTL0, LCD_PLL_EN_TL1,   1},
 	{LCD_CLK_CTRL_RST,  HHI_TCON_PLL_CNTL0, LCD_PLL_RST_TL1,  1},
+	{LCD_CLK_CTRL_M,    HHI_TCON_PLL_CNTL0, LCD_PLL_M_TL1,    8},
 	{LCD_CLK_CTRL_FRAC, HHI_TCON_PLL_CNTL1,               0, 17},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                  0,  0},
 };
@@ -351,7 +448,7 @@ static const unsigned int od_table[6] = {
 	1, 2, 4, 8, 16, 32
 };
 
-static const unsigned int pi_div_table[2] = {2, 4};
+static const unsigned int tcon_div_table[5] = {1, 2, 4, 8, 16};
 
 static char *lcd_clk_div_sel_table[] = {
 	"1",
@@ -369,6 +466,7 @@ static char *lcd_clk_div_sel_table[] = {
 	"14",
 	"15",
 	"2.5",
+	"4.67",
 	"invalid",
 };
 
@@ -391,6 +489,7 @@ enum div_sel_e {
 	CLK_DIV_SEL_14,   /* 12 */
 	CLK_DIV_SEL_15,   /* 13 */
 	CLK_DIV_SEL_2p5,  /* 14 */
+	CLK_DIV_SEL_4p67, /* 15 */
 	CLK_DIV_SEL_MAX,
 };
 
@@ -411,6 +510,7 @@ static unsigned int lcd_clk_div_table[][3] = {
 	{CLK_DIV_SEL_14,   0x3f80,     1,},
 	{CLK_DIV_SEL_15,   0x7f80,     2,},
 	{CLK_DIV_SEL_2p5,  0x5294,     2,},
+	{CLK_DIV_SEL_4p67, 0x0ccc,     1,},
 	{CLK_DIV_SEL_MAX,  0xffff,     0,},
 };
 

@@ -55,6 +55,31 @@ static unsigned char init_off_table[] = {
 	0xff, 0,  /* ending */
 };
 
+static int lcd_extern_reg_read(unsigned char reg, unsigned char *buf)
+{
+	int ret = 0;
+
+	return ret;
+}
+
+static int lcd_extern_reg_write(unsigned char *buf, unsigned int len)
+{
+	int ret = 0;
+
+	if (buf == NULL) {
+		EXTERR("%s: buf is full\n", __func__);
+		return -1;
+	}
+
+	if (!len) {
+		EXTERR("%s: invalid len\n", __func__);
+		return -1;
+	}
+
+	ret = lcd_extern_i2c_write(i2c_dev->client, buf, len);
+	return ret;
+}
+
 static int lcd_extern_power_cmd_dynamic_size(unsigned char *table, int flag)
 {
 	int i = 0, j, step = 0, max_len = 0;
@@ -106,15 +131,13 @@ static int lcd_extern_power_cmd_dynamic_size(unsigned char *table, int flag)
 				EXTERR("invalid i2c device\n");
 				return -1;
 			}
-			ret = lcd_extern_i2c_write(i2c_dev->client,
-				&table[i+2], cmd_size);
+			ret = lcd_extern_reg_write(&table[i+2], cmd_size);
 		} else if (type == LCD_EXT_CMD_TYPE_CMD_DELAY) {
 			if (i2c_dev == NULL) {
 				EXTERR("invalid i2c device\n");
 				return -1;
 			}
-			ret = lcd_extern_i2c_write(i2c_dev->client,
-				&table[i+2], (cmd_size-1));
+			ret = lcd_extern_reg_write(&table[i+2], (cmd_size-1));
 			if (table[i+cmd_size+1] > 0)
 				mdelay(table[i+cmd_size+1]);
 		} else {
@@ -175,15 +198,13 @@ static int lcd_extern_power_cmd_fixed_size(unsigned char *table, int flag)
 				EXTERR("invalid i2c device\n");
 				return -1;
 			}
-			ret = lcd_extern_i2c_write(i2c_dev->client,
-				&table[i+1], (cmd_size-1));
+			ret = lcd_extern_reg_write(&table[i+1], (cmd_size-1));
 		} else if (type == LCD_EXT_CMD_TYPE_CMD_DELAY) {
 			if (i2c_dev == NULL) {
 				EXTERR("invalid i2c device\n");
 				return -1;
 			}
-			ret = lcd_extern_i2c_write(i2c_dev->client,
-				&table[i+1], (cmd_size-2));
+			ret = lcd_extern_reg_write(&table[i+1], (cmd_size-2));
 			if (table[i+cmd_size-1] > 0)
 				mdelay(table[i+cmd_size-1]);
 		} else {

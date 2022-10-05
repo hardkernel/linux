@@ -606,8 +606,7 @@ static int bl_extern_config_from_dts(struct device_node *np, int index)
 		BLEXERR("failed to get bl_extern_name\n");
 		strcpy(bl_extern->config.name, "none");
 	} else {
-		strncpy(bl_extern->config.name, str, BL_EXTERN_NAME_LEN_MAX);
-		bl_extern->config.name[BL_EXTERN_NAME_LEN_MAX - 1] = '\0';
+		strcpy(bl_extern->config.name, str);
 	}
 
 	ret = of_property_read_u32(child, "type", &val);

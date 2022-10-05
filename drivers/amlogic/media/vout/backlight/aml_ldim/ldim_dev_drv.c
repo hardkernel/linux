@@ -987,8 +987,7 @@ static int ldim_dev_get_config_from_dts(struct device_node *np, int index)
 		LDIMERR("failed to get ldim_dev_name\n");
 		str = "ldim_dev";
 	}
-	strncpy(ldim_dev_config.name, str, sizeof(ldim_dev_config.name));
-	ldim_dev_config.name[sizeof(ldim_dev_config.name) - 1] = '\0';
+	strcpy(ldim_dev_config.name, str);
 
 	ret = of_property_read_string(child, "ldim_pwm_pinmux_sel", &str);
 	if (ret) {

@@ -178,9 +178,9 @@ static unsigned int lcd_reg_dump_pinmux_txlx[] = {
 };
 
 static unsigned int lcd_reg_dump_pinmux_tl1[] = {
-	PERIPHS_PIN_MUX_7,
-	PERIPHS_PIN_MUX_8,
-	PERIPHS_PIN_MUX_9,
+	PERIPHS_PIN_MUX_7_TL1,
+	PERIPHS_PIN_MUX_8_TL1,
+	PERIPHS_PIN_MUX_9_TL1,
 	LCD_DEBUG_REG_END,
 };
 
