@@ -157,4 +157,18 @@
 		};
 	};
 
+	fragment@4 {
+		target = <&dwc2_a>;
+		__overlay__{
+			status = "disabled";
+		};
+	};
+
+	fragment@5 {
+		target = <&usb3_phy_v2>;
+		__overlay__{
+			status = "disabled";
+		};
+	};
+
 };
