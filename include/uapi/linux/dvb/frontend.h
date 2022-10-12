@@ -1153,14 +1153,14 @@ struct tuner_param_s {
 	unsigned int	resvred;
 };
 
-// typedef struct dvb_analog_parameters dvb_analog_parameters_t;
-// typedef struct tuner_status_s tuner_status_t;
-// typedef struct atv_status_s atv_status_t;
-// typedef struct sound_status_s sound_status_t;
-// typedef enum tuner_param_cmd_e tuner_param_cmd_t;
-// typedef struct tuner_param_s tuner_param_t;
-// typedef enum fe_layer fe_layer_t;
-// typedef enum fe_ofdm_mode fe_ofdm_mode_t;
+/* typedef struct dvb_analog_parameters dvb_analog_parameters_t; */
+/* typedef struct tuner_status_s tuner_status_t; */
+/* typedef struct atv_status_s atv_status_t; */
+/* typedef struct sound_status_s sound_status_t; */
+/* typedef enum tuner_param_cmd_e tuner_param_cmd_t; */
+/* typedef struct tuner_param_s tuner_param_t; */
+/* typedef enum fe_layer fe_layer_t; */
+/* typedef enum fe_ofdm_mode fe_ofdm_mode_t; */
 
 /* Satellite blind scan settings */
 struct dvbsx_blindscanpara {
