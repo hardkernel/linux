@@ -136,7 +136,6 @@
 				opp-microvolt = <1040000>;
 			};
 		};
-		/delete-node/ gpio-reset;
 	};
 
 	fragment@2 {
@@ -147,27 +146,6 @@
 
 		__overlay__ {
 			model = "Hardkernel ODROID-N2L";
-		};
-	};
-
-	fragment@3 {
-		target = <&ethmac>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@4 {
-		target = <&dwc2_a>;
-		__overlay__{
-			status = "disabled";
-		};
-	};
-
-	fragment@5 {
-		target = <&usb3_phy_v2>;
-		__overlay__{
-			status = "disabled";
 		};
 	};
 

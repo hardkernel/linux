@@ -15082,6 +15082,7 @@ LT8619C-QC4011 DRIVER
 M:	Chris KIM <codewalker@hardkenrle.com>
 F:	drivers/amlogic/bridge/
 
-DTS OVERLAY FOR ODROID-N2 LITE
+DTS OVERLAY FOR ODROID-N2L
 M:	Chris KIM <codewalker@hardkenrle.com>
 F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/odroidn2l-opp.dts
+F:	arch/arm64/boot/dts/amlogic/meson64_odroidn2l_android.dts
