@@ -19,6 +19,7 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDN2) +=	\
 					odroidn2l-opp.dtbo	\
 					onewire.dtbo		\
 					otg_host_mode.dtbo	\
+					pcf8563.dtbo		\
 					pwm_backlight.dtbo	\
 					pwm_c-pwmfan.dtbo		\
 					pwm_cd.dtbo		\
