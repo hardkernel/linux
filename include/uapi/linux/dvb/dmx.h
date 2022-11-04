@@ -241,6 +241,13 @@ struct dmx_sec_ts_data {
 	__u32 data_end;
 };
 
+struct dmx_temi_data {
+	__u8 pts_dts_flag;
+	__u64 pts;
+	__u64 dts;
+	__u8 temi[188];
+};
+
 enum dmx_audio_format {
 	AUDIO_UNKNOWN = 0,	/* unknown media */
 	AUDIO_MPX = 1,		/* mpeg audio MP2/MP3 */
@@ -298,6 +305,7 @@ struct dmx_pes_filter_params {
 #define DMX_ES_OUTPUT        (1 << 16)
 /*set raw mode, it will send the struct dmx_sec_es_data, not es data*/
 #define DMX_OUTPUT_RAW_MODE	 (1 << 17)
+#define DMX_TEMI_FLAGS       (1 << 18)
 
 /*24~31 one byte for audio type, dmx_audio_format_t*/
 #define DMX_AUDIO_FORMAT_BIT 24
