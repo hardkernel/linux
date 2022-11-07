@@ -62,6 +62,9 @@
 #define OV5647_REG_GAIN_H	0x350A
 #define OV5647_REG_GAIN_L	0x350B
 
+#define OV5647_REG_VFLIP	0x3820
+#define OV5647_REG_HFLIP	0x3821
+
 // Frame Control
 #define OV5647_REG_FRAME_OFF_NUMBER	0x4202
 
@@ -107,6 +110,8 @@ struct ov5647_state {
 	struct v4l2_ctrl *pixel_rate;
 	struct v4l2_ctrl *exposure;
 	struct v4l2_ctrl *anal_gain;
+	struct v4l2_ctrl *hflip;
+	struct v4l2_ctrl *vflip;
 
 	const struct ov5647_mode *cur_mode;
 	u32 module_index;
@@ -278,6 +283,8 @@ static struct regval_list ov5647_2592x1944[] = {
 	{0x3805, 0x33},
 	{0x3806, 0x07},
 	{0x3807, 0xa3},
+	{0x3821, 0x00},
+	{0x3820, 0x00},
 	{0x3a08, 0x01},
 	{0x3a09, 0x28},
 	{0x3a0a, 0x00},
@@ -447,6 +454,24 @@ static int ov5647_set_analog_gain(struct v4l2_subdev *sd, s32 val)
 		return ret;
 
 	return ov5647_write(sd, OV5647_REG_GAIN_H, val >> 8);
+}
+
+static int ov5647_set_flip(struct v4l2_subdev *sd, u16 reg, u32 ctrl_val)
+{
+	int ret;
+	u8 reg_val;
+
+	ret = ov5647_read(sd, reg, &reg_val);
+	if (0 < ret) {
+		if (ctrl_val)
+			reg_val |= 2;
+		else
+			reg_val &= ~2;
+
+		ret = ov5647_write(sd, reg, reg_val);
+	}
+
+	return ret;
 }
 
 static int __sensor_init(struct v4l2_subdev *sd)
@@ -725,6 +750,21 @@ static const struct v4l2_subdev_video_ops ov5647_subdev_video_ops = {
 	.g_mbus_config = ov5647_g_mbus_config,
 };
 
+static u32 ov5647_get_mbus_code(struct v4l2_subdev *sd)
+{
+	struct ov5647_state *ov5647 = to_state(sd);
+	int index = ov5647->hflip->val | (ov5647->vflip->val << 1);
+
+	static const u32 codes[4] = {
+		MEDIA_BUS_FMT_SBGGR8_1X8,
+		MEDIA_BUS_FMT_SGBRG8_1X8,
+		MEDIA_BUS_FMT_SGRBG8_1X8,
+		MEDIA_BUS_FMT_SRGGB8_1X8,
+	};
+
+	return codes[index];
+}
+
 static int ov5647_enum_mbus_code(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
 				 struct v4l2_subdev_mbus_code_enum *code)
@@ -732,7 +772,7 @@ static int ov5647_enum_mbus_code(struct v4l2_subdev *sd,
 	if (code->index > 0)
 		return -EINVAL;
 
-	code->code = MEDIA_BUS_FMT_SBGGR8_1X8;
+	code->code = ov5647_get_mbus_code(sd);
 
 	return 0;
 }
@@ -744,7 +784,7 @@ static int ov5647_enum_frame_size(struct v4l2_subdev *sd,
 	if (fse->index >= ARRAY_SIZE(supported_modes))
 		return -EINVAL;
 
-	if (fse->code != MEDIA_BUS_FMT_SBGGR8_1X8)
+	if (fse->code != ov5647_get_mbus_code(sd))
 		return -EINVAL;
 
 	fse->min_width  = supported_modes[fse->index].width;
@@ -762,7 +802,7 @@ static int ov5647_enum_frame_interval(struct v4l2_subdev *sd,
 	if (fie->index >= ARRAY_SIZE(supported_modes))
 		return -EINVAL;
 
-	if (fie->code != MEDIA_BUS_FMT_SBGGR8_1X8)
+	if (fie->code != ov5647_get_mbus_code(sd))
 		return -EINVAL;
 
 	fie->width = supported_modes[fie->index].width;
@@ -809,7 +849,7 @@ static int ov5647_set_fmt(struct v4l2_subdev *sd,
 	mutex_lock(&ov5647->lock);
 
 	mode = ov5647_find_best_fit(fmt);
-	fmt->format.code = MEDIA_BUS_FMT_SBGGR8_1X8;
+	fmt->format.code = ov5647_get_mbus_code(sd);
 	fmt->format.width = mode->width;
 	fmt->format.height = mode->height;
 	fmt->format.field = V4L2_FIELD_NONE;
@@ -848,7 +888,7 @@ static int ov5647_get_fmt(struct v4l2_subdev *sd,
 	} else {
 		fmt->format.width = mode->width;
 		fmt->format.height = mode->height;
-		fmt->format.code = MEDIA_BUS_FMT_SBGGR8_1X8;
+		fmt->format.code = ov5647_get_mbus_code(sd);
 		fmt->format.field = V4L2_FIELD_NONE;
 	}
 
@@ -882,6 +922,12 @@ static int ov5647_set_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 	case V4L2_CID_ANALOGUE_GAIN:
 		ov5647_set_analog_gain(&ov5647->sd, ctrl->val);
+		break;
+	case V4L2_CID_HFLIP:
+		ov5647_set_flip(&ov5647->sd, OV5647_REG_HFLIP, ctrl->val);
+		break;
+	case V4L2_CID_VFLIP:
+		ov5647_set_flip(&ov5647->sd, OV5647_REG_VFLIP, ctrl->val);
 		break;
 	default:
 		break;
@@ -940,6 +986,16 @@ static int ov5647_initialize_controls(struct v4l2_subdev *sd)
 			      OV5647_ANALOG_GAIN_STEP,
 			      OV5647_ANALOG_GAIN_DEFAULT);
 
+	ov5647->hflip = v4l2_ctrl_new_std(handler, &ov5647_ctrl_ops,
+					   V4L2_CID_HFLIP, 0, 1, 1, 0);
+	if (ov5647->hflip)
+		ov5647->hflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
+
+	ov5647->vflip = v4l2_ctrl_new_std(handler, &ov5647_ctrl_ops,
+					   V4L2_CID_VFLIP, 0, 1, 1, 0);
+	if (ov5647->vflip)
+		ov5647->vflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
+
 	if (handler->error) {
 		v4l2_ctrl_handler_free(handler);
 		return handler->error;
@@ -991,7 +1047,7 @@ static int ov5647_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	/* Initialize try_fmt */
 	try_fmt->width = ov5647->cur_mode->width;
 	try_fmt->height = ov5647->cur_mode->height;
-	try_fmt->code = MEDIA_BUS_FMT_SBGGR8_1X8;
+	try_fmt->code = ov5647_get_mbus_code(sd);
 	try_fmt->field = V4L2_FIELD_NONE;
 
 	mutex_unlock(&ov5647->lock);
