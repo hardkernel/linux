@@ -143,7 +143,15 @@ EXPORT_SYMBOL_GPL(fscrypt_prepare_lookup_partial);
 
 int __fscrypt_prepare_readdir(struct inode *dir)
 {
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE_RDK)
+	int ret = fscrypt_get_encryption_info(dir, true);
+
+	if (fscrypt_check_accessibility(dir))
+		return -EPERM;
+	return ret;
+#else
 	return fscrypt_get_encryption_info(dir, true);
+#endif
 }
 EXPORT_SYMBOL_GPL(__fscrypt_prepare_readdir);
 
