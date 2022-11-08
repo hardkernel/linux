@@ -709,6 +709,9 @@ int fscrypt_derive_dirhash_key(struct fscrypt_info *ci,
 void fscrypt_hash_inode_number(struct fscrypt_info *ci,
 			       const struct fscrypt_master_key *mk);
 
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE_RDK)
+int fscrypt_check_accessibility(struct inode *inode);
+#endif
 int fscrypt_get_encryption_info(struct inode *inode, bool allow_unsupported);
 
 /**
@@ -728,11 +731,14 @@ static inline int fscrypt_require_key(struct inode *inode)
 {
 	if (IS_ENCRYPTED(inode)) {
 		int err = fscrypt_get_encryption_info(inode, false);
-
 		if (err)
 			return err;
 		if (!fscrypt_has_encryption_key(inode))
 			return -ENOKEY;
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE_RDK)
+		if (fscrypt_check_accessibility(inode))
+			return -EPERM;
+#endif
 	}
 	return 0;
 }

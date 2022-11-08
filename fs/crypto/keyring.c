@@ -131,6 +131,25 @@ static inline bool valid_key_spec(const struct fscrypt_key_specifier *spec)
 	return master_key_spec_len(spec) != 0;
 }
 
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE_RDK)
+int fscrypt_check_accessibility(struct inode *inode)
+{
+	struct fscrypt_info *ci = inode->i_crypt_info;
+	int ret = 0;
+
+	if (ci && ci->ci_policy.version == FSCRYPT_POLICY_V2) {
+		ret = fscrypt_verify_key_added(inode->i_sb,
+			ci->ci_policy.v2.master_key_identifier);
+		if (ret) {
+			fscrypt_err(inode,
+				"Not owner of master key. Access denied!(%d)", ret);
+			return -EPERM;
+		}
+	}
+	return ret;
+}
+#endif
+
 static int fscrypt_user_key_instantiate(struct key *key,
 					struct key_preparsed_payload *prep)
 {
@@ -901,8 +920,14 @@ int fscrypt_verify_key_added(struct super_block *sb,
 	up_read(&mk->mk_sem);
 	fscrypt_put_master_key(mk);
 out:
+
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_FBE_RDK)
+	/* Make root(uid 0) unable to access other users' file */
+	/* NOP */
+#else
 	if (err == -ENOKEY && capable(CAP_FOWNER))
 		err = 0;
+#endif
 	return err;
 }
 
