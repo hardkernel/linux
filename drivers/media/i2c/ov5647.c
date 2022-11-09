@@ -72,6 +72,8 @@
 #define OV5647_REG_MIPI_CTRL00	0x4800
 #define OV5647_REG_MIPI_CTRL14	0x4814
 
+#define OV5647_REG_TEST_PATTERN	0x503D
+
 #define OV5647_EXPOSURE_MIN	0x000000
 #define OV5647_EXPOSURE_MAX	0x0fffff
 #define OV5647_EXPOSURE_STEP	0x01
@@ -100,6 +102,7 @@ struct ov5647_state {
 	unsigned int width;
 	unsigned int height;
 	int power_count;
+	int test_pattern;
 	struct clk *xvclk;
 	struct gpio_desc *pwdn_gpio;
 
@@ -133,6 +136,22 @@ static inline struct ov5647_state *to_state(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct ov5647_state, sd);
 }
+
+static const char * const ov5647_test_pattern_menu[] = {
+	"Disabled",
+	"Color Bars",
+	"Color Squares",
+	"Random Data",
+	"Input Data"
+};
+
+static u8 ov5647_test_pattern_val[] = {
+	0x00, /* Disabled */
+	0x80, /* Color Bars */
+	0x82, /* Color Squares */
+	0x81, /* Random Data */
+	0x83, /* Input Data */
+};
 
 static struct regval_list sensor_oe_disable_regs[] = {
 	{0x3000, 0x00},
@@ -386,6 +405,11 @@ static int ov5647_set_virtual_channel(struct v4l2_subdev *sd, int channel)
 static int ov5647_stream_on(struct v4l2_subdev *sd)
 {
 	int ret;
+
+	/* Apply customized values from user */
+	ret = __v4l2_ctrl_handler_setup(sd->ctrl_handler);
+	if (ret)
+		return ret;
 
 	ret = ov5647_write(sd, OV5647_REG_MIPI_CTRL00, MIPI_CTRL00_BUS_IDLE);
 	if (ret < 0)
@@ -929,6 +953,10 @@ static int ov5647_set_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_VFLIP:
 		ov5647_set_flip(&ov5647->sd, OV5647_REG_VFLIP, ctrl->val);
 		break;
+	case V4L2_CID_TEST_PATTERN:
+		ov5647_write(&ov5647->sd, OV5647_REG_TEST_PATTERN,
+				ov5647_test_pattern_val[ctrl->val]);
+		break;
 	default:
 		break;
 	}
@@ -949,7 +977,7 @@ static int ov5647_initialize_controls(struct v4l2_subdev *sd)
 	int ret;
 
 	handler = &ov5647->ctrl_handler;
-	ret = v4l2_ctrl_handler_init(handler, 1);
+	ret = v4l2_ctrl_handler_init(handler, 9);
 	if (ret)
 		return ret;
 
@@ -964,6 +992,11 @@ static int ov5647_initialize_controls(struct v4l2_subdev *sd)
 	ov5647->pixel_rate =
 	    v4l2_ctrl_new_std(handler, NULL, V4L2_CID_PIXEL_RATE, 0, pixel_rate,
 			      1, pixel_rate);
+
+	v4l2_ctrl_new_std_menu_items(handler, &ov5647_ctrl_ops,
+					   V4L2_CID_TEST_PATTERN,
+					   ARRAY_SIZE(ov5647_test_pattern_menu) - 1,
+					   0, 0, ov5647_test_pattern_menu);
 
 	/* blank */
 	h_blank = mode->hts_def - mode->width;
