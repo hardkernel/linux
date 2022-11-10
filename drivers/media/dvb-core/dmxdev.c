@@ -30,6 +30,10 @@
 #include <media/dmxdev.h>
 #include <media/dvb_vb2.h>
 
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+#include <uapi/linux/dvb/aml_dmx_ext.h>
+#endif
+
 static int debug;
 
 module_param(debug, int, 0644);

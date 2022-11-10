@@ -599,23 +599,23 @@ struct dmx_demux {
 #ifdef CONFIG_AMLOGIC_DVB_COMPAT
 	int (*set_input)(struct dmx_demux *demux, int source);
 	int (*get_ts_mem_info)(struct dmx_demux *demux,
-			struct dmx_ts_feed *feed,
-			struct dmx_mem_info *info);
+			void *feed,
+			void *info);
 	int (*get_sec_mem_info)(struct dmx_demux *demux,
-			struct dmx_section_feed *feed,
-			struct dmx_mem_info *info);
+			void *feed,
+			void *info);
 	int (*set_hw_source)(struct dmx_demux *demux, int hw_source);
 	int (*get_hw_source)(struct dmx_demux *demux, int *hw_source);
 	int (*get_dmx_mem_info)(struct dmx_demux *demux,
-			struct dmx_filter_mem_info *info);
+			void *info);
 	int (*set_sec_mem)(struct dmx_demux *demux,
-			struct dmx_sec_mem *sec_mem);
+			void *sec_mem);
 	int (*get_dvr_mem)(struct dmx_demux *demux,
-			struct dvr_mem_info *info);
+			void *info);
 	int (*remap_pid)(struct dmx_demux *demux,
 			u16 pids[2]);
 	int (*decode_info)(struct dmx_demux *demux,
-		struct decoder_mem_info *info);
+		void *info);
 #endif
 };
 
