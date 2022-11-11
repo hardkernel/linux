@@ -235,6 +235,42 @@ static enum dvbv3_emulation_type dvbv3_type(u32 delivery_system)
 }
 
 #ifdef CONFIG_AMLOGIC_DVB_COMPAT
+static struct dvb_adapter frontend_adapter;
+static int ref_count;
+DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
+struct dvb_adapter *aml_dvb_get_adapter(struct device *dev)
+{
+	mutex_lock(&frontend_mutex);
+	if (!ref_count) {
+		pr_err("%s need register adapter first.\n", __func__);
+		dvb_register_adapter(&frontend_adapter, "amlogic-dvb", THIS_MODULE,
+				dev, adapter_nr);
+	}
+	ref_count++;
+	mutex_unlock(&frontend_mutex);
+	return &frontend_adapter;
+}
+EXPORT_SYMBOL(aml_dvb_get_adapter);
+
+int aml_dvb_put_adapter(struct dvb_adapter *adapter)
+{
+	mutex_lock(&frontend_mutex);
+
+	if (ref_count > 0)
+		ref_count--;
+
+	if (!ref_count && adapter == &frontend_adapter) {
+		pr_err("%s dvb unregister adapter.\n", __func__);
+		dvb_unregister_adapter(&frontend_adapter);
+	}
+
+	mutex_unlock(&frontend_mutex);
+	return 0;
+}
+EXPORT_SYMBOL(aml_dvb_put_adapter);
+#endif
+
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
 void dvb_frontend_add_event(struct dvb_frontend *fe,
 			    enum fe_status status)
 #else

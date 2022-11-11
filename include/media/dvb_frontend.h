@@ -844,5 +844,16 @@ void dvb_frontend_sleep_until(ktime_t *waketime, u32 add_usec);
  * dvb_frontend_add_event() - add event for the dvb frontend
  */
 void dvb_frontend_add_event(struct dvb_frontend *fe, enum fe_status status);
+
+/**
+ * aml_dvb_get_adapter() - offer a common dvb adapter for demod, demux and CI
+ */
+struct dvb_adapter *aml_dvb_get_adapter(struct device *dev);
+/**
+ * aml_dvb_put_adapter() - when call this function, ref count will -1,
+ * if ref count is 0, adapter would be unregistered.
+ */
+int aml_dvb_put_adapter(struct dvb_adapter *adapter);
+
 #endif
 #endif
