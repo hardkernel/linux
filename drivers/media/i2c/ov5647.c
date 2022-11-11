@@ -228,13 +228,14 @@ static struct regval_list ov5647_common_regs[] = {
 	{0x3016, 0x08},
 	{0x3017, 0xe0},
 	{0x3018, 0x44},
-	{0x3034, 0x08},
+	{0x3034, 0x1a},
 	{0x3106, 0xf5},
 	{REG_NULL, 0x00}
 };
 
 static struct regval_list ov5647_1296x972[] = {
 	{0x0100, 0x00},
+	{0x3034, 0x1a},
 	{0x3035, 0x21},		/* PLL */
 	{0x3036, 0x60},		/* PLL */
 	{0x303c, 0x11},		/* PLL */
@@ -780,10 +781,10 @@ static u32 ov5647_get_mbus_code(struct v4l2_subdev *sd)
 	int index = ov5647->hflip->val | (ov5647->vflip->val << 1);
 
 	static const u32 codes[4] = {
-		MEDIA_BUS_FMT_SBGGR8_1X8,
-		MEDIA_BUS_FMT_SGBRG8_1X8,
-		MEDIA_BUS_FMT_SGRBG8_1X8,
-		MEDIA_BUS_FMT_SRGGB8_1X8,
+		MEDIA_BUS_FMT_SBGGR10_1X10,
+		MEDIA_BUS_FMT_SGBRG10_1X10,
+		MEDIA_BUS_FMT_SGRBG10_1X10,
+		MEDIA_BUS_FMT_SRGGB10_1X10,
 	};
 
 	return codes[index];
