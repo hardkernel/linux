@@ -58,6 +58,7 @@
 #define OV5647_REG_LINE_H	0x3500
 #define OV5647_REG_LINE_M	0x3501
 #define OV5647_REG_LINE_L	0x3502
+#define OV5647_REG_AEC_AGC	0x3503
 // AGC
 #define OV5647_REG_GAIN_H	0x350A
 #define OV5647_REG_GAIN_L	0x350B
@@ -72,6 +73,7 @@
 #define OV5647_REG_MIPI_CTRL00	0x4800
 #define OV5647_REG_MIPI_CTRL14	0x4814
 
+#define OV5647_REG_AWB	0x5001
 #define OV5647_REG_TEST_PATTERN	0x503D
 
 #define OV5647_EXPOSURE_MIN	0x000000
@@ -222,7 +224,6 @@ static struct regval_list ov5647_common_regs[] = {
 	{0x5189, 0x00},
 	{0x518a, 0x04},
 	{0x518b, 0x00},
-	{0x5000, 0x00},		/* lenc WBC on */
 	{0x3011, 0x62},
 	/* mipi */
 	{0x3016, 0x08},
@@ -455,6 +456,24 @@ static int set_sw_standby(struct v4l2_subdev *sd, bool standby)
 	return ov5647_write(sd, OV5647_SW_STANDBY, rdval);
 }
 
+static int ov5647_set_autogain(struct v4l2_subdev *sd, u32 val)
+{
+	int ret;
+	u8 reg;
+
+	ret = ov5647_read(sd, OV5647_REG_AEC_AGC, &reg);
+	if (ret)
+		return ret;
+
+	return ov5647_write(sd, OV5647_REG_AEC_AGC, val ? reg & ~BIT(1)
+							: reg | BIT(1));
+}
+
+static int ov5647_set_auto_white_balance(struct v4l2_subdev *sd, u32 val)
+{
+	return ov5647_write(sd, OV5647_REG_AWB, val ? 1 : 0);
+}
+
 static int ov5647_set_exposure(struct v4l2_subdev *sd, s32 val)
 {
 	int ret;
@@ -468,6 +487,20 @@ static int ov5647_set_exposure(struct v4l2_subdev *sd, s32 val)
 		return ret;
 
 	return ov5647_write(sd, OV5647_REG_LINE_H, val >> 16);
+}
+
+static int ov5647_set_exposure_auto(struct v4l2_subdev *sd, u32 val)
+{
+	int ret;
+	u8 reg;
+
+	ret = ov5647_read(sd, OV5647_REG_AEC_AGC, &reg);
+	if (ret)
+		return ret;
+
+	return ov5647_write(sd, OV5647_REG_AEC_AGC,
+			    val == V4L2_EXPOSURE_MANUAL ? reg | BIT(0)
+							: reg & ~BIT(0));
 }
 
 static int ov5647_set_analog_gain(struct v4l2_subdev *sd, s32 val)
@@ -942,8 +975,17 @@ static int ov5647_set_ctrl(struct v4l2_ctrl *ctrl)
 	    container_of(ctrl->handler, struct ov5647_state, ctrl_handler);
 
 	switch (ctrl->id) {
+	case V4L2_CID_AUTOGAIN:
+		ov5647_set_autogain(&ov5647->sd, ctrl->val);
+		break;
+	case V4L2_CID_AUTO_WHITE_BALANCE:
+		ov5647_set_auto_white_balance(&ov5647->sd, ctrl->val);
+		break;
 	case V4L2_CID_EXPOSURE:
 		ov5647_set_exposure(&ov5647->sd, ctrl->val * 16);
+		break;
+	case V4L2_CID_EXPOSURE_AUTO:
+		ov5647_set_exposure_auto(&ov5647->sd, ctrl->val);
 		break;
 	case V4L2_CID_ANALOGUE_GAIN:
 		ov5647_set_analog_gain(&ov5647->sd, ctrl->val);
@@ -1007,6 +1049,15 @@ static int ov5647_initialize_controls(struct v4l2_subdev *sd)
 	ov5647->vblank = v4l2_ctrl_new_std(handler, NULL, V4L2_CID_VBLANK,
 					   v_blank, v_blank, 1, v_blank);
 
+	v4l2_ctrl_new_std(handler, &ov5647_ctrl_ops,
+					     V4L2_CID_AUTOGAIN, 0, 1, 1, 0);
+
+	v4l2_ctrl_new_std(handler, &ov5647_ctrl_ops,
+					     V4L2_CID_AUTO_WHITE_BALANCE, 0, 1, 1, 0);
+
+	v4l2_ctrl_new_std_menu(handler, &ov5647_ctrl_ops,
+					     V4L2_CID_EXPOSURE_AUTO, V4L2_EXPOSURE_MANUAL,
+					     0, V4L2_EXPOSURE_MANUAL);
 	/* exposure */
 	ov5647->exposure = v4l2_ctrl_new_std(handler, &ov5647_ctrl_ops,
 					     V4L2_CID_EXPOSURE,
