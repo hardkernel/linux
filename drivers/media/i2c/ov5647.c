@@ -30,6 +30,7 @@
 #include <linux/videodev2.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
+#include <media/v4l2-event.h>
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-image-sizes.h>
 #include <media/v4l2-mediabus.h>
@@ -42,37 +43,26 @@
 
 #define REG_NULL 0xffff
 
+#define MIPI_CTRL00_CLOCK_LANE_GATE	BIT(5)
 #define MIPI_CTRL00_BUS_IDLE	BIT(2)
+#define MIPI_CTRL00_CLOCK_LANE_DISABLE	BIT(0)
 
-// Chip control
-#define OV5647_SW_STANDBY	0x100
+#define OV5647_SW_STANDBY	0x0100
 #define OV5647_SW_RESET	0x0103
-
-// System Control
 #define OV5647_REG_CHIPID_H	0x300A
 #define OV5647_REG_CHIPID_L	0x300B
 #define OV5647_REG_PAD_OUT2	0x300D
-
-// AEC/AGC1
-// Exposure
-#define OV5647_REG_LINE_H	0x3500
-#define OV5647_REG_LINE_M	0x3501
-#define OV5647_REG_LINE_L	0x3502
+#define OV5647_REG_EXP_H	0x3500
+#define OV5647_REG_EXP_M	0x3501
+#define OV5647_REG_EXP_L	0x3502
 #define OV5647_REG_AEC_AGC	0x3503
-// AGC
 #define OV5647_REG_GAIN_H	0x350A
 #define OV5647_REG_GAIN_L	0x350B
-
 #define OV5647_REG_VFLIP	0x3820
 #define OV5647_REG_HFLIP	0x3821
-
-// Frame Control
 #define OV5647_REG_FRAME_OFF_NUMBER	0x4202
-
-// MIPI Top
 #define OV5647_REG_MIPI_CTRL00	0x4800
 #define OV5647_REG_MIPI_CTRL14	0x4814
-
 #define OV5647_REG_AWB	0x5001
 #define OV5647_REG_TEST_PATTERN	0x503D
 
@@ -428,7 +418,10 @@ static int ov5647_stream_off(struct v4l2_subdev *sd)
 {
 	int ret;
 
-	ret = ov5647_write(sd, OV5647_REG_MIPI_CTRL00, 0x25);
+	ret = ov5647_write(sd, OV5647_REG_MIPI_CTRL00,
+			MIPI_CTRL00_CLOCK_LANE_GATE |
+			MIPI_CTRL00_BUS_IDLE |
+			MIPI_CTRL00_CLOCK_LANE_DISABLE);
 	if (ret < 0)
 		return ret;
 
@@ -478,15 +471,15 @@ static int ov5647_set_exposure(struct v4l2_subdev *sd, s32 val)
 {
 	int ret;
 
-	ret = ov5647_write(sd, OV5647_REG_LINE_L, val & 0x00FF);
+	ret = ov5647_write(sd, OV5647_REG_EXP_L, val & 0x00FF);
 	if (ret < 0)
 		return ret;
 
-	ret = ov5647_write(sd, OV5647_REG_LINE_M, (val & 0xFF00) >> 8);
+	ret = ov5647_write(sd, OV5647_REG_EXP_M, (val & 0xFF00) >> 8);
 	if (ret < 0)
 		return ret;
 
-	return ov5647_write(sd, OV5647_REG_LINE_H, val >> 16);
+	return ov5647_write(sd, OV5647_REG_EXP_H, val >> 16);
 }
 
 static int ov5647_set_exposure_auto(struct v4l2_subdev *sd, u32 val)
@@ -764,6 +757,8 @@ static const struct v4l2_subdev_core_ops ov5647_subdev_core_ops = {
 	.g_register = ov5647_sensor_get_register,
 	.s_register = ov5647_sensor_set_register,
 #endif
+	.subscribe_event = v4l2_ctrl_subdev_subscribe_event,
+	.unsubscribe_event = v4l2_event_subdev_unsubscribe,
 };
 
 static int ov5647_s_stream(struct v4l2_subdev *sd, int enable)
