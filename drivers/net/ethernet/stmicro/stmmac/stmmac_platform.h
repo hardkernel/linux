@@ -21,7 +21,9 @@ int stmmac_get_platform_resources(struct platform_device *pdev,
 
 int stmmac_pltfr_remove(struct platform_device *pdev);
 extern const struct dev_pm_ops stmmac_pltfr_pm_ops;
-
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+extern void __iomem *phy_analog_config_addr;
+#endif
 static inline void *get_stmmac_bsp_priv(struct device *dev)
 {
 	struct net_device *ndev = dev_get_drvdata(dev);

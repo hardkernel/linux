@@ -20,6 +20,12 @@
 #include <linux/stmmac.h>
 
 #include "stmmac_platform.h"
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#include <linux/amlogic/scpi_protocol.h>
+#include <linux/input.h>
+#include <linux/amlogic/pm.h>
+#include <linux/amlogic/aml_phy_debug.h>
+#endif
 
 #define PRG_ETH0			0x0
 
@@ -83,6 +89,10 @@ struct meson8b_dwmac;
 struct meson8b_dwmac_data {
 	int (*set_phy_mode)(struct meson8b_dwmac *dwmac);
 	bool has_prg_eth1_rgmii_rx_delay;
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+	int (*suspend)(struct meson8b_dwmac *dwmac);
+	void (*resume)(struct meson8b_dwmac *dwmac);
+#endif
 };
 
 struct meson8b_dwmac {
@@ -95,6 +105,9 @@ struct meson8b_dwmac {
 	u32				tx_delay_ns;
 	u32				rx_delay_ps;
 	struct clk			*timing_adj_clk;
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+	struct input_dev		*input_dev;
+#endif
 };
 
 struct meson8b_dwmac_clk_configs {
@@ -386,6 +399,19 @@ static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
 }
 
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+void set_wol_notify_bl31(u32 enable_bl31)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(0x8200009D, enable_bl31,
+					0, 0, 0, 0, 0, 0, &res);
+}
+
+static void set_wol_notify_bl30(u32 enable_bl30)
+{
+	scpi_set_ethernet_wol(enable_bl30);
+}
+
 static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac *dwmac)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -407,6 +433,9 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 	struct plat_stmmacenet_data *plat_dat;
 	struct stmmac_resources stmmac_res;
 	struct meson8b_dwmac *dwmac;
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+	struct input_dev *input_dev;
+#endif
 	int ret;
 
 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
@@ -503,6 +532,36 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 		goto err_remove_config_dt;
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 	aml_custom_setting(pdev, dwmac);
+
+	/*input device to send virtual pwr key for android*/
+	input_dev = input_allocate_device();
+	if (!input_dev) {
+		pr_err("[abner test]input_allocate_device failed: %d\n", ret);
+		return -EINVAL;
+	}
+	set_bit(EV_KEY,  input_dev->evbit);
+	set_bit(KEY_POWER, input_dev->keybit);
+	set_bit(133, input_dev->keybit);
+
+	input_dev->name = "input_ethrcu";
+	input_dev->phys = "input_ethrcu/input0";
+	input_dev->dev.parent = &pdev->dev;
+	input_dev->id.bustype = BUS_ISA;
+	input_dev->id.vendor = 0x0001;
+	input_dev->id.product = 0x0001;
+	input_dev->id.version = 0x0100;
+	input_dev->rep[REP_DELAY] = 0xffffffff;
+	input_dev->rep[REP_PERIOD] = 0xffffffff;
+	input_dev->keycodesize = sizeof(unsigned short);
+	input_dev->keycodemax = 0x1ff;
+	ret = input_register_device(input_dev);
+	if (ret < 0) {
+		pr_err("[abner test]input_register_device failed: %d\n", ret);
+		input_free_device(input_dev);
+		return -EINVAL;
+	}
+	dwmac->input_dev = input_dev;
+
 #endif
 	return 0;
 
@@ -512,6 +571,122 @@ err_remove_config_dt:
 	return ret;
 }
 
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+static int dwmac_suspend(struct meson8b_dwmac *dwmac)
+{
+	pr_info("disable analog\n");
+	writel(0x00000000, phy_analog_config_addr + 0x0);
+	writel(0x003e0000, phy_analog_config_addr + 0x4);
+	writel(0x12844008, phy_analog_config_addr + 0x8);
+	writel(0x0800a40c, phy_analog_config_addr + 0xc);
+	writel(0x00000000, phy_analog_config_addr + 0x10);
+	writel(0x031d161c, phy_analog_config_addr + 0x14);
+	writel(0x00001683, phy_analog_config_addr + 0x18);
+	writel(0x09c0040a, phy_analog_config_addr + 0x44);
+	return 0;
+}
+
+static void dwmac_resume(struct meson8b_dwmac *dwmac)
+{
+	pr_info("recover analog\n");
+	writel(0x19c0040a, phy_analog_config_addr + 0x44);
+	writel(0x0, phy_analog_config_addr + 0x4);
+}
+
+int backup_adv;
+static int meson8b_suspend(struct device *dev)
+{
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct stmmac_priv *priv = netdev_priv(ndev);
+	struct meson8b_dwmac *dwmac = priv->plat->bsp_priv;
+	struct phy_device *phydev = ndev->phydev;
+
+	int ret;
+
+	/*open wol*/
+	if (wol_switch_from_user) {
+		set_wol_notify_bl31(true);
+		set_wol_notify_bl30(true);
+		device_init_wakeup(dev, true);
+		priv->wolopts = 0x1 << 5;
+		ndev->wol_enabled = true;
+		/*phy is 100M, change to 10M*/
+		pr_info("link 100M -> 10M\n");
+		backup_adv = phy_read(phydev, MII_ADVERTISE);
+		phy_write(phydev, MII_ADVERTISE, 0x61);
+		mii_lpa_to_linkmode_lpa_t(phydev->advertising, 0x61);
+		genphy_restart_aneg(phydev);
+		msleep(3000);
+
+		ret = stmmac_suspend(dev);
+	} else {
+		set_wol_notify_bl31(false);
+		set_wol_notify_bl30(false);
+		device_init_wakeup(dev, false);
+		ndev->wol_enabled = false;
+
+		ret = stmmac_suspend(dev);
+		if (dwmac->data->suspend)
+			ret = dwmac->data->suspend(dwmac);
+	}
+
+	return ret;
+}
+
+static int meson8b_resume(struct device *dev)
+{
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct stmmac_priv *priv = netdev_priv(ndev);
+	struct meson8b_dwmac *dwmac = priv->plat->bsp_priv;
+	int ret;
+	struct phy_device *phydev = ndev->phydev;
+
+	if (wol_switch_from_user) {
+		ret = stmmac_resume(dev);
+
+		if (get_resume_method() == ETH_PHY_WAKEUP) {
+			pr_info("evan---wol rx--KEY_POWER\n");
+			input_event(dwmac->input_dev,
+				EV_KEY, KEY_POWER, 1);
+			input_sync(dwmac->input_dev);
+			input_event(dwmac->input_dev,
+				EV_KEY, KEY_POWER, 0);
+			input_sync(dwmac->input_dev);
+		}
+
+		phy_write(phydev, MII_ADVERTISE, backup_adv);
+		mii_lpa_to_linkmode_lpa_t(phydev->advertising, backup_adv);
+		genphy_restart_aneg(phydev);
+	} else {
+		if (dwmac->data->resume)
+			dwmac->data->resume(dwmac);
+		ret = stmmac_resume(dev);
+	}
+	return ret;
+}
+
+static int meson8b_dwmac_remove(struct platform_device *pdev)
+{
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct stmmac_priv *priv = netdev_priv(ndev);
+	int err;
+
+	struct meson8b_dwmac *dwmac = get_stmmac_bsp_priv(&pdev->dev);
+
+	input_unregister_device(dwmac->input_dev);
+
+	err = stmmac_dvr_remove(&pdev->dev);
+	if (err < 0)
+		dev_err(&pdev->dev, "failed to remove platform: %d\n", err);
+
+	stmmac_remove_config_dt(pdev, priv->plat);
+
+	return err;
+}
+
+static SIMPLE_DEV_PM_OPS(meson8b_pm_ops,
+	meson8b_suspend, meson8b_resume);
+#endif
 static const struct meson8b_dwmac_data meson8b_dwmac_data = {
 	.set_phy_mode = meson8b_set_phy_mode,
 	.has_prg_eth1_rgmii_rx_delay = false,
@@ -520,6 +695,10 @@ static const struct meson8b_dwmac_data meson8b_dwmac_data = {
 static const struct meson8b_dwmac_data meson_axg_dwmac_data = {
 	.set_phy_mode = meson_axg_set_phy_mode,
 	.has_prg_eth1_rgmii_rx_delay = false,
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+	.suspend = dwmac_suspend,
+	.resume = dwmac_resume,
+#endif
 };
 
 static const struct meson8b_dwmac_data meson_g12a_dwmac_data = {
@@ -554,10 +733,18 @@ MODULE_DEVICE_TABLE(of, meson8b_dwmac_match);
 
 static struct platform_driver meson8b_dwmac_driver = {
 	.probe  = meson8b_dwmac_probe,
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+	.remove = meson8b_dwmac_remove,
+#else
 	.remove = stmmac_pltfr_remove,
+#endif
 	.driver = {
 		.name           = "meson8b-dwmac",
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+		.pm		= &meson8b_pm_ops,
+#else
 		.pm		= &stmmac_pltfr_pm_ops,
+#endif
 		.of_match_table = meson8b_dwmac_match,
 	},
 };
