@@ -600,8 +600,14 @@ struct fe_blind_scan_parameters {
 #define DTV_BLIND_SCAN_FRE_RANGE        107
 #define DTV_BLIND_SCAN_FRE_STEP         108
 #define DTV_BLIND_SCAN_TIMEOUT          109
+#define DTV_SINGLE_CABLE_VER            110
+#define DTV_SINGLE_CABLE_USER_BAND      111
+#define DTV_SINGLE_CABLE_BAND_FRE       112
+#define DTV_SINGLE_CABLE_BANK           113
+#define DTV_SINGLE_CABLE_UNCOMMITTED    114
+#define DTV_SINGLE_CABLE_COMMITTED      115
 /* Blind scan end*/
-#define DTV_DELIVERY_SUB_SYSTEM			110
+#define DTV_DELIVERY_SUB_SYSTEM			116
 #define DTV_MAX_COMMAND		DTV_DELIVERY_SUB_SYSTEM
 /* amlogic define end */
 /**
@@ -1182,5 +1188,34 @@ struct dvbsx_blindscanpara {
 #define FE_GET_FRONTEND		   _IOR('o', 77, struct dvb_frontend_parameters)
 
 #endif
+
+/* amlogic define */
+struct dvbsx_singlecable_parameters {
+	/* not singlecable: 0, 1.0X - 1(EN50494), 2.0X - 2(EN50607) */
+	__u32 version;
+	__u32 userband;  /* 1.0X: 0 - 7, 2.0X: 0 - 31 */
+	__u32 frequency; /* KHz */
+	__u32 bank;
+	/*
+	 * Uncommitted switches setting for SCD2 (Similar to DiSEqC WriteN1 command,
+	 * but lower 4 bits only)
+	 *  Bit[0] : Switch 1 Position A or B
+	 *  Bit[1] : Switch 2 Position A or B
+	 *  Bit[2] : Switch 3 Position A or B
+	 *  Bit[3] : Switch 4 Position A or B
+	 */
+	__u32 uncommitted;
+	/*
+	 * Committed switches setting for SCD2 (Similar to DiSEqC WriteN0 command,
+	 * but lower 4 bits only)
+	 *  Bit[0] : Low or High Band
+	 *  Bit[1] : Vertical or Horizontal Polarization
+	 *  Bit[2] : Satellite Position A or B
+	 *  Bit[3] : Option Switch Position A or B
+	 */
+	__u32 committed;
+};
+
+/* amlogic define end */
 
 #endif /*_DVBFRONTEND_H_*/
