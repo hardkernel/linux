@@ -43,7 +43,9 @@
 #include <linux/slab.h>
 #include <linux/bitops.h>
 
-#include <linux/dvb/frontend.h>
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+#include <linux/dvb/aml_fe_ext.h>
+#endif
 
 #include <media/dvbdev.h>
 

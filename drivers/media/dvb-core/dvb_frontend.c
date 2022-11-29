@@ -1120,7 +1120,11 @@ static int dvb_frontend_clear_cache(struct dvb_frontend *fe)
 #define _DTV_CMD(n) \
 	[n] =  #n
 
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+static char *dtv_cmds[AML_DTV_MAX_COMMAND + 1] = {
+#else
 static char *dtv_cmds[DTV_MAX_COMMAND + 1] = {
+#endif
 	_DTV_CMD(DTV_TUNE),
 	_DTV_CMD(DTV_CLEAR),
 
@@ -1216,7 +1220,11 @@ static char *dtv_cmds[DTV_MAX_COMMAND + 1] = {
 
 static char *dtv_cmd_name(u32 cmd)
 {
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+	cmd = array_index_nospec(cmd, AML_DTV_MAX_COMMAND);
+#else
 	cmd = array_index_nospec(cmd, DTV_MAX_COMMAND);
+#endif
 	return dtv_cmds[cmd];
 }
 
@@ -1984,7 +1992,11 @@ static int dtv_property_process_set(struct dvb_frontend *fe,
 #endif
 
 	/** Dump DTV command name and value*/
+#ifdef CONFIG_AMLOGIC_DVB_COMPAT
+	if (!cmd || cmd > AML_DTV_MAX_COMMAND)
+#else
 	if (!cmd || cmd > DTV_MAX_COMMAND)
+#endif
 		dev_warn(fe->dvb->device, "%s: SET cmd 0x%08x undefined\n",
 			 __func__, cmd);
 	else
