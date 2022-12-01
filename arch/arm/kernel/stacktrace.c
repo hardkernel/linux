@@ -4,6 +4,10 @@
 #include <linux/sched/debug.h>
 #include <linux/stacktrace.h>
 
+#ifdef CONFIG_AMLOGIC_ARM_KASAN
+#include <linux/module.h>
+#endif
+
 #include <asm/sections.h>
 #include <asm/stacktrace.h>
 #include <asm/traps.h>
@@ -92,6 +96,17 @@ struct stack_trace_data {
 	unsigned int skip;
 };
 
+#ifdef CONFIG_AMLOGIC_ARM_KASAN
+static inline bool kernel_or_module_addr(unsigned long addr)
+{
+	if (addr >= (unsigned long)_stext && addr < (unsigned long)_end)
+		return true;
+	if (is_module_address((unsigned long)addr))
+		return true;
+	return false;
+}
+#endif
+
 static int save_trace(struct stackframe *frame, void *d)
 {
 	struct stack_trace_data *data = d;
@@ -106,7 +121,12 @@ static int save_trace(struct stackframe *frame, void *d)
 		return 0;
 	}
 
+#ifdef CONFIG_AMLOGIC_ARM_KASAN
+	if (kernel_or_module_addr(addr))
+		trace->entries[trace->nr_entries++] = addr;
+#else
 	trace->entries[trace->nr_entries++] = addr;
+#endif
 
 	if (trace->nr_entries >= trace->max_entries)
 		return 1;
@@ -118,7 +138,12 @@ static int save_trace(struct stackframe *frame, void *d)
 	if ((unsigned long)&regs[1] > ALIGN(frame->sp, THREAD_SIZE))
 		return 0;
 
+#ifdef CONFIG_AMLOGIC_ARM_KASAN
+	if (kernel_or_module_addr(regs->ARM_pc))
+		trace->entries[trace->nr_entries++] = regs->ARM_pc;
+#else
 	trace->entries[trace->nr_entries++] = regs->ARM_pc;
+#endif
 
 	return trace->nr_entries >= trace->max_entries;
 }
