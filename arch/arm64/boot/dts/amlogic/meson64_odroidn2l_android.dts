@@ -33,11 +33,3 @@
 	status = "disabled";
 	/delete-node/ rtc@51;
 };
-
-&usb3_phy_v2 {
-	status = "disabled";
-};
-
-&dwc2_a {
-	status = "disabled";
-};
