@@ -21,9 +21,12 @@
 
 #include "stmmac_platform.h"
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 #include <linux/amlogic/scpi_protocol.h>
 #include <linux/input.h>
 #include <linux/amlogic/pm.h>
+#include <linux/arm-smccc.h>
+#endif
 #include <linux/amlogic/aml_phy_debug.h>
 #endif
 
@@ -90,8 +93,10 @@ struct meson8b_dwmac_data {
 	int (*set_phy_mode)(struct meson8b_dwmac *dwmac);
 	bool has_prg_eth1_rgmii_rx_delay;
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 	int (*suspend)(struct meson8b_dwmac *dwmac);
 	void (*resume)(struct meson8b_dwmac *dwmac);
+#endif
 #endif
 };
 
@@ -106,7 +111,9 @@ struct meson8b_dwmac {
 	u32				rx_delay_ps;
 	struct clk			*timing_adj_clk;
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 	struct input_dev		*input_dev;
+#endif
 #endif
 };
 
@@ -399,6 +406,7 @@ static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
 }
 
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 void set_wol_notify_bl31(u32 enable_bl31)
 {
 	struct arm_smccc_res res;
@@ -411,7 +419,7 @@ static void set_wol_notify_bl30(u32 enable_bl30)
 {
 	scpi_set_ethernet_wol(enable_bl30);
 }
-
+#endif
 static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac *dwmac)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -434,7 +442,9 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 	struct stmmac_resources stmmac_res;
 	struct meson8b_dwmac *dwmac;
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 	struct input_dev *input_dev;
+#endif
 #endif
 	int ret;
 
@@ -532,7 +542,7 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 		goto err_remove_config_dt;
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 	aml_custom_setting(pdev, dwmac);
-
+#ifdef CONFIG_PM_SLEEP
 	/*input device to send virtual pwr key for android*/
 	input_dev = input_allocate_device();
 	if (!input_dev) {
@@ -561,7 +571,7 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	dwmac->input_dev = input_dev;
-
+#endif
 #endif
 	return 0;
 
@@ -572,6 +582,7 @@ err_remove_config_dt:
 }
 
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 static int dwmac_suspend(struct meson8b_dwmac *dwmac)
 {
 	pr_info("disable analog\n");
@@ -687,6 +698,7 @@ static int meson8b_dwmac_remove(struct platform_device *pdev)
 static SIMPLE_DEV_PM_OPS(meson8b_pm_ops,
 	meson8b_suspend, meson8b_resume);
 #endif
+#endif
 static const struct meson8b_dwmac_data meson8b_dwmac_data = {
 	.set_phy_mode = meson8b_set_phy_mode,
 	.has_prg_eth1_rgmii_rx_delay = false,
@@ -696,8 +708,10 @@ static const struct meson8b_dwmac_data meson_axg_dwmac_data = {
 	.set_phy_mode = meson_axg_set_phy_mode,
 	.has_prg_eth1_rgmii_rx_delay = false,
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 	.suspend = dwmac_suspend,
 	.resume = dwmac_resume,
+#endif
 #endif
 };
 
@@ -734,14 +748,18 @@ MODULE_DEVICE_TABLE(of, meson8b_dwmac_match);
 static struct platform_driver meson8b_dwmac_driver = {
 	.probe  = meson8b_dwmac_probe,
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 	.remove = meson8b_dwmac_remove,
+#endif
 #else
 	.remove = stmmac_pltfr_remove,
 #endif
 	.driver = {
 		.name           = "meson8b-dwmac",
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 		.pm		= &meson8b_pm_ops,
+#endif
 #else
 		.pm		= &stmmac_pltfr_pm_ops,
 #endif
