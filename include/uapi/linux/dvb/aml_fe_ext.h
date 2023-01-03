@@ -41,7 +41,7 @@ struct fe_blind_scan_parameters {
 
 #define BLINDSCAN_NONEDO		0x80  /* not blind scan	*/
 #define BLINDSCAN_UPDATESTARTFREQ	0x100 /* blind scan update start freq	*/
-#define  BLINDSCAN_UPDATEPROCESS	0x20  /* blind scan update process  */
+#define BLINDSCAN_UPDATEPROCESS	0x200 /* blind scan update process  */
 #define BLINDSCAN_UPDATERESULTFREQ	0x400 /* blind scan update result  */
 
 /* Get tne TS input of the frontend */
