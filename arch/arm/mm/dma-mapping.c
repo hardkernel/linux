@@ -34,6 +34,9 @@
 #include <asm/mach/map.h>
 #include <asm/system_info.h>
 #include <xen/swiotlb-xen.h>
+#ifdef CONFIG_AMLOGIC_PCIE_DMA_OPS
+#include <linux/amlogic/dma_pcie_mapping.h>
+#endif
 
 #include "dma.h"
 #include "mm.h"
@@ -2288,6 +2291,11 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
 		dma_ops = arm_get_dma_map_ops(coherent);
 
 	set_dma_ops(dev, dma_ops);
+
+#ifdef CONFIG_AMLOGIC_PCIE_DMA_OPS
+	if (dev->bus && dev->bus->name && !strcmp(dev->bus->name, "pci"))
+		set_dma_ops(dev, &aml_pcie_dma_ops);
+#endif
 
 #ifdef CONFIG_XEN
 	if (xen_initial_domain())
