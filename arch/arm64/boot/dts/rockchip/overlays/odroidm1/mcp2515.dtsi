@@ -39,7 +39,7 @@
 			mcp2515: can@0 {
 				compatible = "microchip,mcp2515";
 				pinctrl-names = "default";
-				pinctrl-0 = <&mcp2515_can0>;
+				pinctrl-0 = <&mcp2515_int_pins>;
 				reg = <0>;
 				clocks = <&can0_clk>;
 				interrupt-parent = <&gpio0>;
