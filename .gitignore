@@ -162,3 +162,6 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
+
+# amlogic drivers
+/common_drivers/

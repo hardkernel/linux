@@ -438,6 +438,14 @@ ifneq ($(SRCARCH),$(SUBARCH))
 cross_compiling := 1
 endif
 
+# ifdef CONFIG_AMLOGIC_DRIVER
+# config cannot be used here to mark AMLOGIC modifications
+# If these three variables are not set externally, set their default values
+export COMMON_DRIVERS_DIR ?= common_drivers
+dtstree ?= $(COMMON_DRIVERS_DIR)/arch/$(SRCARCH)/boot/dts/
+export DTC_INCLUDE ?= $(srctree)/$(COMMON_DRIVERS_DIR)/include
+# endif
+
 KCONFIG_CONFIG	?= .config
 export KCONFIG_CONFIG
 
@@ -689,10 +697,26 @@ ifdef need-config
 include include/config/auto.conf
 endif
 
+ifdef CONFIG_AMLOGIC_DRIVER
+USERINCLUDE    += \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include/uapi
+
+LINUXINCLUDE   += \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include/uapi
+KBUILD_CFLAGS += -Werror
+KBUILD_AFLAGS += -Wno-unused-command-line-argument
+endif
+
 ifeq ($(KBUILD_EXTMOD),)
 # Objects we will link into vmlinux / subdirs we need to visit
 core-y		:= init/ usr/ arch/$(SRCARCH)/
 drivers-y	:= drivers/ sound/
+ifdef CONFIG_AMLOGIC_IN_KERNEL_MODULES
+drivers-y	+= $(COMMON_DRIVERS_DIR)/drivers/ $(COMMON_DRIVERS_DIR)/sound/
+drivers-y       += $(COMMON_DRIVERS_DIR)/samples/
+endif
 drivers-$(CONFIG_SAMPLES) += samples/
 drivers-$(CONFIG_NET) += net/
 drivers-y	+= virt/
@@ -1220,6 +1244,9 @@ ifeq ($(KBUILD_EXTMOD),)
 endif
 	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)include/uapi
 	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)arch/$(SRCARCH)/include/uapi
+ifdef CONFIG_AMLOGIC_DRIVER
+	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)$(COMMON_DRIVERS_DIR)/include/uapi
+endif
 
 ifeq ($(KBUILD_EXTMOD),)
 core-y			+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/
@@ -1482,10 +1509,22 @@ endif
 ifneq ($(dtstree),)
 
 %.dtb: include/config/kernel.release scripts_dtc
-	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+ifdef CONFIG_AMLOGIC_DRIVER
+	$(if $(wildcard $(srctree)/$(dtstree)/amlogic/$(addsuffix .dts,$(basename $@))),\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/amlogic/$@,\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@)
+else
+	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@)
+endif
 
 %.dtbo: include/config/kernel.release scripts_dtc
-	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+ifdef CONFIG_AMLOGIC_DRIVER
+	$(if $(wildcard $(srctree)/$(dtstree)/amlogic/$(addsuffix .dts,$(basename $@))),\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/amlogic/$@,\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@)
+else
+	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@)
+endif
 
 PHONY += dtbs dtbs_install dtbs_check
 dtbs: include/config/kernel.release scripts_dtc

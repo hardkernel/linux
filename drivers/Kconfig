@@ -238,4 +238,65 @@ source "drivers/interconnect/Kconfig"
 source "drivers/counter/Kconfig"
 
 source "drivers/most/Kconfig"
+
+config AMLOGIC_DRIVER
+	bool "Amlogic Peripheral drivers"
+	default n
+	help
+	  this option is provided for control amlogic
+	  drivers, if you want to use amlogic driver
+	  please open it.
+	  Note: All amlogic driver should be placed in
+	  directory $(COMMON_DRIVERS_DIR)/drivers/
+
+if AMLOGIC_DRIVER
+config AMLOGIC_BREAK_GKI_20
+	bool "Amlogic Break GKI 2.0"
+	default n
+	help
+	  this option is provide for control Break GKI 2.0,
+	  if you want to break gki2.0 rule, should enable it,
+	  all break gki2.0 modify should be depends on this option
+
+config AMLOGIC_BREAK_GKI
+	bool "Amlogic Break GKI"
+	select AMLOGIC_BREAK_GKI_20
+	default n
+	help
+	  this option is provide for control Break GKI,
+	  if you want to debug driver temporarily, should enable it,
+	  export function or variable with this config,
+	  and the driver Kconfig depends on this option
+
+config AMLOGIC_MODIFY
+	bool "Amlogic modify for kernel code"
+	default n
+	help
+	  This option is set up for AMLOGIC modify of standard
+	  kernel source code. All modify of kernel standard code
+	  should be wrapped by this config
+
+config AMLOGIC_IN_KERNEL_MODULES
+	bool "Amlogic Drivers in build or extra build"
+	default n
+	help
+	  this option is provided for control amlogic
+	  drivers in build or extra build, if you want
+	  to in build, should enable; if want to extra
+	  build, should disable
+
+config AMLOGIC_KERNEL_VERSION
+	int "Amlogic Kernel Version"
+	default 14515
+	help
+	  kernel from android14-5.15
+	  so the default value is 14515
+	  the driver uses it to adapt different kernel versions
+
+if AMLOGIC_IN_KERNEL_MODULES
+source "$(COMMON_DRIVERS_DIR)/drivers/Kconfig"
+source "$(COMMON_DRIVERS_DIR)/sound/Kconfig"
+source "$(COMMON_DRIVERS_DIR)/samples/Kconfig"
+endif
+endif
 endmenu
