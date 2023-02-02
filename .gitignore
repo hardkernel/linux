@@ -178,3 +178,6 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# amlogic drivers
+/common_drivers/

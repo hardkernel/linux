@@ -97,3 +97,12 @@ obj-$(CONFIG_SAMPLES)	+= samples/
 obj-$(CONFIG_NET)	+= net/
 obj-y			+= virt/
 obj-y			+= $(ARCH_DRIVERS)
+ifeq ($(CONFIG_AMLOGIC_IN_KERNEL_MODULES),y)
+ifeq ($(CONFIG_AMLOGIC_DDK_BUILD),y)
+	obj-y		+= $(COMMON_DRIVERS_DIR)/drivers/tty/serial/
+else
+	obj-y		+= $(COMMON_DRIVERS_DIR)/drivers/
+	obj-y		+= $(COMMON_DRIVERS_DIR)/sound/
+	obj-y		+= $(COMMON_DRIVERS_DIR)/samples/
+endif
+endif

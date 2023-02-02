@@ -428,6 +428,20 @@ ifneq ($(SRCARCH),$(SUBARCH))
 cross_compiling := 1
 endif
 
+# ifdef CONFIG_AMLOGIC_DRIVER
+# config cannot be used here to mark AMLOGIC modifications
+# If these three variables are not set externally, set their default values
+ifeq ($(shell test -d $(srctree)/common_drivers; echo $$?),0)
+       export COMMON_DRIVERS_DIR := common_drivers
+else
+       export COMMON_DRIVERS_DIR := ../common_drivers
+endif
+export KCONFIG_EXT_PREFIX ?= ${COMMON_DRIVERS_DIR}/
+export KCONFIG_PROJECT_PREFIX ?= ${COMMON_DRIVERS_DIR}/
+export dtstree ?= $(COMMON_DRIVERS_DIR)/arch/$(SRCARCH)/boot/dts/
+export DTC_INCLUDE ?= $(srctree)/$(COMMON_DRIVERS_DIR)/include
+# endif
+
 KCONFIG_CONFIG	?= .config
 export KCONFIG_CONFIG
 
@@ -831,6 +845,18 @@ endif # need-config
 
 KBUILD_CFLAGS	+= -fno-delete-null-pointer-checks
 
+ifdef CONFIG_AMLOGIC_DRIVER
+USERINCLUDE    += \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include/uapi
+
+LINUXINCLUDE   += \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include \
+		-I$(srctree)/$(COMMON_DRIVERS_DIR)/include/uapi
+KBUILD_CFLAGS += -Werror
+KBUILD_AFLAGS += -Wno-unused-command-line-argument
+endif
+
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
 KBUILD_RUSTFLAGS += -Copt-level=2
@@ -1182,6 +1208,9 @@ ifeq ($(KBUILD_EXTMOD),)
 endif
 	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)include/uapi
 	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)arch/$(SRCARCH)/include/uapi
+ifdef CONFIG_AMLOGIC_DRIVER
+	$(Q)$(MAKE) $(hdr-inst)=$(hdr-prefix)$(COMMON_DRIVERS_DIR)/include/uapi
+endif
 
 ifeq ($(KBUILD_EXTMOD),)
 
@@ -1451,10 +1480,22 @@ endif
 ifneq ($(dtstree),)
 
 %.dtb: dtbs_prepare
+ifdef CONFIG_AMLOGIC_DRIVER
+	$(if $(wildcard $(srctree)/$(dtstree)/amlogic/$(addsuffix .dts,$(basename $@))),\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/amlogic/$@,\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@)
+else
 	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+endif
 
 %.dtbo: dtbs_prepare
+ifdef CONFIG_AMLOGIC_DRIVER
+	$(if $(wildcard $(srctree)/$(dtstree)/amlogic/$(addsuffix .dts,$(basename $@))),\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/amlogic/$@,\
+		$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+else
 	$(Q)$(MAKE) $(build)=$(dtstree) $(dtstree)/$@
+endif
 
 PHONY += dtbs dtbs_prepare dtbs_install dtbs_check
 dtbs: dtbs_prepare
