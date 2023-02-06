@@ -423,6 +423,7 @@ static void set_wol_notify_bl30(u32 enable_bl30)
 static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac *dwmac)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct net_device *ndev = platform_get_drvdata(pdev);
 	unsigned int mc_val = 0;
 
 	pr_info("aml_cust_setting\n");
@@ -432,6 +433,7 @@ static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac
 		writel(mc_val, dwmac->regs + PRG_ETH0);
 	}
 
+	ndev->wol_enabled = true;
 	return 0;
 }
 #endif
@@ -620,7 +622,6 @@ static int meson8b_suspend(struct device *dev)
 		set_wol_notify_bl30(true);
 		device_init_wakeup(dev, true);
 		priv->wolopts = 0x1 << 5;
-		ndev->wol_enabled = true;
 		/*phy is 100M, change to 10M*/
 		pr_info("link 100M -> 10M\n");
 		backup_adv = phy_read(phydev, MII_ADVERTISE);
@@ -628,13 +629,11 @@ static int meson8b_suspend(struct device *dev)
 		mii_lpa_to_linkmode_lpa_t(phydev->advertising, 0x61);
 		genphy_restart_aneg(phydev);
 		msleep(3000);
-
 		ret = stmmac_suspend(dev);
 	} else {
 		set_wol_notify_bl31(false);
 		set_wol_notify_bl30(false);
 		device_init_wakeup(dev, false);
-		ndev->wol_enabled = false;
 
 		ret = stmmac_suspend(dev);
 		if (dwmac->data->suspend)
@@ -651,6 +650,8 @@ static int meson8b_resume(struct device *dev)
 	struct meson8b_dwmac *dwmac = priv->plat->bsp_priv;
 	int ret;
 	struct phy_device *phydev = ndev->phydev;
+
+	priv->wolopts = 0;
 
 	if (wol_switch_from_user) {
 		ret = stmmac_resume(dev);
