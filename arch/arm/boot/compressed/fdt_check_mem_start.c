@@ -68,6 +68,11 @@ uint32_t fdt_check_mem_start(uint32_t mem_start, const void *fdt)
 	const char *type;
 	int offset, len;
 
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_S_OPTIMIZE)
+	//Optimize for boottime
+	if (fdt)
+		return mem_start;
+#endif
 	if (!fdt)
 		return mem_start;
 
