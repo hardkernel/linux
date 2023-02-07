@@ -583,6 +583,19 @@ err_remove_config_dt:
 	return ret;
 }
 
+static void meson8b_dwmac_shutdown(struct platform_device *pdev)
+{
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct stmmac_priv *priv = netdev_priv(ndev);
+	struct meson8b_dwmac *dwmac = get_stmmac_bsp_priv(&pdev->dev);
+	int ret;
+
+	pr_info("aml_eth_shutdown\n");
+	ret = stmmac_suspend(priv->device);
+	if (dwmac->data->suspend)
+		ret = dwmac->data->suspend(dwmac);
+}
+
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 #ifdef CONFIG_PM_SLEEP
 static int dwmac_suspend(struct meson8b_dwmac *dwmac)
@@ -755,6 +768,7 @@ static struct platform_driver meson8b_dwmac_driver = {
 #else
 	.remove = stmmac_pltfr_remove,
 #endif
+	.shutdown = meson8b_dwmac_shutdown,
 	.driver = {
 		.name           = "meson8b-dwmac",
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
