@@ -583,6 +583,8 @@ err_remove_config_dt:
 	return ret;
 }
 
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 static void meson8b_dwmac_shutdown(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
@@ -596,8 +598,6 @@ static void meson8b_dwmac_shutdown(struct platform_device *pdev)
 		ret = dwmac->data->suspend(dwmac);
 }
 
-#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
-#ifdef CONFIG_PM_SLEEP
 static int dwmac_suspend(struct meson8b_dwmac *dwmac)
 {
 	pr_info("disable analog\n");
@@ -768,7 +768,11 @@ static struct platform_driver meson8b_dwmac_driver = {
 #else
 	.remove = stmmac_pltfr_remove,
 #endif
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
 	.shutdown = meson8b_dwmac_shutdown,
+#endif
+#endif
 	.driver = {
 		.name           = "meson8b-dwmac",
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
