@@ -23,6 +23,9 @@
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 #ifdef CONFIG_PM_SLEEP
 #include <linux/amlogic/scpi_protocol.h>
+#ifdef MBOX_NEW_VERSION
+#include <linux/amlogic/aml_mbox.h>
+#endif
 #include <linux/input.h>
 #include <linux/amlogic/pm.h>
 #include <linux/arm-smccc.h>
@@ -113,6 +116,7 @@ struct meson8b_dwmac {
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 #ifdef CONFIG_PM_SLEEP
 	struct input_dev		*input_dev;
+	struct mbox_chan		*mbox_chan;
 #endif
 #endif
 };
@@ -416,9 +420,14 @@ void set_wol_notify_bl31(u32 enable_bl31)
 					0, 0, 0, 0, 0, 0, &res);
 }
 
-static void set_wol_notify_bl30(u32 enable_bl30)
+static void set_wol_notify_bl30(struct meson8b_dwmac *dwmac, u32 enable_bl30)
 {
+	#ifdef MBOX_NEW_VERSION
+	aml_mbox_transfer_data(dwmac->mbox_chan, MBOX_CMD_SET_ETHERNET_WOL,
+			       &enable_bl30, 4, NULL, 0, MBOX_SYNC);
+	#else
 	scpi_set_ethernet_wol(enable_bl30);
+	#endif
 }
 
 void set_device_init_flag(struct device *pdev, bool enable)
@@ -603,6 +612,10 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	dwmac->input_dev = input_dev;
+
+#ifdef MBOX_NEW_VERSION
+	dwmac->mbox_chan = aml_mbox_request_channel_byidx(&pdev->dev, 0);
+#endif
 #endif
 #endif
 	return 0;
@@ -624,7 +637,7 @@ static void meson8b_dwmac_shutdown(struct platform_device *pdev)
 
 	if (wol_switch_from_user) {
 		set_wol_notify_bl31(0);
-		set_wol_notify_bl30(0);
+		set_wol_notify_bl30(dwmac, 0);
 		set_device_init_flag(&pdev->dev, 0);
 	}
 
@@ -685,7 +698,7 @@ static int meson8b_suspend(struct device *dev)
 	/*open wol, shutdown phy when not link*/
 	if ((wol_switch_from_user) && phydev->link) {
 		set_wol_notify_bl31(true);
-		set_wol_notify_bl30(true);
+		set_wol_notify_bl30(dwmac, true);
 		set_device_init_flag(dev, true);
 		priv->wolopts = 0x1 << 5;
 		/*our phy not support wol by now*/
@@ -703,7 +716,7 @@ static int meson8b_suspend(struct device *dev)
 		without_reset = 1;
 	} else {
 		set_wol_notify_bl31(false);
-		set_wol_notify_bl30(false);
+		set_wol_notify_bl30(dwmac, false);
 		set_device_init_flag(dev, false);
 
 		ret = stmmac_suspend(dev);
