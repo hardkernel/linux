@@ -2175,6 +2175,12 @@ static int dtv_property_process_set(struct dvb_frontend *fe,
 	case DTV_BLIND_SCAN_FRE_RANGE:
 	case DTV_BLIND_SCAN_FRE_STEP:
 	case DTV_BLIND_SCAN_TIMEOUT:
+	case DTV_SINGLE_CABLE_VER:
+	case DTV_SINGLE_CABLE_USER_BAND:
+	case DTV_SINGLE_CABLE_BAND_FRE:
+	case DTV_SINGLE_CABLE_BANK:
+	case DTV_SINGLE_CABLE_UNCOMMITTED:
+	case DTV_SINGLE_CABLE_COMMITTED:
 		r = 0;
 		break;
 #endif
