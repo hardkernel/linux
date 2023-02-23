@@ -90,6 +90,9 @@
 /* send status config 1 */
 #define CQHCI_SSC1			0x40
 #define CQHCI_SSC1_CBC_MASK		GENMASK(19, 16)
+#define CQHCI_SSC1_CIT_MASK		GENMASK(15, 0)
+#define CQHCI_SSC1_CBC(x)		(((x) & 0xF) << 16)
+#define CQHCI_SSC1_CIT(x)		((x) & 0xFFFF)
 
 /* send status config 2 */
 #define CQHCI_SSC2			0x44
