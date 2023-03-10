@@ -276,6 +276,15 @@ static void stmmac_service_event_schedule(struct stmmac_priv *priv)
 		queue_work(priv->wq, &priv->service_task);
 }
 
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+void stmmac_global_err(struct stmmac_priv *priv)
+{
+	netif_carrier_off(priv->dev);
+	set_bit(STMMAC_RESET_REQUESTED, &priv->state);
+	stmmac_service_event_schedule(priv);
+}
+EXPORT_SYMBOL_GPL(stmmac_global_err);
+#else
 static void stmmac_global_err(struct stmmac_priv *priv)
 {
 	netif_carrier_off(priv->dev);
@@ -283,6 +292,7 @@ static void stmmac_global_err(struct stmmac_priv *priv)
 	stmmac_service_event_schedule(priv);
 }
 
+#endif
 /**
  * stmmac_clk_csr_set - dynamically set the MDC clock
  * @priv: driver private structure

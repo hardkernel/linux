@@ -395,4 +395,7 @@ static inline int stmmac_selftest_get_count(struct stmmac_priv *priv)
 }
 #endif /* CONFIG_STMMAC_SELFTESTS */
 
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+void stmmac_global_err(struct stmmac_priv *priv);
+#endif
 #endif /* __STMMAC_H__ */
