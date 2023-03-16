@@ -407,6 +407,7 @@ static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
 
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 #ifdef CONFIG_PM_SLEEP
+static bool mac_wol_enable;
 void set_wol_notify_bl31(u32 enable_bl31)
 {
 	struct arm_smccc_res res;
@@ -418,6 +419,15 @@ void set_wol_notify_bl31(u32 enable_bl31)
 static void set_wol_notify_bl30(u32 enable_bl30)
 {
 	scpi_set_ethernet_wol(enable_bl30);
+}
+
+void set_device_init_flag(struct device *pdev, bool enable)
+{
+	if (enable == mac_wol_enable)
+		return;
+
+	device_init_wakeup(pdev, enable);
+	mac_wol_enable = enable;
 }
 #endif
 unsigned int internal_phy;
@@ -438,6 +448,11 @@ static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac
 		pr_info("use default internal_phy as 0\n");
 
 	ndev->wol_enabled = true;
+#ifdef CONFIG_PM_SLEEP
+	if (of_property_read_u32(np, "mac_wol", &wol_switch_from_user) == 0)
+		pr_info("feature mac_wol\n");
+#endif
+
 	return 0;
 }
 #endif
@@ -549,6 +564,9 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 	aml_custom_setting(pdev, dwmac);
 #ifdef CONFIG_PM_SLEEP
+	device_init_wakeup(&pdev->dev, wol_switch_from_user);
+	mac_wol_enable = wol_switch_from_user;
+
 	/*input device to send virtual pwr key for android*/
 	input_dev = input_allocate_device();
 	if (!input_dev) {
@@ -596,6 +614,12 @@ static void meson8b_dwmac_shutdown(struct platform_device *pdev)
 	struct meson8b_dwmac *dwmac = get_stmmac_bsp_priv(&pdev->dev);
 	int ret;
 
+	if (wol_switch_from_user) {
+		set_wol_notify_bl31(0);
+		set_wol_notify_bl30(0);
+		set_device_init_flag(&pdev->dev, 0);
+	}
+
 	pr_info("aml_eth_shutdown\n");
 	ret = stmmac_suspend(priv->device);
 	if (internal_phy != 2) {
@@ -640,21 +664,23 @@ static int meson8b_suspend(struct device *dev)
 	if ((wol_switch_from_user) && phydev->link) {
 		set_wol_notify_bl31(true);
 		set_wol_notify_bl30(true);
-		device_init_wakeup(dev, true);
+		set_device_init_flag(dev, true);
 		priv->wolopts = 0x1 << 5;
 		/*phy is 100M, change to 10M*/
-		pr_info("link 100M -> 10M\n");
-		backup_adv = phy_read(phydev, MII_ADVERTISE);
-		phy_write(phydev, MII_ADVERTISE, 0x61);
-		mii_lpa_to_linkmode_lpa_t(phydev->advertising, 0x61);
-		genphy_restart_aneg(phydev);
-		msleep(3000);
+		if (phydev->speed != 10) {
+			pr_info("link 100M -> 10M\n");
+			backup_adv = phy_read(phydev, MII_ADVERTISE);
+			phy_write(phydev, MII_ADVERTISE, 0x61);
+			mii_lpa_to_linkmode_lpa_t(phydev->advertising, 0x61);
+			genphy_restart_aneg(phydev);
+			msleep(3000);
+		}
 		ret = stmmac_suspend(dev);
 		without_reset = 1;
 	} else {
 		set_wol_notify_bl31(false);
 		set_wol_notify_bl30(false);
-		device_init_wakeup(dev, false);
+		set_device_init_flag(dev, false);
 
 		ret = stmmac_suspend(dev);
 		if (internal_phy != 2) {
@@ -690,9 +716,15 @@ static int meson8b_resume(struct device *dev)
 			input_sync(dwmac->input_dev);
 		}
 
-		phy_write(phydev, MII_ADVERTISE, backup_adv);
-		mii_lpa_to_linkmode_lpa_t(phydev->advertising, backup_adv);
-		genphy_restart_aneg(phydev);
+		if (backup_adv != 0) {
+			phy_write(phydev, MII_ADVERTISE, backup_adv);
+			mii_lpa_to_linkmode_lpa_t(phydev->advertising, backup_adv);
+			genphy_restart_aneg(phydev);
+			backup_adv = 0;
+		}
+		/*RTC wait linkup*/
+		pr_info("eth hold wakelock 5s\n");
+		pm_wakeup_event(dev, 5000);
 	} else {
 		if (internal_phy != 2) {
 			if (dwmac->data->resume)

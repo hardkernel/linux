@@ -1187,6 +1187,14 @@ static void stmmac_mac_link_up(struct phylink_config *config,
 		writel(ctrl, priv->ioaddr + MAC_CTRL_REG);
 
 	stmmac_mac_set(priv, priv->ioaddr, true);
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#ifdef CONFIG_PM_SLEEP
+	if (device_may_wakeup(priv->device)) {
+		pm_relax(priv->device);
+	}
+#endif
+#endif
+
 	if (phy && priv->dma_cap.eee) {
 		priv->eee_active =
 			phy_init_eee(phy, !priv->plat->rx_clk_runs_in_lpi) >= 0;
