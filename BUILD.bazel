@@ -44,6 +44,13 @@ package(
     ],
 )
 
+load("//common_drivers:modules.bzl", "AMLOGIC_COMMON_PRIVATE_HEADERS")
+ddk_headers(
+    name = "amlogic_kernel_headers_unsafe",
+    hdrs = glob(AMLOGIC_COMMON_PRIVATE_HEADERS),
+    visibility = ["//visibility:public"],
+)
+
 _GKI_AARCH64_MAKE_GOALS = [
     "Image",
     "Image.lz4",
@@ -173,7 +180,7 @@ filegroup(
             # ABI and symbol list files
             "gki/**",
         ],
-    ),
+    ) + ["//common_drivers:common_drivers_sources"],
     visibility = ["//visibility:public"],
 )
 
