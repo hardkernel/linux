@@ -6,6 +6,8 @@ This module contains a full list of kernel modules
  compiled by GKI.
 """
 
+load("//common:common_drivers/modules.bzl", "ALL_MODULES_REMOVE")
+
 _COMMON_GKI_MODULES_LIST = [
     # keep sorted
     "drivers/block/zram/zram.ko",
@@ -105,5 +107,9 @@ def get_gki_modules_list(arch = None):
             str(native.package_relative_label(":x")).removesuffix(":x"),
             arch,
         ))
+
+    remove_modules_items = {module: None for module in depset(ALL_MODULES_REMOVE).to_list()}
+    gki_modules_list = [module for module in depset(gki_modules_list).to_list() if module not in remove_modules_items] \
+			if remove_modules_items else gki_modules_list
 
     return gki_modules_list
