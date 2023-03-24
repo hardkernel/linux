@@ -79,6 +79,10 @@ struct f_hidg {
 	struct usb_ep			*out_ep;
 };
 
+#ifdef CONFIG_AMLOGIC_BRIDGE_HID
+struct f_hidg *hid_h;
+#endif
+
 static inline struct f_hidg *func_to_hidg(struct usb_function *f)
 {
 	return container_of(f, struct f_hidg, func);
@@ -519,6 +523,97 @@ release_write_pending:
 
 	return status;
 }
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_HID
+ssize_t f_hidg_internal_write(char *buffer, size_t count, int nonblock)
+{
+	struct f_hidg *hidg  = hid_h;
+	struct usb_request *req;
+	unsigned long flags;
+	ssize_t status = -ENOMEM;
+
+	if (!hidg)
+		return status;
+
+	spin_lock_irqsave(&hidg->write_spinlock, flags);
+
+	if (!hidg->req) {
+		spin_unlock_irqrestore(&hidg->write_spinlock, flags);
+		return -ESHUTDOWN;
+	}
+
+#define WRITE_COND (!hidg->write_pending)
+try_again:
+	/* write queue */
+	while (!WRITE_COND) {
+		spin_unlock_irqrestore(&hidg->write_spinlock, flags);
+		if (nonblock & O_NONBLOCK)
+			return -EAGAIN;
+
+		if (wait_event_interruptible_exclusive(hidg->write_queue, WRITE_COND))
+			return -ERESTARTSYS;
+
+		spin_lock_irqsave(&hidg->write_spinlock, flags);
+	}
+
+	hidg->write_pending = 1;
+	req = hidg->req;
+	count  = min_t(unsigned int, count, hidg->report_length);
+
+	spin_unlock_irqrestore(&hidg->write_spinlock, flags);
+
+	if (!req) {
+		ERROR(hidg->func.config->cdev, "hidg->req is NULL\n");
+		status = -ESHUTDOWN;
+		goto release_write_pending;
+	}
+
+	memcpy(req->buf, buffer, count);
+
+	spin_lock_irqsave(&hidg->write_spinlock, flags);
+
+	/* when our function has been disabled by host */
+	if (!hidg->req) {
+		free_ep_req(hidg->in_ep, req);
+		/*
+		 * TODO
+		 * Should we fail with error here?
+		 */
+		goto try_again;
+	}
+
+	req->status   = 0;
+	req->zero     = 0;
+	req->length   = count;
+	req->complete = f_hidg_req_complete;
+	req->context  = hidg;
+
+	spin_unlock_irqrestore(&hidg->write_spinlock, flags);
+
+	if (!hidg->in_ep->enabled) {
+		ERROR(hidg->func.config->cdev, "in_ep is disabled\n");
+		status = -ESHUTDOWN;
+		goto release_write_pending;
+	}
+
+	status = usb_ep_queue(hidg->in_ep, req, GFP_ATOMIC);
+	if (status < 0)
+		goto release_write_pending;
+	else
+		status = count;
+
+	return status;
+release_write_pending:
+	spin_lock_irqsave(&hidg->write_spinlock, flags);
+	hidg->write_pending = 0;
+	spin_unlock_irqrestore(&hidg->write_spinlock, flags);
+
+	wake_up(&hidg->write_queue);
+
+	return status;
+}
+EXPORT_SYMBOL(f_hidg_internal_write);
+#endif
 
 static __poll_t f_hidg_poll(struct file *file, poll_table *wait)
 {
@@ -1010,6 +1105,10 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	if (status)
 		goto fail_free_descs;
 
+#ifdef CONFIG_AMLOGIC_BRIDGE_HID
+	hid_h = hidg;
+#endif
+
 	return 0;
 fail_free_descs:
 	usb_free_all_descriptors(f);
@@ -1250,6 +1349,10 @@ static void hidg_free(struct usb_function *f)
 static void hidg_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct f_hidg *hidg = func_to_hidg(f);
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_HID
+	hid_h = NULL;
+#endif
 
 	cdev_device_del(&hidg->cdev, &hidg->dev);
 
