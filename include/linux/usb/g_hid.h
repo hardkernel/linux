@@ -30,4 +30,7 @@ struct hidg_func_descriptor {
 	unsigned char		report_desc[];
 };
 
+#ifdef CONFIG_AMLOGIC_BRIDGE_HID
+ssize_t f_hidg_internal_write(char *buffer, size_t count, int nonblock);
+#endif
 #endif /* __LINUX_USB_G_HID_H */

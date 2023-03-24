@@ -17,6 +17,9 @@
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+#include <linux/amlogic/bridge_uac_ext.h>
+#endif
 #include <sound/control.h>
 #include <sound/tlv.h>
 #include <linux/usb/audio.h>
@@ -26,6 +29,16 @@
 #define BUFF_SIZE_MAX	(PAGE_SIZE * 16)
 #define PRD_SIZE_MAX	PAGE_SIZE
 #define MIN_PERIODS	4
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+struct bridge_uac_function bridge_uac_f = {0};
+
+void *get_uac_function_p(void)
+{
+	return &bridge_uac_f;
+}
+EXPORT_SYMBOL(get_uac_function_p);
+#endif
 
 enum {
 	UAC_FBACK_CTRL,
@@ -170,6 +183,41 @@ static void u_audio_iso_complete(struct usb_ep *ep, struct usb_request *req)
 	if (status)
 		pr_debug("%s: iso_complete status(%d) %d/%d\n",
 			__func__, status, req->actual, req->length);
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+	if (prm == &uac->p_prm) {
+		if (bridge_uac_f.setup_playback && bridge_uac_f.get_playback_status()) {
+			/*
+			 * For each IN packet, take the quotient of the current data
+			 * rate and the endpoint's interval as the base packet size.
+			 * If there is a residue from this division, add it to the
+			 * residue accumulator.
+			 */
+			req->length = uac->p_pktsize;
+			uac->p_residue += uac->p_pktsize_residue;
+
+			/*
+			 * Whenever there are more bytes in the accumulator than we
+			 * need to add one more sample frame, increase this packet's
+			 * size and decrease the accumulator.
+			 */
+			if (uac->p_residue / uac->p_interval >= uac->p_framesize) {
+				req->length += uac->p_framesize;
+				uac->p_residue -= uac->p_framesize *
+						   uac->p_interval;
+			}
+
+			req->actual = req->length;
+			if (req->actual)
+				bridge_uac_f.read_data(req->buf, req->actual);
+		}
+	} else {
+		if (bridge_uac_f.setup_capture && bridge_uac_f.get_capture_status()) {
+			if (req->actual)
+				bridge_uac_f.write_data(req->buf, req->actual);
+		}
+	}
+#endif
 
 	substream = prm->ss;
 
@@ -540,6 +588,10 @@ int u_audio_start_capture(struct g_audio *audio_dev)
 	if (usb_ep_queue(ep_fback, req_fback, GFP_ATOMIC))
 		dev_err(dev, "%s:%d Error!\n", __func__, __LINE__);
 
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+	if (bridge_uac_f.setup_capture && bridge_uac_f.get_capture_status())
+		bridge_uac_f.start_capture();
+#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(u_audio_start_capture);
@@ -550,6 +602,10 @@ void u_audio_stop_capture(struct g_audio *audio_dev)
 
 	if (audio_dev->in_ep_fback)
 		free_ep_fback(&uac->c_prm, audio_dev->in_ep_fback);
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+	if (bridge_uac_f.setup_capture && bridge_uac_f.get_capture_status())
+		bridge_uac_f.stop_capture();
+#endif
 	free_ep(&uac->c_prm, audio_dev->out_ep);
 }
 EXPORT_SYMBOL_GPL(u_audio_stop_capture);
@@ -619,6 +675,11 @@ int u_audio_start_playback(struct g_audio *audio_dev)
 			dev_err(dev, "%s:%d Error!\n", __func__, __LINE__);
 	}
 
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+	if (bridge_uac_f.setup_playback && bridge_uac_f.get_playback_status())
+		bridge_uac_f.start_playback();
+#endif
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(u_audio_start_playback);
@@ -626,6 +687,11 @@ EXPORT_SYMBOL_GPL(u_audio_start_playback);
 void u_audio_stop_playback(struct g_audio *audio_dev)
 {
 	struct snd_uac_chip *uac = audio_dev->uac;
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+	if (bridge_uac_f.setup_playback && bridge_uac_f.get_playback_status())
+		bridge_uac_f.stop_playback();
+#endif
 
 	free_ep(&uac->p_prm, audio_dev->in_ep);
 }
@@ -666,6 +732,12 @@ int u_audio_set_volume(struct g_audio *audio_dev, int playback, s16 val)
 	val = clamp(val, prm->volume_min, prm->volume_max);
 	if (prm->volume != val) {
 		prm->volume = val;
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+		if (bridge_uac_f.setup_playback && playback)
+			bridge_uac_f.ctl_playback(0, prm->volume);
+		else if (bridge_uac_f.setup_capture && !playback)
+			bridge_uac_f.ctl_capture(0, prm->volume);
+#endif
 		change = 1;
 	}
 	spin_unlock_irqrestore(&prm->lock, flags);
@@ -716,6 +788,12 @@ int u_audio_set_mute(struct g_audio *audio_dev, int playback, int val)
 	if (prm->mute != mute) {
 		prm->mute = mute;
 		change = 1;
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+		if (bridge_uac_f.setup_playback && playback)
+			bridge_uac_f.ctl_playback(0, prm->mute);
+		else if (bridge_uac_f.setup_capture && !playback)
+			bridge_uac_f.ctl_capture(0, prm->mute);
+#endif
 	}
 	spin_unlock_irqrestore(&prm->lock, flags);
 
@@ -1135,6 +1213,16 @@ int g_audio_setup(struct g_audio *g_audio, const char *pcm_name,
 			prm->volume_max = fu->volume_max;
 			prm->volume_min = fu->volume_min;
 			prm->volume_res = fu->volume_res;
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+			if (i == SNDRV_PCM_STREAM_CAPTURE && bridge_uac_f.setup_capture) {
+				prm->volume = bridge_uac_f.get_default_volume_capture();
+				bridge_uac_f.ctl_capture(0, prm->volume);
+			} else if (i == SNDRV_PCM_STREAM_PLAYBACK && bridge_uac_f.setup_playback) {
+				prm->volume = bridge_uac_f.get_default_volume_playback();
+				bridge_uac_f.ctl_playback(0, prm->volume);
+			}
+#endif
 		}
 	}
 

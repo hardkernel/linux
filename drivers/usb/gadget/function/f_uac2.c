@@ -13,6 +13,9 @@
 #include <linux/usb/audio.h>
 #include <linux/usb/audio-v2.h>
 #include <linux/module.h>
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+#include <linux/amlogic/bridge_uac_ext.h>
+#endif
 
 #include "u_audio.h"
 #include "u_uac2.h"
@@ -966,6 +969,17 @@ afunc_bind(struct usb_configuration *cfg, struct usb_function *fn)
 	struct f_uac2_opts *uac2_opts = g_audio_to_uac2_opts(agdev);
 	struct usb_string *us;
 	int ret;
+
+#ifdef CONFIG_AMLOGIC_BRIDGE_UAC
+	if (bridge_uac_f.setup_capture && bridge_uac_f.get_capture_status) {
+		bridge_uac_f.get_capture_hw(&uac2_opts->c_chmask,
+			&uac2_opts->c_srate, &uac2_opts->c_ssize);
+	}
+
+	if (bridge_uac_f.setup_playback && bridge_uac_f.get_playback_status)
+		bridge_uac_f.get_playback_hw(&uac2_opts->p_chmask,
+			&uac2_opts->p_srate, &uac2_opts->p_ssize);
+#endif
 
 	ret = afunc_validate_opts(agdev, dev);
 	if (ret)
