@@ -18,6 +18,12 @@
 		mmc2 = &sd_emmc_a; /* SDIO */
 	};
 
+	gpiomem {
+		compatible = "amlogic, gpiomem";
+		reg = <0x0 0xff634000 0x0 0x1000>; /* PERIPHS_REG */
+		status = "okay";
+	};
+
 	reboot: odroid-reboot {
 		compatible = "odroid,reboot";
 		sys_reset = <0x84000009>;

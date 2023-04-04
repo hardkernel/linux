@@ -10,6 +10,13 @@
 / {
 	model = "Hardkernel ODROID-C4";
 
+	gpiomem {
+		compatible = "amlogic, gpiomem";
+		reg = <0x0 0xff634000 0x0 0x1000>,	/* GPIO banks */
+			<0x0 0xff800000 0x0 0x1000>;	/* GPIO_AO bank */
+		status = "okay";
+	};
+
 	odroid-reboot {
 		compatible = "odroid,reboot";
 		sys_reset = <0x84000009>;
