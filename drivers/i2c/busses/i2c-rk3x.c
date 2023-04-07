@@ -1920,6 +1920,32 @@ static void rk3x_i2c_tb_cb(void *data)
 	enable_irq(i2c->irq);
 }
 
+static ssize_t rk3x_i2c_speed_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct rk3x_i2c *i2c = dev_get_drvdata(dev);
+	struct i2c_timings *t = &i2c->t;
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", t->bus_freq_hz);
+}
+
+static ssize_t rk3x_i2c_speed_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct rk3x_i2c *i2c = dev_get_drvdata(dev);
+	struct i2c_timings *t = &i2c->t;
+	int ret, freq;
+
+	ret = kstrtoint(buf, 10, &freq);
+	if (ret < 0)
+		return ret;
+
+	t->bus_freq_hz = (uint32_t)freq;
+	rk3x_i2c_adapt_div(i2c, clk_get_rate(i2c->clk));
+
+	return count;
+}
+
+static DEVICE_ATTR(speed, S_IRUGO | S_IWUSR, rk3x_i2c_speed_show, rk3x_i2c_speed_store);
+
 static int rk3x_i2c_probe(struct platform_device *pdev)
 {
 	struct fwnode_handle *fw = dev_fwnode(&pdev->dev);
@@ -1933,6 +1959,11 @@ static int rk3x_i2c_probe(struct platform_device *pdev)
 	i2c = devm_kzalloc(&pdev->dev, sizeof(struct rk3x_i2c), GFP_KERNEL);
 	if (!i2c)
 		return -ENOMEM;
+
+	ret = device_create_file(&pdev->dev, &dev_attr_speed);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Failed to create speed attribute file: %d\n", ret);
+	}
 
 	i2c->soc_data = (struct rk3x_i2c_soc_data *)device_get_match_data(&pdev->dev);
 
@@ -2121,6 +2152,7 @@ static int rk3x_i2c_remove(struct platform_device *pdev)
 		i2c->soc_data->dma_control(pdev, false);
 
 	unregister_restart_handler(&i2c->i2c_restart_nb);
+	device_remove_file(&pdev->dev, &dev_attr_speed);
 	clk_notifier_unregister(i2c->clk, &i2c->clk_rate_nb);
 	clk_unprepare(i2c->pclk);
 	clk_unprepare(i2c->clk);
