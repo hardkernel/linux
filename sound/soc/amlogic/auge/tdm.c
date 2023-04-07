@@ -35,7 +35,6 @@
 #include <linux/amlogic/cpu_version.h>
 
 #include <linux/amlogic/media/sound/aout_notify.h>
-#include <linux/amlogic/media/vout/hdmi_tx/hdmi_tx_ext.h>
 
 #include "ddr_mngr.h"
 #include "tdm_hw.h"
@@ -506,7 +505,6 @@ static int aml_dai_tdm_prepare(struct snd_pcm_substream *substream,
 
 		/* i2s source to hdmix */
 		if (p_tdm->i2s2hdmitx) {
-			hdmitx_ext_set_i2s_mask(2, 0x1);
 			i2s_to_hdmitx_ctrl(p_tdm->id);
 			aout_notifier_call_chain(AOUT_EVENT_IEC_60958_PCM,
 				substream);
