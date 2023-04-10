@@ -9,4 +9,15 @@
 			status = "okay";
 		};
 	};
+
+	fragment@1 {
+		target = <&a_uart_pins>;
+
+		__overlay__ {
+			mux {
+				groups = "uart_tx_a",
+					   "uart_rx_a";
+			};
+		};
+	};
 };

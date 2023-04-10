@@ -345,14 +345,6 @@
 	};
 };
 
-&a_uart_pins {
-	mux {
-		groups = "uart_tx_a",
-			"uart_rx_a";
-		function = "uart_a";
-	};
-};
-
 &usb2_phy_v2 {
 	status = "okay";
 	portnum = <2>;
