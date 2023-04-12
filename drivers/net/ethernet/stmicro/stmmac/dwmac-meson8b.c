@@ -666,6 +666,8 @@ static int meson8b_suspend(struct device *dev)
 		set_wol_notify_bl30(true);
 		set_device_init_flag(dev, true);
 		priv->wolopts = 0x1 << 5;
+		/*our phy not support wol by now*/
+		phydev->irq_suspended = 0;
 		/*phy is 100M, change to 10M*/
 		if (phydev->speed != 10) {
 			pr_info("link 100M -> 10M\n");
@@ -730,6 +732,8 @@ static int meson8b_resume(struct device *dev)
 			if (dwmac->data->resume)
 				dwmac->data->resume(dwmac);
 		}
+		/*our phy not support wol by now*/
+		phydev->irq_suspended = 0;
 		ret = stmmac_resume(dev);
 		pr_info("wzh %s\n", __func__);
 		stmmac_global_err(priv);
