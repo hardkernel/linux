@@ -534,6 +534,13 @@
 };
 
 &pinctrl_periphs {
+	a_uart_two_pins: a_uart_two {
+		mux {
+			groups = "uart_tx_a",
+				"uart_rx_a";
+			function = "uart_a";
+		};
+	};
 	tdmb_mclk: tdmb_mclk {
 		mux {
 			groups = "mclk0_a";

@@ -128,7 +128,6 @@
 			status = "okay";
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2c3_master_pins2>;
-			pinctrl-1 = <&i2c3_to_gpioa>;
 			clock-frequency = <400000>; /* default 400k */
 
 			touch: gt9xx@14 {

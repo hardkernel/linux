@@ -7,17 +7,7 @@
 
 		__overlay__ {
 			status = "okay";
-		};
-	};
-
-	fragment@1 {
-		target = <&a_uart_pins>;
-
-		__overlay__ {
-			mux {
-				groups = "uart_tx_a",
-					   "uart_rx_a";
-			};
+			pinctrl-0 = <&a_uart_two_pins>;
 		};
 	};
 };
