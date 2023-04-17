@@ -261,9 +261,15 @@ static inline bool kmem_cache_has_cpu_partial(struct kmem_cache *s)
 /* Use cmpxchg_double */
 #define __CMPXCHG_DOUBLE	((slab_flags_t __force)0x40000000U)
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_CUT
 #ifdef CONFIG_SYSFS
 static int sysfs_slab_add(struct kmem_cache *);
 static int sysfs_slab_alias(struct kmem_cache *, const char *);
+#else
+static inline int sysfs_slab_add(struct kmem_cache *s) { return 0; }
+static inline int sysfs_slab_alias(struct kmem_cache *s, const char *p)
+							{ return 0; }
+#endif
 #else
 static inline int sysfs_slab_add(struct kmem_cache *s) { return 0; }
 static inline int sysfs_slab_alias(struct kmem_cache *s, const char *p)
@@ -5037,6 +5043,7 @@ void *__kmalloc_node_track_caller(size_t size, gfp_t gfpflags,
 EXPORT_SYMBOL(__kmalloc_node_track_caller);
 #endif
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_CUT
 #ifdef CONFIG_SYSFS
 static int count_inuse(struct page *page)
 {
@@ -5047,6 +5054,7 @@ static int count_total(struct page *page)
 {
 	return page->objects;
 }
+#endif
 #endif
 
 #ifdef CONFIG_SLUB_DEBUG
@@ -5279,6 +5287,7 @@ static void process_slab(struct loc_track *t, struct kmem_cache *s,
 #endif  /* CONFIG_DEBUG_FS   */
 #endif	/* CONFIG_SLUB_DEBUG */
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_CUT
 #ifdef CONFIG_SYSFS
 enum slab_stat_type {
 	SL_ALL,			/* All slabs */
@@ -6118,6 +6127,7 @@ static int __init slab_sysfs_init(void)
 
 __initcall(slab_sysfs_init);
 #endif /* CONFIG_SYSFS */
+#endif
 
 #if defined(CONFIG_SLUB_DEBUG) && defined(CONFIG_DEBUG_FS)
 static int slab_debugfs_show(struct seq_file *seq, void *v)

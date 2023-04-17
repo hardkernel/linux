@@ -305,7 +305,9 @@ static void reuseport_free_rcu(struct rcu_head *head)
 	struct sock_reuseport *reuse;
 
 	reuse = container_of(head, struct sock_reuseport, rcu);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	sk_reuseport_prog_free(rcu_dereference_protected(reuse->prog, 1));
+#endif
 	ida_free(&reuseport_ida, reuse->reuseport_id);
 	kfree(reuse);
 }
@@ -708,7 +710,9 @@ int reuseport_attach_prog(struct sock *sk, struct bpf_prog *prog)
 	rcu_assign_pointer(reuse->prog, prog);
 	spin_unlock_bh(&reuseport_lock);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	sk_reuseport_prog_free(old_prog);
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(reuseport_attach_prog);
@@ -743,7 +747,9 @@ int reuseport_detach_prog(struct sock *sk)
 	if (!old_prog)
 		return -ENOENT;
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	sk_reuseport_prog_free(old_prog);
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(reuseport_detach_prog);

@@ -6,7 +6,7 @@ config DRM_BRIDGE
 	  Bridge registration and lookup framework.
 
 config DRM_PANEL_BRIDGE
-	def_bool y
+	def_bool y if !AMLOGIC_ZAPPER_CUT
 	depends on DRM_BRIDGE
 	select DRM_PANEL
 	help

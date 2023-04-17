@@ -15,10 +15,12 @@
 #include <linux/inet_diag.h>
 #include <linux/sock_diag.h>
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static const struct sock_diag_handler *sock_diag_handlers[AF_MAX];
 static int (*inet_rcv_compat)(struct sk_buff *skb, struct nlmsghdr *nlh);
 static DEFINE_MUTEX(sock_diag_table_mutex);
 static struct workqueue_struct *broadcast_wq;
+#endif
 
 DEFINE_COOKIE(sock_cookie);
 
@@ -58,6 +60,7 @@ void sock_diag_save_cookie(struct sock *sk, __u32 *cookie)
 }
 EXPORT_SYMBOL_GPL(sock_diag_save_cookie);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 int sock_diag_put_meminfo(struct sock *sk, struct sk_buff *skb, int attrtype)
 {
 	u32 mem[SK_MEMINFO_VARS];
@@ -337,3 +340,4 @@ static int __init sock_diag_init(void)
 	return register_pernet_subsys(&diag_net_ops);
 }
 device_initcall(sock_diag_init);
+#endif

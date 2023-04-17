@@ -3,7 +3,11 @@
 # Makefile for the Linux Traffic Control Unit.
 #
 
+ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 obj-y	:= sch_generic.o sch_mq.o
+else
+obj-y	:= sch_generic.o
+endif
 
 obj-$(CONFIG_INET)		+= sch_frag.o
 obj-$(CONFIG_NET_SCHED)		+= sch_api.o sch_blackhole.o

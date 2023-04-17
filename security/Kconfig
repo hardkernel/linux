@@ -264,7 +264,7 @@ choice
 		bool "AppArmor" if SECURITY_APPARMOR=y
 
 	config DEFAULT_SECURITY_DAC
-		bool "Unix Discretionary Access Controls"
+		bool "Unix Discretionary Access Controls" if !AMLOGIC_ZAPPER_CUT
 
 endchoice
 

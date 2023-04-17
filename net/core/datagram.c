@@ -529,7 +529,9 @@ static size_t simple_copy_to_iter(const void *addr, size_t bytes,
 int skb_copy_datagram_iter(const struct sk_buff *skb, int offset,
 			   struct iov_iter *to, int len)
 {
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	trace_skb_copy_datagram_iovec(skb, len);
+#endif
 	return __skb_datagram_iter(skb, offset, to, len, false,
 			simple_copy_to_iter, NULL);
 }
@@ -708,6 +710,7 @@ int zerocopy_sg_from_iter(struct sk_buff *skb, struct iov_iter *from)
 }
 EXPORT_SYMBOL(zerocopy_sg_from_iter);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 /**
  *	skb_copy_and_csum_datagram - Copy datagram to an iovec iterator
  *          and update a checksum.
@@ -779,6 +782,7 @@ fault:
 	return -EFAULT;
 }
 EXPORT_SYMBOL(skb_copy_and_csum_datagram_msg);
+#endif
 
 /**
  * 	datagram_poll - generic datagram poll

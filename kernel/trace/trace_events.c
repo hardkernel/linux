@@ -510,6 +510,7 @@ EXPORT_SYMBOL_GPL(trace_event_buffer_reserve);
 int trace_event_reg(struct trace_event_call *call,
 		    enum trace_reg type, void *data)
 {
+#ifndef CONFIG_AMLOGIC_ZAPPER_CUT
 	struct trace_event_file *file = data;
 
 	WARN_ON(!(call->flags & TRACE_EVENT_FL_TRACEPOINT));
@@ -541,6 +542,7 @@ int trace_event_reg(struct trace_event_call *call,
 		return 0;
 #endif
 	}
+#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(trace_event_reg);
@@ -755,10 +757,12 @@ event_filter_pid_sched_process_fork(void *data,
 void trace_event_follow_fork(struct trace_array *tr, bool enable)
 {
 	if (enable) {
+#ifndef CONFIG_AMLOGIC_ZAPPER_CUT
 		register_trace_prio_sched_process_fork(event_filter_pid_sched_process_fork,
 						       tr, INT_MIN);
 		register_trace_prio_sched_process_free(event_filter_pid_sched_process_exit,
 						       tr, INT_MAX);
+#endif
 	} else {
 		unregister_trace_sched_process_fork(event_filter_pid_sched_process_fork,
 						    tr);
@@ -1908,6 +1912,7 @@ static void register_pid_events(struct trace_array *tr)
 	 * Register a probe this is called after all other probes
 	 * to only keep ignore_pid set if next pid matches.
 	 */
+#ifndef CONFIG_AMLOGIC_ZAPPER_CUT
 	register_trace_prio_sched_switch(event_filter_pid_sched_switch_probe_pre,
 					 tr, INT_MAX);
 	register_trace_prio_sched_switch(event_filter_pid_sched_switch_probe_post,
@@ -1927,6 +1932,7 @@ static void register_pid_events(struct trace_array *tr)
 					 tr, INT_MAX);
 	register_trace_prio_sched_waking(event_filter_pid_sched_wakeup_probe_post,
 					 tr, 0);
+#endif
 }
 
 static ssize_t

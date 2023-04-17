@@ -124,6 +124,7 @@ bool sch_direct_xmit(struct sk_buff *skb, struct Qdisc *q,
 		     struct net_device *dev, struct netdev_queue *txq,
 		     spinlock_t *root_lock, bool validate);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 void __qdisc_run(struct Qdisc *q);
 
 static inline void qdisc_run(struct Qdisc *q)
@@ -133,6 +134,7 @@ static inline void qdisc_run(struct Qdisc *q)
 		qdisc_run_end(q);
 	}
 }
+#endif
 
 extern const struct nla_policy rtm_tca_policy[TCA_MAX + 1];
 

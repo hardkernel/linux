@@ -468,6 +468,7 @@ config GPIO_PL061
 	depends on ARM_AMBA
 	select IRQ_DOMAIN
 	select GPIOLIB_IRQCHIP
+	default n if AMLOGIC_ZAPPER_CUT
 	help
 	  Say yes here to support the PrimeCell PL061 GPIO device
 

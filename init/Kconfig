@@ -544,7 +544,7 @@ config HAVE_SCHED_AVG_IRQ
 
 config SCHED_THERMAL_PRESSURE
 	bool
-	default y if ARM && ARM_CPU_TOPOLOGY
+	default y if ARM && ARM_CPU_TOPOLOGY && !AMLOGIC_ZAPPER_CUT
 	default y if ARM64
 	depends on SMP
 	depends on CPU_FREQ_THERMAL
@@ -1246,7 +1246,7 @@ config PID_NS
 config NET_NS
 	bool "Network namespace"
 	depends on NET
-	default y
+	default y if !AMLOGIC_ZAPPER_NET_CUT
 	help
 	  Allow user space to create what appear to be multiple instances
 	  of the network stack.
@@ -2117,6 +2117,7 @@ config MODULE_FORCE_LOAD
 
 config MODULE_UNLOAD
 	bool "Module unloading"
+	default n if AMLOGIC_ZAPPER_CUT
 	help
 	  Without this option you will not be able to unload any
 	  modules (note that some modules may not be unloadable
@@ -2380,7 +2381,7 @@ config UNUSED_KSYMS_WHITELIST
 endif # MODULES
 
 config MODULES_TREE_LOOKUP
-	def_bool y
+	def_bool y if !AMLOGIC_ZAPPER_CUT
 	depends on PERF_EVENTS || TRACING || CFI_CLANG
 
 config INIT_ALL_POSSIBLE

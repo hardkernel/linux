@@ -343,9 +343,11 @@ void sk_error_report(struct sock *sk)
 	switch (sk->sk_family) {
 	case AF_INET:
 		fallthrough;
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	case AF_INET6:
 		trace_inet_sk_error_report(sk);
 		break;
+#endif
 	default:
 		break;
 	}
@@ -463,7 +465,9 @@ int __sock_queue_rcv_skb(struct sock *sk, struct sk_buff *skb)
 
 	if (atomic_read(&sk->sk_rmem_alloc) >= sk->sk_rcvbuf) {
 		atomic_inc(&sk->sk_drops);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 		trace_sock_rcvqueue_full(sk, skb);
+#endif
 		return -ENOMEM;
 	}
 
@@ -713,6 +717,7 @@ out:
 	return ret;
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 bool sk_mc_loop(struct sock *sk)
 {
 	if (dev_recursion_level())
@@ -732,6 +737,7 @@ bool sk_mc_loop(struct sock *sk)
 	return true;
 }
 EXPORT_SYMBOL(sk_mc_loop);
+#endif
 
 void sock_set_reuseaddr(struct sock *sk)
 {
@@ -818,12 +824,16 @@ void sock_set_timestamp(struct sock *sk, int optname, bool valbool)
 
 static int sock_timestamping_bind_phc(struct sock *sk, int phc_index)
 {
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	struct net *net = sock_net(sk);
+#endif
 	struct net_device *dev = NULL;
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	bool match = false;
 	int *vclock_index;
 	int i, num;
-
+#endif
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	if (sk->sk_bound_dev_if)
 		dev = dev_get_by_index(net, sk->sk_bound_dev_if);
 
@@ -831,10 +841,12 @@ static int sock_timestamping_bind_phc(struct sock *sk, int phc_index)
 		pr_err("%s: sock not bind to device\n", __func__);
 		return -EOPNOTSUPP;
 	}
-
+#endif
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	num = ethtool_get_phc_vclocks(dev, &vclock_index);
+#endif
 	dev_put(dev);
-
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	for (i = 0; i < num; i++) {
 		if (*(vclock_index + i) == phc_index) {
 			match = true;
@@ -847,7 +859,7 @@ static int sock_timestamping_bind_phc(struct sock *sk, int phc_index)
 
 	if (!match)
 		return -EINVAL;
-
+#endif
 	sk->sk_bind_phc = phc_index;
 
 	return 0;
@@ -1161,6 +1173,7 @@ set_sndbuf:
 				       optlen, optname == SO_SNDTIMEO_OLD);
 		break;
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	case SO_ATTACH_FILTER: {
 		struct sock_fprog fprog;
 
@@ -1217,6 +1230,7 @@ set_sndbuf:
 		else
 			sock_valbool_flag(sk, SOCK_FILTER_LOCKED, valbool);
 		break;
+#endif
 
 	case SO_PASSSEC:
 		if (valbool)
@@ -1671,14 +1685,14 @@ static int sk_getsockopt(struct sock *sk, int level, int optname,
 
 	case SO_BINDTODEVICE:
 		return sock_getbindtodevice(sk, optval, optlen, len);
-
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	case SO_GET_FILTER:
 		len = sk_get_filter(sk, optval, len);
 		if (len < 0)
 			return len;
 
 		goto lenout;
-
+#endif
 	case SO_LOCK_FILTER:
 		v.val = sock_flag(sk, SOCK_FILTER_LOCKED);
 		break;
@@ -1962,17 +1976,21 @@ EXPORT_SYMBOL(sk_alloc);
 static void __sk_destruct(struct rcu_head *head)
 {
 	struct sock *sk = container_of(head, struct sock, sk_rcu);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	struct sk_filter *filter;
+#endif
 
 	if (sk->sk_destruct)
 		sk->sk_destruct(sk);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	filter = rcu_dereference_check(sk->sk_filter,
 				       refcount_read(&sk->sk_wmem_alloc) == 0);
 	if (filter) {
 		sk_filter_uncharge(sk, filter);
 		RCU_INIT_POINTER(sk->sk_filter, NULL);
 	}
+#endif
 
 	sock_disable_timestamp(sk, SK_FLAGS_TIMESTAMP);
 
@@ -2018,9 +2036,11 @@ static void __sk_free(struct sock *sk)
 	if (likely(sk->sk_net_refcnt))
 		sock_inuse_add(sock_net(sk), -1);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	if (unlikely(sk->sk_net_refcnt && sock_diag_has_destroy_listeners(sk)))
 		sock_diag_broadcast_destroy(sk);
 	else
+#endif
 		sk_destruct(sk);
 }
 
@@ -2067,7 +2087,9 @@ static void sk_init_common(struct sock *sk)
 struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 {
 	struct proto *prot = READ_ONCE(sk->sk_prot);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	struct sk_filter *filter;
+#endif
 	bool is_charged = true;
 	struct sock *newsk;
 
@@ -2114,6 +2136,7 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 
 	cgroup_sk_clone(&newsk->sk_cgrp_data);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	rcu_read_lock();
 	filter = rcu_dereference(sk->sk_filter);
 	if (filter != NULL)
@@ -2124,6 +2147,7 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 		is_charged = sk_filter_charge(newsk, filter);
 	RCU_INIT_POINTER(newsk->sk_filter, filter);
 	rcu_read_unlock();
+#endif
 
 	if (unlikely(!is_charged || xfrm_sk_clone_policy(newsk, sk))) {
 		/* We need to make sure that we don't uncharge the new
@@ -2865,8 +2889,10 @@ suppress_allocation:
 		}
 	}
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	if (kind == SK_MEM_SEND || (kind == SK_MEM_RECV && charged))
 		trace_sock_exceed_buf_limit(sk, prot, allocated, kind);
+#endif
 
 	sk_memory_allocated_sub(sk, amt);
 

@@ -108,8 +108,12 @@ void __rtnl_unlock(void)
 
 void rtnl_unlock(void)
 {
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	/* This fellow will unlock it for us. */
 	netdev_run_todo();
+#else
+	__rtnl_unlock();
+#endif
 }
 EXPORT_SYMBOL(rtnl_unlock);
 
@@ -2700,12 +2704,14 @@ static int do_setlink(const struct sk_buff *skb,
 		status |= DO_SETLINK_MODIFIED;
 	}
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	if (tb[IFLA_MTU]) {
 		err = dev_set_mtu_ext(dev, nla_get_u32(tb[IFLA_MTU]), extack);
 		if (err < 0)
 			goto errout;
 		status |= DO_SETLINK_MODIFIED;
 	}
+#endif
 
 	if (tb[IFLA_GROUP]) {
 		dev_set_group(dev, nla_get_u32(tb[IFLA_GROUP]));
@@ -3145,6 +3151,7 @@ out:
 
 int rtnl_configure_link(struct net_device *dev, const struct ifinfomsg *ifm)
 {
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	unsigned int old_flags;
 	int err;
 
@@ -3162,6 +3169,7 @@ int rtnl_configure_link(struct net_device *dev, const struct ifinfomsg *ifm)
 		dev->rtnl_link_state = RTNL_LINK_INITIALIZED;
 		__dev_notify_flags(dev, old_flags, ~0U);
 	}
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(rtnl_configure_link);
@@ -3499,8 +3507,10 @@ replay:
 
 	if (ops->newlink)
 		err = ops->newlink(link_net ? : net, dev, tb, data, extack);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	else
 		err = register_netdevice(dev);
+#endif
 	if (err < 0) {
 		free_netdev(dev);
 		goto out;
@@ -3916,6 +3926,7 @@ void rtmsg_ifinfo_newnet(int type, struct net_device *dev, unsigned int change,
 			   new_nsid, new_ifindex);
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static int nlmsg_populate_fdb_fill(struct sk_buff *skb,
 				   struct net_device *dev,
 				   u8 *addr, u16 vid, u32 pid, u32 seq,
@@ -3951,6 +3962,7 @@ nla_put_failure:
 	nlmsg_cancel(skb, nlh);
 	return -EMSGSIZE;
 }
+#endif
 
 static inline size_t rtnl_fdb_nlmsg_size(const struct net_device *dev)
 {
@@ -3960,6 +3972,7 @@ static inline size_t rtnl_fdb_nlmsg_size(const struct net_device *dev)
 	       0;
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static void rtnl_fdb_notify(struct net_device *dev, u8 *addr, u16 vid, int type,
 			    u16 ndm_state)
 {
@@ -3983,7 +3996,7 @@ static void rtnl_fdb_notify(struct net_device *dev, u8 *addr, u16 vid, int type,
 errout:
 	rtnl_set_sk_err(net, RTNLGRP_NEIGH, err);
 }
-
+#endif
 /*
  * ndo_dflt_fdb_add - default netdevice operation to add an FDB entry
  */
@@ -4021,6 +4034,7 @@ int ndo_dflt_fdb_add(struct ndmsg *ndm,
 }
 EXPORT_SYMBOL(ndo_dflt_fdb_add);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static int fdb_vid_parse(struct nlattr *vlan_attr, u16 *p_vid,
 			 struct netlink_ext_ack *extack)
 {
@@ -4642,7 +4656,7 @@ out:
 	kfree_skb(skb);
 	return err;
 }
-
+#endif
 static int brport_nla_put_flag(struct sk_buff *skb, u32 flags, u32 mask,
 			       unsigned int attrnum, unsigned int flag)
 {
@@ -5740,10 +5754,11 @@ void __init rtnetlink_init(void)
 	rtnl_register(PF_UNSPEC, RTM_NEWLINKPROP, rtnl_newlinkprop, NULL, 0);
 	rtnl_register(PF_UNSPEC, RTM_DELLINKPROP, rtnl_dellinkprop, NULL, 0);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	rtnl_register(PF_BRIDGE, RTM_NEWNEIGH, rtnl_fdb_add, NULL, 0);
 	rtnl_register(PF_BRIDGE, RTM_DELNEIGH, rtnl_fdb_del, NULL, 0);
 	rtnl_register(PF_BRIDGE, RTM_GETNEIGH, rtnl_fdb_get, rtnl_fdb_dump, 0);
-
+#endif
 	rtnl_register(PF_BRIDGE, RTM_GETLINK, NULL, rtnl_bridge_getlink, 0);
 	rtnl_register(PF_BRIDGE, RTM_DELLINK, rtnl_bridge_dellink, NULL, 0);
 	rtnl_register(PF_BRIDGE, RTM_SETLINK, rtnl_bridge_setlink, NULL, 0);

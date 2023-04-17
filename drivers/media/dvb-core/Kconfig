@@ -18,7 +18,7 @@ config DVB_MMAP
 
 config DVB_NET
 	bool "DVB Network Support"
-	default (NET && INET)
+	default (NET && INET) if !AMLOGIC_ZAPPER_CUT
 	depends on NET && INET && DVB_CORE
 	help
 	  This option enables DVB Network Support which is a part of the DVB

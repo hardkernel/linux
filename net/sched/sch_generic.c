@@ -32,8 +32,10 @@
 #include <net/xfrm.h>
 
 /* Qdisc to use by default */
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 const struct Qdisc_ops *default_qdisc_ops = &pfifo_fast_ops;
 EXPORT_SYMBOL(default_qdisc_ops);
+#endif
 
 static void qdisc_maybe_clear_missed(struct Qdisc *q,
 				     const struct netdev_queue *txq)
@@ -298,10 +300,13 @@ bulk:
 			try_bulk_dequeue_skb_slow(q, skb, packets);
 	}
 trace:
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	trace_qdisc_dequeue(q, txq, *packets, skb);
+#endif
 	return skb;
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 /*
  * Transmit possibly several skbs, and handle the return status as
  * required. Owning running seqcount bit guarantees that
@@ -365,6 +370,7 @@ bool sch_direct_xmit(struct sk_buff *skb, struct Qdisc *q,
 
 	return true;
 }
+#endif
 
 /*
  * NOTE: Called under qdisc_lock(q) with locally disabled BH.
@@ -407,6 +413,7 @@ static inline bool qdisc_restart(struct Qdisc *q, int *packets)
 	return sch_direct_xmit(skb, q, dev, txq, root_lock, validate);
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 void __qdisc_run(struct Qdisc *q)
 {
 	int quota = READ_ONCE(dev_tx_weight);
@@ -424,6 +431,7 @@ void __qdisc_run(struct Qdisc *q)
 		}
 	}
 }
+#endif
 
 unsigned long dev_trans_start(struct net_device *dev)
 {
@@ -445,6 +453,7 @@ unsigned long dev_trans_start(struct net_device *dev)
 }
 EXPORT_SYMBOL(dev_trans_start);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static void dev_watchdog(struct timer_list *t)
 {
 	struct net_device *dev = from_timer(dev, t, watchdog_timer);
@@ -473,7 +482,9 @@ static void dev_watchdog(struct timer_list *t)
 			}
 
 			if (some_queue_timedout) {
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 				trace_net_dev_xmit_timeout(dev, i);
+#endif
 				WARN_ONCE(1, KERN_INFO "NETDEV WATCHDOG: %s (%s): transmit queue %u timed out\n",
 				       dev->name, netdev_drivername(dev), i);
 				dev->netdev_ops->ndo_tx_timeout(dev, i);
@@ -526,7 +537,9 @@ void netif_carrier_on(struct net_device *dev)
 		if (dev->reg_state == NETREG_UNINITIALIZED)
 			return;
 		atomic_inc(&dev->carrier_up_count);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 		linkwatch_fire_event(dev);
+#endif
 		if (netif_running(dev))
 			__netdev_watchdog_up(dev);
 	}
@@ -545,7 +558,9 @@ void netif_carrier_off(struct net_device *dev)
 		if (dev->reg_state == NETREG_UNINITIALIZED)
 			return;
 		atomic_inc(&dev->carrier_down_count);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 		linkwatch_fire_event(dev);
+#endif
 	}
 }
 EXPORT_SYMBOL(netif_carrier_off);
@@ -564,9 +579,12 @@ void netif_carrier_event(struct net_device *dev)
 		return;
 	atomic_inc(&dev->carrier_up_count);
 	atomic_inc(&dev->carrier_down_count);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	linkwatch_fire_event(dev);
+#endif
 }
 EXPORT_SYMBOL_GPL(netif_carrier_event);
+#endif
 
 /* "NOOP" scheduler: the best scheduler, recommended for all interfaces
    under all circumstances. It is difficult to invent anything faster or
@@ -643,6 +661,7 @@ struct Qdisc_ops noqueue_qdisc_ops __read_mostly = {
 	.owner		=	THIS_MODULE,
 };
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static const u8 prio2band[TC_PRIO_MAX + 1] = {
 	1, 2, 2, 2, 1, 2, 0, 0 , 1, 1, 1, 1, 1, 1, 1, 1
 };
@@ -955,7 +974,9 @@ struct Qdisc *qdisc_create_dflt(struct netdev_queue *dev_queue,
 	sch->parent = parentid;
 
 	if (!ops->init || ops->init(sch, NULL, extack) == 0) {
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 		trace_qdisc_create(ops, dev_queue->dev, parentid);
+#endif
 		return sch;
 	}
 
@@ -971,7 +992,9 @@ void qdisc_reset(struct Qdisc *qdisc)
 	const struct Qdisc_ops *ops = qdisc->ops;
 	struct sk_buff *skb, *tmp;
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	trace_qdisc_reset(qdisc);
+#endif
 
 	if (ops->reset)
 		ops->reset(qdisc);
@@ -1027,7 +1050,9 @@ static void qdisc_destroy(struct Qdisc *qdisc)
 	module_put(ops->owner);
 	dev_put(qdisc_dev(qdisc));
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	trace_qdisc_destroy(qdisc);
+#endif
 
 	call_rcu(&qdisc->rcu, qdisc_free_cb);
 }
@@ -1060,6 +1085,7 @@ void qdisc_put_unlocked(struct Qdisc *qdisc)
 	rtnl_unlock();
 }
 EXPORT_SYMBOL(qdisc_put_unlocked);
+#endif
 
 /* Attach toplevel qdisc to device queue. */
 struct Qdisc *dev_graft_qdisc(struct netdev_queue *dev_queue,
@@ -1083,6 +1109,7 @@ struct Qdisc *dev_graft_qdisc(struct netdev_queue *dev_queue,
 }
 EXPORT_SYMBOL(dev_graft_qdisc);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static void shutdown_scheduler_queue(struct net_device *dev,
 				     struct netdev_queue *dev_queue,
 				     void *_qdisc_default)
@@ -1410,6 +1437,7 @@ void dev_shutdown(struct net_device *dev)
 
 	WARN_ON(timer_pending(&dev->watchdog_timer));
 }
+#endif
 
 /**
  * psched_ratecfg_precompute__() - Pre-compute values for reciprocal division

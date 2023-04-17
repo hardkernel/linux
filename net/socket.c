@@ -817,18 +817,22 @@ static bool skb_is_swtx_tstamp(const struct sk_buff *skb, int false_tstamp)
 static void put_ts_pktinfo(struct msghdr *msg, struct sk_buff *skb)
 {
 	struct scm_ts_pktinfo ts_pktinfo;
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	struct net_device *orig_dev;
+#endif
 
 	if (!skb_mac_header_was_set(skb))
 		return;
 
 	memset(&ts_pktinfo, 0, sizeof(ts_pktinfo));
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	rcu_read_lock();
 	orig_dev = dev_get_by_napi_id(skb_napi_id(skb));
 	if (orig_dev)
 		ts_pktinfo.if_index = orig_dev->ifindex;
 	rcu_read_unlock();
+#endif
 
 	ts_pktinfo.pkt_length = skb->len - skb_mac_offset(skb);
 	put_cmsg(msg, SOL_SOCKET, SCM_TIMESTAMPING_PKTINFO,
@@ -1262,8 +1266,10 @@ static long sock_ioctl(struct file *file, unsigned cmd, unsigned long arg)
 			break;
 
 		case SIOCGIFCONF:
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 			err = dev_ifconf(net, argp);
 			break;
+#endif
 
 		default:
 			err = sock_do_ioctl(net, sock, cmd, arg);

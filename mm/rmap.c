@@ -1697,6 +1697,11 @@ discard:
 	mmu_notifier_invalidate_range_end(&range);
 	trace_android_vh_try_to_unmap_one(vma, page, address, ret);
 
+#ifdef CONFIG_AMLOGIC_ZAPPER_CUT
+	if (ret && page_mapping(page) && vma->vm_file && vma->vm_file->f_mapping)
+		vma->vm_file->f_mapping->gfp_mask |= __GFP_NO_CMA;
+#endif
+
 	return ret;
 }
 

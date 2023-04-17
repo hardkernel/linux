@@ -6,19 +6,29 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 obj-y				:= devres.o socket.o core/
+else
+obj-y				:= socket.o core/
+endif
 
 obj-$(CONFIG_COMPAT)		+= compat.o
 
 # LLC has to be linked before the files in net/802/
 obj-$(CONFIG_LLC)		+= llc/
+ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 obj-y				+= ethernet/ 802/ sched/ netlink/ bpf/ ethtool/
+else
+obj-y				+= sched/ netlink/
+endif
 obj-$(CONFIG_NETFILTER)		+= netfilter/
 obj-$(CONFIG_INET)		+= ipv4/
 obj-$(CONFIG_TLS)		+= tls/
 obj-$(CONFIG_XFRM)		+= xfrm/
 obj-$(CONFIG_UNIX_SCM)		+= unix/
+ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 obj-y				+= ipv6/
+endif
 obj-$(CONFIG_BPFILTER)		+= bpfilter/
 obj-$(CONFIG_PACKET)		+= packet/
 obj-$(CONFIG_NET_KEY)		+= key/

@@ -112,6 +112,7 @@ int eth_header(struct sk_buff *skb, struct net_device *dev,
 }
 EXPORT_SYMBOL(eth_header);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 /**
  * eth_get_headlen - determine the length of header for an ethernet frame
  * @dev: pointer to network device
@@ -141,7 +142,7 @@ u32 eth_get_headlen(const struct net_device *dev, const void *data, u32 len)
 	return min_t(u32, __skb_get_poff(NULL, data, &keys, len), len);
 }
 EXPORT_SYMBOL(eth_get_headlen);
-
+#endif
 /**
  * eth_type_trans - determine the packet's protocol ID.
  * @skb: received socket data
@@ -503,6 +504,7 @@ unsigned char * __weak arch_get_platform_mac_address(void)
 	return NULL;
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 int eth_platform_get_mac_address(struct device *dev, u8 *mac_addr)
 {
 	unsigned char *addr;
@@ -521,7 +523,7 @@ int eth_platform_get_mac_address(struct device *dev, u8 *mac_addr)
 	return 0;
 }
 EXPORT_SYMBOL(eth_platform_get_mac_address);
-
+#endif
 /**
  * nvmem_get_mac_address - Obtain the MAC address from an nvmem cell named
  * 'mac-address' associated with given device.

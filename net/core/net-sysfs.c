@@ -242,7 +242,6 @@ static ssize_t duplex_show(struct device *dev,
 
 	if (netif_running(netdev)) {
 		struct ethtool_link_ksettings cmd;
-
 		if (!__ethtool_get_link_ksettings(netdev, &cmd)) {
 			const char *duplex;
 

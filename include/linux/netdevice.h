@@ -2542,6 +2542,7 @@ static inline void *netdev_priv(const struct net_device *dev)
 void netif_napi_add(struct net_device *dev, struct napi_struct *napi,
 		    int (*poll)(struct napi_struct *, int), int weight);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 /**
  *	netif_tx_napi_add - initialize a NAPI context
  *	@dev:  network device
@@ -2561,6 +2562,7 @@ static inline void netif_tx_napi_add(struct net_device *dev,
 	set_bit(NAPI_STATE_NO_BUSY_POLL, &napi->state);
 	netif_napi_add(dev, napi, poll, weight);
 }
+#endif
 
 /**
  *  __netif_napi_del - remove a NAPI context

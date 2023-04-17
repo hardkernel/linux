@@ -56,7 +56,7 @@ extern void
 for_each_kernel_tracepoint(void (*fct)(struct tracepoint *tp, void *priv),
 		void *priv);
 
-#ifdef CONFIG_MODULES
+#if defined(CONFIG_MODULES) && defined(CONFIG_TRACEPOINTS)
 struct tp_module {
 	struct list_head list;
 	struct module *mod;

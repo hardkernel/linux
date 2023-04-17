@@ -254,13 +254,13 @@ config PCPU_DEV_REFCNT
 config RPS
 	bool
 	depends on SMP && SYSFS
-	default y
+	default y if !AMLOGIC_ZAPPER_NET_CUT
 
 config RFS_ACCEL
 	bool
 	depends on RPS
 	select CPU_RMAP
-	default y
+	default y if !AMLOGIC_ZAPPER_NET_CUT
 
 config SOCK_RX_QUEUE_MAPPING
 	bool
@@ -269,7 +269,7 @@ config XPS
 	bool
 	depends on SMP
 	select SOCK_RX_QUEUE_MAPPING
-	default y
+	default y if !AMLOGIC_ZAPPER_NET_CUT
 
 config HWBM
 	bool
@@ -292,7 +292,7 @@ config CGROUP_NET_CLASSID
 
 config NET_RX_BUSY_POLL
 	bool
-	default y
+	default y if !AMLOGIC_ZAPPER_NET_CUT
 
 config BQL
 	bool
@@ -416,6 +416,7 @@ config SOCK_VALIDATE_XMIT
 config NET_SELFTESTS
 	def_tristate PHYLIB
 	depends on PHYLIB && INET
+	default n if AMLOGIC_ZAPPER_NET_CUT
 
 config NET_SOCK_MSG
 	bool

@@ -317,6 +317,7 @@ static int inet4_pton(const char *src, u16 port_num,
 	return 0;
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static int inet6_pton(struct net *net, const char *src, u16 port_num,
 		struct sockaddr_storage *addr)
 {
@@ -355,6 +356,7 @@ static int inet6_pton(struct net *net, const char *src, u16 port_num,
 
 	return 0;
 }
+#endif
 
 /**
  * inet_pton_with_scope - convert an IPv4/IPv6 and port to socket address
@@ -383,6 +385,7 @@ int inet_pton_with_scope(struct net *net, __kernel_sa_family_t af,
 	case AF_INET:
 		ret = inet4_pton(src, port_num, addr);
 		break;
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	case AF_INET6:
 		ret = inet6_pton(net, src, port_num, addr);
 		break;
@@ -391,6 +394,7 @@ int inet_pton_with_scope(struct net *net, __kernel_sa_family_t af,
 		if (ret)
 			ret = inet6_pton(net, src, port_num, addr);
 		break;
+#endif
 	default:
 		pr_err("unexpected address family %d\n", af);
 	}

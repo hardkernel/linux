@@ -277,6 +277,7 @@ config USB_CONFIGFS_NCM
 	bool "Network Control Model (CDC NCM)"
 	depends on USB_CONFIGFS
 	depends on NET
+	depends on !AMLOGIC_ZAPPER_NET_CUT
 	select USB_U_ETHER
 	select USB_F_NCM
 	select CRC32
@@ -289,6 +290,7 @@ config USB_CONFIGFS_ECM
 	bool "Ethernet Control Model (CDC ECM)"
 	depends on USB_CONFIGFS
 	depends on NET
+	depends on !AMLOGIC_ZAPPER_NET_CUT
 	select USB_U_ETHER
 	select USB_F_ECM
 	help
@@ -301,6 +303,7 @@ config USB_CONFIGFS_ECM_SUBSET
 	bool "Ethernet Control Model (CDC ECM) subset"
 	depends on USB_CONFIGFS
 	depends on NET
+	depends on !AMLOGIC_ZAPPER_NET_CUT
 	select USB_U_ETHER
 	select USB_F_SUBSET
 	help
@@ -311,6 +314,7 @@ config USB_CONFIGFS_RNDIS
 	bool "RNDIS"
 	depends on USB_CONFIGFS
 	depends on NET
+	depends on !AMLOGIC_ZAPPER_NET_CUT
 	select USB_U_ETHER
 	select USB_F_RNDIS
 	help
@@ -327,6 +331,7 @@ config USB_CONFIGFS_EEM
 	bool "Ethernet Emulation Model (EEM)"
 	depends on USB_CONFIGFS
 	depends on NET
+	depends on !AMLOGIC_ZAPPER_NET_CUT
 	select USB_U_ETHER
 	select USB_F_EEM
 	select CRC32
@@ -343,6 +348,7 @@ config USB_CONFIGFS_PHONET
 	bool "Phonet protocol"
 	depends on USB_CONFIGFS
 	depends on NET
+	depends on !AMLOGIC_ZAPPER_NET_CUT
 	depends on PHONET
 	select USB_U_ETHER
 	select USB_F_PHONET

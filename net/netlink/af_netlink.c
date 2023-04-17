@@ -205,6 +205,7 @@ int netlink_add_tap(struct netlink_tap *nt)
 }
 EXPORT_SYMBOL_GPL(netlink_add_tap);
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static int __netlink_remove_tap(struct netlink_tap *nt)
 {
 	struct net *net = dev_net(nt->dev);
@@ -242,6 +243,7 @@ int netlink_remove_tap(struct netlink_tap *nt)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(netlink_remove_tap);
+#endif
 
 static __net_init int netlink_tap_init_net(struct net *net)
 {
@@ -302,9 +304,11 @@ static int __netlink_deliver_tap_skb(struct sk_buff *skb,
 		nskb->pkt_type = netlink_is_kernel(sk) ?
 				 PACKET_KERNEL : PACKET_USER;
 		skb_reset_network_header(nskb);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 		ret = dev_queue_xmit(nskb);
 		if (unlikely(ret > 0))
 			ret = net_xmit_errno(ret);
+#endif
 	}
 
 	dev_put(dev);
@@ -1444,8 +1448,10 @@ static void do_one_broadcast(struct sock *sk,
 		if (!(nlk->flags & NETLINK_F_LISTEN_ALL_NSID))
 			return;
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 		if (!peernet_has_id(sock_net(sk), p->net))
 			return;
+#endif
 
 		if (!file_ns_capable(sk->sk_socket->file, p->net->user_ns,
 				     CAP_NET_BROADCAST))
@@ -1488,9 +1494,11 @@ static void do_one_broadcast(struct sock *sk,
 		p->skb2 = NULL;
 		goto out;
 	}
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	NETLINK_CB(p->skb2).nsid = peernet2id(sock_net(sk), p->net);
 	if (NETLINK_CB(p->skb2).nsid != NETNSA_NSID_NOT_ASSIGNED)
 		NETLINK_CB(p->skb2).nsid_is_set = true;
+#endif
 	val = netlink_broadcast_deliver(sk, p->skb2);
 	if (val < 0) {
 		netlink_overrun(sk);
@@ -2905,8 +2913,10 @@ static int __init netlink_proto_init(void)
 	sock_register(&netlink_family_ops);
 	register_pernet_subsys(&netlink_net_ops);
 	register_pernet_subsys(&netlink_tap_net_ops);
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	/* The netlink device handler may be needed early. */
 	rtnetlink_init();
+#endif
 out:
 	return err;
 panic:

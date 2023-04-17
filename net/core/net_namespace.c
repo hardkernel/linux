@@ -184,6 +184,7 @@ static void ops_free_list(const struct pernet_operations *ops,
 	}
 }
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 /* should be called with nsid_lock held */
 static int alloc_netid(struct net *net, struct net *peer, int reqid)
 {
@@ -302,6 +303,7 @@ struct net *get_net_ns_by_id(const struct net *net, int id)
 
 	return peer;
 }
+#endif
 
 /*
  * setup_net runs the initializers for the network namespace object.
@@ -718,6 +720,7 @@ static struct pernet_operations __net_initdata net_ns_ops = {
 	.exit = net_ns_net_exit,
 };
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 static const struct nla_policy rtnl_net_policy[NETNSA_MAX + 1] = {
 	[NETNSA_NONE]		= { .type = NLA_UNSPEC },
 	[NETNSA_NSID]		= { .type = NLA_S32 },
@@ -1081,7 +1084,7 @@ err_out:
 out:
 	rtnl_set_sk_err(net, RTNLGRP_NSID, err);
 }
-
+#endif
 void __init net_ns_init(void)
 {
 	struct net_generic *ng;
@@ -1116,10 +1119,12 @@ void __init net_ns_init(void)
 	if (register_pernet_subsys(&net_ns_ops))
 		panic("Could not register network namespace subsystems");
 
+#ifndef CONFIG_AMLOGIC_ZAPPER_NET_CUT
 	rtnl_register(PF_UNSPEC, RTM_NEWNSID, rtnl_net_newid, NULL,
 		      RTNL_FLAG_DOIT_UNLOCKED);
 	rtnl_register(PF_UNSPEC, RTM_GETNSID, rtnl_net_getid, rtnl_net_dumpid,
 		      RTNL_FLAG_DOIT_UNLOCKED);
+#endif
 }
 
 static void free_exit_list(struct pernet_operations *ops, struct list_head *net_exit_list)
