@@ -287,4 +287,10 @@ int smpcfd_prepare_cpu(unsigned int cpu);
 int smpcfd_dead_cpu(unsigned int cpu);
 int smpcfd_dying_cpu(unsigned int cpu);
 
+#ifdef CONFIG_AMLOGIC_APU
+extern int apu_id;
+extern int apu_hwid;
+extern int apu_enable;
+#endif
+
 #endif /* __LINUX_SMP_H */

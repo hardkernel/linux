@@ -3508,6 +3508,13 @@ int proc_pid_readdir(struct file *file, struct dir_context *ctx)
 		char name[10 + 1];
 		unsigned int len;
 
+#ifdef CONFIG_AMLOGIC_APU
+		if (apu_enable && apu_id != -1 &&
+		    iter.task->nr_cpus_allowed == 1 &&
+		    cpumask_test_cpu(apu_id, &iter.task->cpus_mask))
+			continue;
+#endif
+
 		cond_resched();
 		if (!has_pid_permissions(fs_info, iter.task, HIDEPID_INVISIBLE))
 			continue;
@@ -3854,6 +3861,13 @@ static int proc_task_readdir(struct file *file, struct dir_context *ctx)
 		unsigned int len;
 		tid = task_pid_nr_ns(task, ns);
 		len = snprintf(name, sizeof(name), "%u", tid);
+
+#ifdef CONFIG_AMLOGIC_APU
+		if (apu_enable && apu_id != -1 &&
+		    task->nr_cpus_allowed == 1 &&
+		    cpumask_test_cpu(apu_id, &task->cpus_mask))
+			continue;
+#endif
 		if (!proc_fill_cache(file, ctx, name, len,
 				proc_task_instantiate, task, NULL)) {
 			/* returning this tgid failed, save it as the first
