@@ -1093,6 +1093,10 @@ void __init smp_init(void)
 
 	num_nodes = num_online_nodes();
 	num_cpus  = num_online_cpus();
+#ifdef CONFIG_AMLOGIC_APU
+	if (apu_enable && apu_id != -1)
+		num_cpus -= 1;
+#endif
 	pr_info("Brought up %d node%s, %d CPU%s\n",
 		num_nodes, (num_nodes > 1 ? "s" : ""),
 		num_cpus,  (num_cpus  > 1 ? "s" : ""));
@@ -1237,3 +1241,18 @@ int smp_call_on_cpu(unsigned int cpu, int (*func)(void *), void *par, bool phys)
 	return sscs.ret;
 }
 EXPORT_SYMBOL_GPL(smp_call_on_cpu);
+
+#ifdef CONFIG_AMLOGIC_APU
+int apu_id = -1;
+int apu_hwid = -1;
+int apu_enable = 1;
+
+static int __init setup_apu_enable(char *str)
+{
+	get_option(&str, &apu_enable);
+	pr_debug("set apu_enable=%d\n", apu_enable);
+	return 0;
+}
+
+early_param("apu_enable", setup_apu_enable);
+#endif

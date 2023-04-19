@@ -268,6 +268,9 @@ asmlinkage notrace void secondary_start_kernel(void)
 	 * the CPU migration code to notice that the CPU is online
 	 * before we continue.
 	 */
+#ifdef CONFIG_AMLOGIC_APU
+	if (!(apu_enable && cpu == apu_id))
+#endif
 	pr_info("CPU%u: Booted secondary processor 0x%010lx [0x%08x]\n",
 					 cpu, (unsigned long)mpidr,
 					 read_cpuid_id());
@@ -453,7 +456,15 @@ static void __init hyp_mode_check(void)
 
 void __init smp_cpus_done(unsigned int max_cpus)
 {
+#ifdef CONFIG_AMLOGIC_APU
+	int num = num_online_cpus();
+
+	if (apu_id != -1)
+		num -= 1;
+	pr_info("SMP: Total of %d processors activated.\n", num);
+#else
 	pr_info("SMP: Total of %d processors activated.\n", num_online_cpus());
+#endif
 	setup_cpu_features();
 	hyp_mode_check();
 	apply_alternatives_all();
@@ -675,10 +686,33 @@ static void __init acpi_parse_and_init_cpus(void)
 static void __init of_parse_and_init_cpus(void)
 {
 	struct device_node *dn;
+#ifdef CONFIG_AMLOGIC_APU
+	struct device_node *cpus;
+	int ret = 0;
+
+	cpus = of_find_node_by_path("/cpus");
+	ret |= of_property_read_u32(cpus, "apu_id", &apu_id);
+	ret |= of_property_read_u32(cpus, "apu_hwid", &apu_hwid);
+
+	if (ret) {
+		apu_id = -1;
+		apu_hwid = -1;
+		pr_info("no apu_id or apu_hwid\n");
+	}
+#endif
 
 	for_each_of_cpu_node(dn) {
 		u64 hwid = of_get_cpu_mpidr(dn);
 
+#ifdef CONFIG_AMLOGIC_APU
+		if (cpu_count == apu_id && hwid != apu_hwid) {
+			set_cpu_logical_map(cpu_count, apu_hwid);
+			early_map_cpu_to_node(cpu_count, 0);
+			cpu_count++;
+			pr_info("apu_enable:%d apu_id:%x apu_hwid:%x active\n",
+				apu_enable, apu_id, apu_hwid);
+		}
+#endif
 		if (hwid == INVALID_HWID)
 			goto next;
 
@@ -723,6 +757,16 @@ static void __init of_parse_and_init_cpus(void)
 next:
 		cpu_count++;
 	}
+
+#ifdef CONFIG_AMLOGIC_APU
+	if (cpu_count == apu_id) {
+		set_cpu_logical_map(cpu_count, apu_hwid);
+		early_map_cpu_to_node(cpu_count, 0);
+		cpu_count++;
+		pr_info("apu_enable:%d apu_id:%x apu_hwid:%x active\n",
+			apu_enable, apu_id, apu_hwid);
+	}
+#endif
 }
 
 /*

@@ -162,6 +162,10 @@ static int c_show(struct seq_file *m, void *v)
 		struct cpuinfo_arm64 *cpuinfo = &per_cpu(cpu_data, i);
 		u32 midr = cpuinfo->reg_midr;
 
+#ifdef CONFIG_AMLOGIC_APU
+		if (apu_enable && i == apu_id)
+			continue;
+#endif
 		/*
 		 * glibc reads /proc/cpuinfo to determine the number of
 		 * online processors, looking for lines beginning with
@@ -361,6 +365,9 @@ static void cpuinfo_detect_icache_policy(struct cpuinfo_arm64 *info)
 		break;
 	}
 
+#ifdef CONFIG_AMLOGIC_APU
+	if (!(apu_enable && cpu == apu_id))
+#endif
 	pr_info("Detected %s I-cache on CPU%d\n", icache_policy_str(l1ip), cpu);
 }
 
