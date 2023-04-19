@@ -100,6 +100,10 @@ static int show_stat(struct seq_file *p, void *v)
 		struct kernel_cpustat kcpustat;
 		u64 *cpustat = kcpustat.cpustat;
 
+#ifdef CONFIG_AMLOGIC_APU
+		if (apu_enable && i == apu_id)
+			continue;
+#endif
 		kcpustat_cpu_fetch(&kcpustat, i);
 
 		user		+= cpustat[CPUTIME_USER];
@@ -140,6 +144,10 @@ static int show_stat(struct seq_file *p, void *v)
 		struct kernel_cpustat kcpustat;
 		u64 *cpustat = kcpustat.cpustat;
 
+#ifdef CONFIG_AMLOGIC_APU
+		if (apu_enable && i == apu_id)
+			continue;
+#endif
 		kcpustat_cpu_fetch(&kcpustat, i);
 
 		/* Copy values here to work around gcc-2.95.3, gcc-2.96 */

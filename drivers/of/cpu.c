@@ -120,6 +120,12 @@ struct device_node *of_get_cpu_node(int cpu, unsigned int *thread)
 {
 	struct device_node *cpun;
 
+
+#ifdef CONFIG_AMLOGIC_APU
+	if (cpu == apu_id)
+		cpu -= 1;
+#endif
+
 	for_each_of_cpu_node(cpun) {
 		if (arch_find_n_match_cpu_physical_id(cpun, cpu, thread))
 			return cpun;
