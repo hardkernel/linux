@@ -436,6 +436,7 @@ static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac
 	struct device_node *np = pdev->dev.of_node;
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	unsigned int mc_val = 0;
+	unsigned int cali_val = 0;
 
 	pr_info("aml_cust_setting\n");
 
@@ -452,6 +453,13 @@ static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac
 	if (of_property_read_u32(np, "mac_wol", &wol_switch_from_user) == 0)
 		pr_info("feature mac_wol\n");
 #endif
+
+	/*internal_phy 1:inphy;2:exphy; 0 as default*/
+	if (internal_phy == 2) {
+		if (of_property_read_u32(np, "cali_val", &cali_val) != 0)
+			pr_err("set default cali_val as 0\n");
+		writel(cali_val, dwmac->regs + PRG_ETH1);
+	}
 
 	return 0;
 }
