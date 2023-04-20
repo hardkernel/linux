@@ -1304,6 +1304,9 @@ struct nand_chip {
 	/* Externals */
 	struct nand_controller *controller;
 	struct nand_ecc_ctrl ecc;
+#if IS_ENABLED(CONFIG_AMLOGIC_MTD_NAND)
+	struct nand_flash_dev *type;
+#endif
 	void *priv;
 };
 
@@ -1432,6 +1435,9 @@ struct nand_flash_dev {
 		uint16_t strength_ds;
 		uint16_t step_ds;
 	} ecc;
+#if IS_ENABLED(CONFIG_AMLOGIC_MTD_NAND)
+	int onfi_timing_mode_default;
+#endif
 };
 
 int nand_create_bbt(struct nand_chip *chip);
@@ -1547,6 +1553,17 @@ int nand_read_page_hwecc_oob_first(struct nand_chip *chip, uint8_t *buf,
 /* Scan and identify a NAND device */
 int nand_scan_with_ids(struct nand_chip *chip, unsigned int max_chips,
 		       struct nand_flash_dev *ids);
+
+#if IS_ENABLED(CONFIG_AMLOGIC_MTD_NAND)
+void onfi_fill_interface_config(struct nand_chip *chip,
+				struct nand_interface_config *iface,
+				enum nand_interface_type type,
+				unsigned int timing_mode);
+
+int nand_choose_best_sdr_timings(struct nand_chip *chip,
+				 struct nand_interface_config *iface,
+				 struct nand_sdr_timings *spec_timings);
+#endif
 
 static inline int nand_scan(struct nand_chip *chip, unsigned int max_chips)
 {

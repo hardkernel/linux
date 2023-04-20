@@ -735,3 +735,7 @@ void onfi_fill_interface_config(struct nand_chip *chip,
 	else
 		return onfi_fill_nvddr_interface_config(chip, iface, timing_mode);
 }
+
+#if IS_ENABLED(CONFIG_AMLOGIC_MTD_NAND)
+EXPORT_SYMBOL_GPL(onfi_fill_interface_config);
+#endif

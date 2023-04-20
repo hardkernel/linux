@@ -1008,8 +1008,15 @@ int mtd_device_parse_register(struct mtd_info *mtd, const char * const *types,
 
 out:
 	if (ret) {
+#if (IS_ENABLED(CONFIG_AMLOGIC_MTD_NAND) || IS_ENABLED(CONFIG_AMLOGIC_MTD_SPI_NAND))
+		if (mtd->otp_user_nvmem)
+			nvmem_unregister(mtd->otp_user_nvmem);
+		if (mtd->otp_factory_nvmem)
+			nvmem_unregister(mtd->otp_factory_nvmem);
+#else
 		nvmem_unregister(mtd->otp_user_nvmem);
 		nvmem_unregister(mtd->otp_factory_nvmem);
+#endif
 	}
 
 	if (ret && device_is_registered(&mtd->dev))
