@@ -1312,7 +1312,7 @@ static ssize_t rk3x_i2c_set_speed(struct device *dev, struct device_attribute *a
 	return count;
 }
 
-DEVICE_ATTR(speed, S_IRUGO | S_IWUSR, rk3x_i2c_get_speed, rk3x_i2c_set_speed);
+static DEVICE_ATTR(speed, S_IRUGO | S_IWUSR, rk3x_i2c_get_speed, rk3x_i2c_set_speed);
 
 static int rk3x_i2c_probe(struct platform_device *pdev)
 {
