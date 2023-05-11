@@ -414,9 +414,21 @@ asmlinkage void __arm_smccc_hvc(unsigned long a0, unsigned long a1,
 			unsigned long a5, unsigned long a6, unsigned long a7,
 			struct arm_smccc_res *res, struct arm_smccc_quirk *quirk);
 
+/* gki mode build with module or buitlin mode */
+#if ((defined(CONFIG_AMLOGIC_DEBUG_MODULE) && defined(MODULE)) || (defined(CONFIG_AMLOGIC_DEBUG))) && (!defined(SKIP_LOCKUP_CHECK))
+void __arm_smccc_smc_glue(unsigned long a0, unsigned long a1,
+			unsigned long a2, unsigned long a3, unsigned long a4,
+			unsigned long a5, unsigned long a6, unsigned long a7,
+			struct arm_smccc_res *res, struct arm_smccc_quirk *quirk);
+
+#define arm_smccc_smc(...) __arm_smccc_smc_glue(__VA_ARGS__, NULL)
+
+#define arm_smccc_smc_quirk(...) __arm_smccc_smc_glue(__VA_ARGS__)
+#else
 #define arm_smccc_smc(...) __arm_smccc_smc(__VA_ARGS__, NULL)
 
 #define arm_smccc_smc_quirk(...) __arm_smccc_smc(__VA_ARGS__)
+#endif
 
 #define arm_smccc_hvc(...) __arm_smccc_hvc(__VA_ARGS__, NULL)
 
