@@ -18,6 +18,13 @@
 #include <asm/mmiowb.h>
 #include <asm-generic/pci_iomap.h>
 
+/* get the macro ' _THIS_IP_' definition */
+#if IS_ENABLED(CONFIG_AMLOGIC_DEBUG_IOTRACE)
+#ifdef CONFIG_ARM
+#include <linux/kernel.h>
+#endif
+#endif
+
 #ifndef __io_br
 #define __io_br()      barrier()
 #endif

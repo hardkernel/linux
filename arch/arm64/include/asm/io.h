@@ -112,6 +112,9 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
 #define __iowmb()		dma_wmb()
 #define __iomb()		dma_mb()
 
+#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE) || \
+    ((IS_MODULE(CONFIG_AMLOGIC_DEBUG_IOTRACE)) && defined(MODULE))
+#else
 /*
  * Relaxed I/O memory access primitives. These follow the Device memory
  * ordering rules but do not guarantee any ordering relative to Normal memory
@@ -141,6 +144,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
 #define writew(v,c)		({ __iowmb(); writew_relaxed((v),(c)); })
 #define writel(v,c)		({ __iowmb(); writel_relaxed((v),(c)); })
 #define writeq(v,c)		({ __iowmb(); writeq_relaxed((v),(c)); })
+#endif
 
 /*
  *  I/O port access primitives.

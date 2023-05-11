@@ -115,7 +115,6 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 		     : "Qo" (*(volatile u32 __force *)addr));
 	return val;
 }
-
 /*
  * Architecture ioremap implementation.
  */
@@ -288,6 +287,8 @@ extern void _memset_io(volatile void __iomem *, int, size_t);
  * IO port primitives for more information.
  */
 #ifndef readl
+/* use the macro definitions in include/asm-generic/io.h */
+#if !IS_ENABLED(CONFIG_AMLOGIC_DEBUG_IOTRACE)
 #define readb_relaxed(c) ({ u8  __r = __raw_readb(c); __r; })
 #define readw_relaxed(c) ({ u16 __r = le16_to_cpu((__force __le16) \
 					__raw_readw(c)); __r; })
@@ -313,6 +314,7 @@ extern void _memset_io(volatile void __iomem *, int, size_t);
 #define writesb(p,d,l)		__raw_writesb(p,d,l)
 #define writesw(p,d,l)		__raw_writesw(p,d,l)
 #define writesl(p,d,l)		__raw_writesl(p,d,l)
+#endif
 
 #ifndef __ARMBE__
 static inline void memset_io(volatile void __iomem *dst, unsigned c,
@@ -338,7 +340,6 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
 	mmiocpy((void __force *)to, from, count);
 }
 #define memcpy_toio(to,from,count) memcpy_toio(to,from,count)
-
 #else
 #define memset_io(c,v,l)	_memset_io(c,(v),(l))
 #define memcpy_fromio(a,c,l)	_memcpy_fromio((a),c,(l))
