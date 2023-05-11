@@ -130,7 +130,7 @@ config ARM
 	select PERF_USE_VMALLOC
 	select RTC_LIB
 	select SYS_SUPPORTS_APM_EMULATION
-	select TRACE_IRQFLAGS_SUPPORT if !CPU_V7M
+	select TRACE_IRQFLAGS_SUPPORT if !CPU_V7M && !AMLOGIC_LINUX_S_OPTIMIZE
 	# Above selects are sorted alphabetically; please add new ones
 	# according to that.  Thanks.
 	help
@@ -140,6 +140,12 @@ config ARM
 	  manufactured, but legacy ARM-based PC hardware remains popular in
 	  Europe.  There is an ARM Linux project with a web page at
 	  <http://www.arm.linux.org.uk/>.
+
+config AMLOGIC_LINUX_S_OPTIMIZE
+	bool "linux kernel size optimize"
+	default n
+	help
+	  Amlogic linux kernel size optimize
 
 config ARM_HAS_SG_CHAIN
 	bool
@@ -567,12 +573,12 @@ config ARCH_VIRT
 	depends on ARCH_MULTI_V7
 	select ARM_AMBA
 	select ARM_GIC
-	select ARM_GIC_V2M if PCI
-	select ARM_GIC_V3
-	select ARM_GIC_V3_ITS if PCI
+	select ARM_GIC_V2M if PCI && !AMLOGIC_LINUX_S_OPTIMIZE
+	select ARM_GIC_V3 if !AMLOGIC_LINUX_S_OPTIMIZE
+	select ARM_GIC_V3_ITS if PCI && !AMLOGIC_LINUX_S_OPTIMIZE
 	select ARM_PSCI
 	select HAVE_ARM_ARCH_TIMER
-	select ARCH_SUPPORTS_BIG_ENDIAN
+	select ARCH_SUPPORTS_BIG_ENDIAN if !AMLOGIC_LINUX_S_OPTIMIZE
 
 #
 # This is sorted alphabetically by mach-* pathname.  However, plat-*
