@@ -50,6 +50,11 @@ void __raw_readsb(const volatile void __iomem *addr, void *data, int bytelen);
 void __raw_readsw(const volatile void __iomem *addr, void *data, int wordlen);
 void __raw_readsl(const volatile void __iomem *addr, void *data, int longlen);
 
+#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE)
+#include <linux/amlogic/io_32.h>
+#elif IS_MODULE(CONFIG_AMLOGIC_DEBUG_IOTRACE) && defined(MODULE)
+#include <linux/amlogic/io_32.h>
+#else
 #if __LINUX_ARM_ARCH__ < 6
 /*
  * Half-word accesses are problematic with RiscPC due to limitations of
@@ -115,7 +120,7 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 		     : "Qo" (*(volatile u32 __force *)addr));
 	return val;
 }
-
+#endif /* CONFIG_AMLOGIC_DEBUG_IOTRACE */
 /*
  * Architecture ioremap implementation.
  */
@@ -321,12 +326,11 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
 	mmiocpy((void __force *)to, from, count);
 }
 #define memcpy_toio(to,from,count) memcpy_toio(to,from,count)
-
-#else
+#else /* __ARMBE__ */
 #define memset_io(c,v,l)	_memset_io(c,(v),(l))
 #define memcpy_fromio(a,c,l)	_memcpy_fromio((a),c,(l))
 #define memcpy_toio(c,a,l)	_memcpy_toio(c,(a),(l))
-#endif
+#endif /*__ARMBE__ */
 
 #endif	/* readl */
 
