@@ -3155,6 +3155,14 @@ __acquires(&pool->lock)
 
 	lockdep_copy_map(&lockdep_map, &work->lockdep_map);
 #endif
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+	if (!pwq) {
+		WARN_ONCE(1, "<%s> pwq_NULL <%lx> <%ps>, <%ps> %s\n",
+			__func__, atomic_long_read(&work->data),
+			work->func, worker->current_func, worker->desc);
+		return;
+	}
+#endif
 	/* ensure we're on the correct CPU */
 	WARN_ON_ONCE(!(pool->flags & POOL_DISASSOCIATED) &&
 		     raw_smp_processor_id() != pool->cpu);

@@ -10,6 +10,11 @@
 #include <linux/printk.h>
 #include "internal.h"
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+static int ignore_check_version = 1;
+core_param(ignore_check_version, ignore_check_version, int, 0644);
+#endif
+
 int check_version(const struct load_info *info,
 		  const char *symname,
 			 struct module *mod,
@@ -69,7 +74,13 @@ int check_version(const struct load_info *info,
 
 bad_version:
 	pr_warn("%s: disagrees about version of symbol %s\n", info->name, symname);
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+	pr_warn("!!!MUST FIX!!! %s: ko need recompile.\n", info->name);
+	dump_stack();
+	return ignore_check_version;
+#else
 	return 0;
+#endif
 }
 
 int check_modstruct_version(const struct load_info *info,
