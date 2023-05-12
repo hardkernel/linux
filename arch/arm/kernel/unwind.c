@@ -418,6 +418,15 @@ int unwind_frame(struct stackframe *frame)
 		 frame->pc, frame->lr, frame->sp);
 
 	idx = unwind_find_idx(frame->pc);
+#if IS_ENABLED(CONFIG_AMLOGIC_ARM_UNWIND)
+	if (!idx)
+		idx = unwind_find_idx(frame->lr);
+	if (!idx) {
+		pr_warn("unwind: Index not found, pc=%pS, lr=%pS\n",
+			(void *)frame->pc, (void *)frame->lr);
+		return -URC_FAILURE;
+	}
+#else
 	if (!idx) {
 		if (frame->pc && kernel_text_address(frame->pc)) {
 			if (in_module_plt(frame->pc) && frame->pc != frame->lr) {
@@ -433,6 +442,7 @@ int unwind_frame(struct stackframe *frame)
 		}
 		return -URC_FAILURE;
 	}
+#endif
 
 	ctrl.vrs[FP] = frame->fp;
 	ctrl.vrs[SP] = frame->sp;
