@@ -1373,8 +1373,12 @@ static void asym_cpu_capacity_scan(void)
  * Initializers for schedule domains
  * Non-inlined to reduce accumulated stack pressure in build_sched_domains()
  */
-
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+/* default enable SD_BALANCE_WAKE */
+static int default_relax_domain_level = 1;
+#else
 static int default_relax_domain_level = -1;
+#endif
 int sched_domain_level_max;
 
 static int __init setup_relax_domain_level(char *str)
@@ -1538,7 +1542,9 @@ sd_init(struct sched_domain_topology_level *tl,
 					| 1*SD_BALANCE_EXEC
 					| 1*SD_BALANCE_FORK
 					| 0*SD_BALANCE_WAKE
+#if !IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
 					| 1*SD_WAKE_AFFINE
+#endif
 					| 0*SD_SHARE_CPUCAPACITY
 					| 0*SD_SHARE_PKG_RESOURCES
 					| 0*SD_SERIALIZE

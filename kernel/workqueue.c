@@ -2210,11 +2210,20 @@ static void process_one_work(struct worker *worker, struct work_struct *work)
 __releases(&pool->lock)
 __acquires(&pool->lock)
 {
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+	struct worker *collision;
+	bool cpu_intensive;
+	unsigned long work_data;
+	struct pool_workqueue *pwq = get_work_pwq(work);
+	struct worker_pool *pool = worker->pool;
+#else
 	struct pool_workqueue *pwq = get_work_pwq(work);
 	struct worker_pool *pool = worker->pool;
 	bool cpu_intensive = pwq->wq->flags & WQ_CPU_INTENSIVE;
 	unsigned long work_data;
 	struct worker *collision;
+#endif
+
 #ifdef CONFIG_LOCKDEP
 	/*
 	 * It is permissible to free the struct work_struct from
@@ -2226,6 +2235,16 @@ __acquires(&pool->lock)
 	struct lockdep_map lockdep_map;
 
 	lockdep_copy_map(&lockdep_map, &work->lockdep_map);
+#endif
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+	if (!pwq) {
+		WARN_ONCE(1, "<%s> pwq_NULL <%lx> <%ps>, <%ps> %s\n",
+			__func__, atomic_long_read(&work->data),
+			work->func, worker->current_func, worker->desc);
+		return;
+	}
+
+	cpu_intensive = pwq->wq->flags & WQ_CPU_INTENSIVE;
 #endif
 	/* ensure we're on the correct CPU */
 	WARN_ON_ONCE(!(pool->flags & POOL_DISASSOCIATED) &&

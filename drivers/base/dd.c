@@ -57,6 +57,11 @@ static LIST_HEAD(deferred_probe_active_list);
 static atomic_t deferred_trigger_count = ATOMIC_INIT(0);
 static bool initcalls_done;
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+static int deferred_probe_printk;
+core_param(deferred_probe_printk, deferred_probe_printk, int, 0644);
+#endif
+
 /* Save the async probe drivers' name from kernel cmdline */
 #define ASYNC_DRV_NAMES_MAX_LEN	256
 static char async_probe_drv_names[ASYNC_DRV_NAMES_MAX_LEN];
@@ -183,6 +188,15 @@ static void driver_deferred_probe_trigger(void)
 	 */
 	mutex_lock(&deferred_probe_mutex);
 	atomic_inc(&deferred_trigger_count);
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_DEBUG_MISC)
+	if (deferred_probe_printk && !list_empty(&deferred_probe_pending_list)) {
+		struct device_private *p;
+
+		pr_warn("deferred probe trigger count %d\n", atomic_read(&deferred_trigger_count));
+		list_for_each_entry(p, &deferred_probe_pending_list, deferred_probe)
+			dev_info(p->device, "deferred probe pending\n");
+	}
+#endif
 	list_splice_tail_init(&deferred_probe_pending_list,
 			      &deferred_probe_active_list);
 	mutex_unlock(&deferred_probe_mutex);
