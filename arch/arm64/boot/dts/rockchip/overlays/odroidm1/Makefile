@@ -3,8 +3,8 @@
 dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	blueled_off.dtbo \
 	can0.dtbo \
-	display_vu8m.dtbo \
 	dht11.dtbo \
+	display_vu8m.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
@@ -15,6 +15,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	mcp2515_16mhz.dtbo \
 	onewire.dtbo \
 	ov5647.dtbo \
+	pcf8563.dtbo \
 	pwm1.dtbo \
 	pwm2.dtbo \
 	pwm9.dtbo \
