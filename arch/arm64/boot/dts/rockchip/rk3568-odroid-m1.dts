@@ -55,6 +55,8 @@
 	compatible = "rockchip,can-1.0";
 	pinctrl-names = "default";
 	pinctrl-0 = <&can0m0_pins>;
+	assigned-clocks = <&cru CLK_CAN0>;
+	assigned-clock-rates = <300000000>;
 	status = "disabled";
 };
 
