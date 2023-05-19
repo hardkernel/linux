@@ -26,6 +26,11 @@ int proc_dohung_task_timeout_secs(struct ctl_table *table, int write,
 enum { sysctl_hung_task_timeout_secs = 0 };
 #endif
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_SCHED_SYSCTL)
+extern unsigned int sysctl_sched_latency;
+extern unsigned int sysctl_sched_min_granularity;
+extern unsigned int sysctl_sched_wakeup_granularity;
+#endif
 extern unsigned int sysctl_sched_child_runs_first;
 
 enum sched_tunable_scaling {
@@ -35,6 +40,13 @@ enum sched_tunable_scaling {
 	SCHED_TUNABLESCALING_END,
 };
 
+#if IS_ENABLED(CONFIG_AMLOGIC_BGKI_SCHED_SYSCTL)
+extern enum sched_tunable_scaling sysctl_sched_tunable_scaling;
+
+int sched_proc_update_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *length,
+		loff_t *ppos);
+#endif
 /*
  *  control realtime throttling:
  *
