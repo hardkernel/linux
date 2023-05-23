@@ -5,6 +5,9 @@
 #include <linux/huge_mm.h>
 #include <linux/swap.h>
 #include <linux/string.h>
+#ifdef CONFIG_AMLOGIC_LMK
+#include <linux/page-isolation.h>
+#endif
 
 /**
  * page_is_file_lru - should the page be on a file LRU or anon LRU?
@@ -320,6 +323,11 @@ static inline bool lru_gen_del_page(struct lruvec *lruvec, struct page *page, bo
 static __always_inline void add_page_to_lru_list(struct page *page,
 				struct lruvec *lruvec)
 {
+#ifdef CONFIG_AMLOGIC_LMK
+	int nr_pages = thp_nr_pages(page);
+	int num = NR_INACTIVE_ANON_CMA - NR_ZONE_INACTIVE_ANON;
+	int migrate_type = 0;
+#endif /* CONFIG_AMLOGIC_LMK */
 	enum lru_list lru = page_lru(page);
 
 	if (lru_gen_add_page(lruvec, page, false))
@@ -327,11 +335,23 @@ static __always_inline void add_page_to_lru_list(struct page *page,
 
 	update_lru_size(lruvec, lru, page_zonenum(page), thp_nr_pages(page));
 	list_add(&page->lru, &lruvec->lists[lru]);
+
+#ifdef CONFIG_AMLOGIC_LMK
+	migrate_type = get_pageblock_migratetype(page);
+	if (is_migrate_cma(migrate_type) || is_migrate_isolate(migrate_type))
+		__mod_zone_page_state(page_zone(page),
+				      NR_ZONE_LRU_BASE + lru + num, nr_pages);
+#endif /* CONFIG_AMLOGIC_LMK */
 }
 
 static __always_inline void add_page_to_lru_list_tail(struct page *page,
 				struct lruvec *lruvec)
 {
+#ifdef CONFIG_AMLOGIC_LMK
+	int nr_pages = thp_nr_pages(page);
+	int num = NR_INACTIVE_ANON_CMA - NR_ZONE_INACTIVE_ANON;
+	int migrate_type = 0;
+#endif /* CONFIG_AMLOGIC_LMK */
 	enum lru_list lru = page_lru(page);
 
 	if (lru_gen_add_page(lruvec, page, true))
@@ -339,17 +359,37 @@ static __always_inline void add_page_to_lru_list_tail(struct page *page,
 
 	update_lru_size(lruvec, lru, page_zonenum(page), thp_nr_pages(page));
 	list_add_tail(&page->lru, &lruvec->lists[lru]);
+
+#ifdef CONFIG_AMLOGIC_LMK
+	migrate_type = get_pageblock_migratetype(page);
+	if (is_migrate_cma(migrate_type) || is_migrate_isolate(migrate_type))
+		__mod_zone_page_state(page_zone(page),
+				      NR_ZONE_LRU_BASE + lru + num, nr_pages);
+#endif /* CONFIG_AMLOGIC_LMK */
 }
 
 static __always_inline void del_page_from_lru_list(struct page *page,
 				struct lruvec *lruvec)
 {
+#ifdef CONFIG_AMLOGIC_LMK
+	int nr_pages = thp_nr_pages(page);
+	int num = NR_INACTIVE_ANON_CMA - NR_ZONE_INACTIVE_ANON;
+	int migrate_type = 0;
+#endif /* CONFIG_AMLOGIC_LMK */
+
 	if (lru_gen_del_page(lruvec, page, false))
 		return;
 
 	list_del(&page->lru);
 	update_lru_size(lruvec, page_lru(page), page_zonenum(page),
 			-thp_nr_pages(page));
+
+#ifdef CONFIG_AMLOGIC_LMK
+	migrate_type = get_pageblock_migratetype(page);
+	if (is_migrate_cma(migrate_type) || is_migrate_isolate(migrate_type))
+		__mod_zone_page_state(page_zone(page),
+				      NR_ZONE_LRU_BASE + page_lru(page) + num, -nr_pages);
+#endif /* CONFIG_AMLOGIC_LMK */
 }
 
 #ifdef CONFIG_ANON_VMA_NAME

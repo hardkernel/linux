@@ -1783,6 +1783,9 @@ static __always_inline bool is_percpu_thread(void)
 #define PFA_SPEC_IB_DISABLE		5	/* Indirect branch speculation restricted */
 #define PFA_SPEC_IB_FORCE_DISABLE	6	/* Indirect branch speculation permanently restricted */
 #define PFA_SPEC_SSB_NOEXEC		7	/* Speculative Store Bypass clear on execve() */
+#ifdef CONFIG_AMLOGIC_LMK
+#define PFA_LMK_WAITING			8	/* Lowmemorykiller is waiting */
+#endif
 
 #define TASK_PFA_TEST(name, func)					\
 	static inline bool task_##func(struct task_struct *p)		\
@@ -1824,6 +1827,11 @@ TASK_PFA_CLEAR(SPEC_IB_DISABLE, spec_ib_disable)
 
 TASK_PFA_TEST(SPEC_IB_FORCE_DISABLE, spec_ib_force_disable)
 TASK_PFA_SET(SPEC_IB_FORCE_DISABLE, spec_ib_force_disable)
+
+#ifdef CONFIG_AMLOGIC_LMK
+TASK_PFA_TEST(LMK_WAITING, lmk_waiting)
+TASK_PFA_SET(LMK_WAITING, lmk_waiting)
+#endif
 
 static inline void
 current_restore_flags(unsigned long orig_flags, unsigned long flags)
