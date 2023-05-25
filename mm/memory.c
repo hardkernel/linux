@@ -4859,7 +4859,11 @@ split:
  * The mmap_lock may have been released depending on flags and our return value.
  * See filemap_fault() and __lock_page_or_retry().
  */
+#if (defined CONFIG_ARM) && IS_ENABLED(CONFIG_AMLOGIC_DEBUG_ATRACE)
+vm_fault_t handle_pte_fault(struct vm_fault *vmf)
+#else
 static vm_fault_t handle_pte_fault(struct vm_fault *vmf)
+#endif
 {
 	pte_t entry;
 
