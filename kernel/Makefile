@@ -81,7 +81,9 @@ obj-$(CONFIG_UTS_NS) += utsname.o
 obj-$(CONFIG_USER_NS) += user_namespace.o
 obj-$(CONFIG_PID_NS) += pid_namespace.o
 obj-$(CONFIG_IKCONFIG) += configs.o
+ifndef CONFIG_AMLOGIC_KHEADERS_OPT
 obj-$(CONFIG_IKHEADERS) += kheaders.o
+endif
 obj-$(CONFIG_SMP) += stop_machine.o
 obj-$(CONFIG_KPROBES_SANITY_TEST) += test_kprobes.o
 obj-$(CONFIG_AUDIT) += audit.o auditfilter.o
@@ -146,8 +148,16 @@ $(obj)/config_data.gz: $(obj)/config_data FORCE
 
 filechk_cat = cat $<
 
+ifdef CONFIG_AMLOGIC_CONFIG_OPT
+$(obj)/cfg_less.txt: $(KCONFIG_CONFIG) FORCE
+	$(shell sed '/#/d' $(KCONFIG_CONFIG) > $(src)/cfg_less.txt)
+
+$(obj)/config_data: $(obj)/cfg_less.txt FORCE
+	$(call filechk,cat)
+else
 $(obj)/config_data: $(KCONFIG_CONFIG) FORCE
 	$(call filechk,cat)
+endif
 
 $(obj)/kheaders.o: $(obj)/kheaders_data.tar.xz
 

@@ -336,6 +336,10 @@ extern int kptr_restrict;
  * would prefix all pr_info, pr_emerg... messages in the file with the module
  * name.
  */
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+#undef pr_fmt
+#endif
+
 #ifndef pr_fmt
 #define pr_fmt(fmt) fmt
 #endif

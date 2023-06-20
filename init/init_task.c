@@ -214,9 +214,11 @@ struct task_struct init_task
 #ifdef CONFIG_SECCOMP_FILTER
 	.seccomp	= { .filter_count = ATOMIC_INIT(0) },
 #endif
+#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 #ifdef CONFIG_ANDROID_VENDOR_OEM_DATA
 	.android_vendor_data1 = {0, },
 	.android_oem_data1 = {0, },
+#endif
 #endif
 };
 EXPORT_SYMBOL(init_task);

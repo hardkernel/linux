@@ -421,8 +421,13 @@ static u32 log_buf_len = __LOG_BUF_LEN;
 #if CONFIG_LOG_BUF_SHIFT <= PRB_AVGBITS
 #error CONFIG_LOG_BUF_SHIFT value too small.
 #endif
+#ifdef CONFIG_AMLOGIC_PRINTK_OPT
+_DEFINE_PRINTKRB(printk_rb_static, CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS - 2,
+		 PRB_AVGBITS, &__log_buf[0]);
+#else
 _DEFINE_PRINTKRB(printk_rb_static, CONFIG_LOG_BUF_SHIFT - PRB_AVGBITS,
 		 PRB_AVGBITS, &__log_buf[0]);
+#endif
 
 static struct printk_ringbuffer printk_rb_dynamic;
 

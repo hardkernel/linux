@@ -67,7 +67,11 @@ static DECLARE_WORK(slab_caches_to_rcu_destroy_work,
 /*
  * Merge control. If this is set then no merging of slab caches will occur.
  */
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static bool slab_nomerge = true;
+#else
 static bool slab_nomerge = !IS_ENABLED(CONFIG_SLAB_MERGE_DEFAULT);
+#endif
 
 static int __init setup_slab_nomerge(char *str)
 {
