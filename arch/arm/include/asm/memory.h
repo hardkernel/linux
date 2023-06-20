@@ -64,7 +64,11 @@
 #define MODULES_VADDR           (PAGE_OFFSET - SZ_64M)
 #else
 #ifndef CONFIG_THUMB2_KERNEL
+#ifdef CONFIG_AMLOGIC_ARM_KASAN
+#define MODULES_VADDR		(PAGE_OFFSET - SZ_32M)
+#else
 #define MODULES_VADDR		(PAGE_OFFSET - SZ_16M)
+#endif
 #else
 /* smaller range for Thumb-2 symbols relocation (2^24)*/
 #define MODULES_VADDR		(PAGE_OFFSET - SZ_8M)
