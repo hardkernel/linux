@@ -646,14 +646,28 @@ static int dwmac_suspend(struct meson8b_dwmac *dwmac)
 	writel(0x00000000, phy_analog_config_addr + 0x10);
 	writel(0x031d161c, phy_analog_config_addr + 0x14);
 	writel(0x00001683, phy_analog_config_addr + 0x18);
-	writel(0x09c0040a, phy_analog_config_addr + 0x44);
+	if (phy_pll_mode == 1)
+		writel(0x608200a0, phy_analog_config_addr + 0x44);
+	else
+		writel(0x09c0040a, phy_analog_config_addr + 0x44);
 	return 0;
 }
 
 static void dwmac_resume(struct meson8b_dwmac *dwmac)
 {
 	pr_info("recover analog\n");
-	writel(0x19c0040a, phy_analog_config_addr + 0x44);
+	if (phy_pll_mode == 1) {
+		writel(0x608200a0, phy_analog_config_addr + 0x44);
+		writel(0xea002000, phy_analog_config_addr + 0x48);
+		writel(0x00000150, phy_analog_config_addr + 0x4c);
+		writel(0x00000000, phy_analog_config_addr + 0x50);
+		writel(0x708200a0, phy_analog_config_addr + 0x44);
+		usleep_range(100, 200);
+		writel(0x508200a0, phy_analog_config_addr + 0x44);
+		writel(0x00000110, phy_analog_config_addr + 0x4c);
+	} else {
+		writel(0x19c0040a, phy_analog_config_addr + 0x44);
+	}
 	writel(0x0, phy_analog_config_addr + 0x4);
 }
 
