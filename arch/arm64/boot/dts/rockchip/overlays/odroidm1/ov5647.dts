@@ -1,0 +1,151 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/rk3568-cru.h>
+#include <dt-bindings/power/rk3568-power.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	fragment@0 {
+		target = <&csi2_dphy_hw>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&csi2_dphy0>;
+
+		__overlay__ {
+			status = "okay";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				port@0 {
+					reg = <0>;
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					mipi_in_ucam2: endpoint@0 {
+						reg = <0>;
+						remote-endpoint = <&ov5647_out>;
+						data-lanes = <1 2>;
+					};
+				};
+				port@1 {
+					reg = <1>;
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					csidphy_out: endpoint@0 {
+						reg = <0>;
+						remote-endpoint = <&isp0_in>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&rkisp>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@3 {
+		target = <&rkisp_mmu>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@4 {
+		target = <&rkisp_vir0>;
+
+		__overlay__ {
+			status = "okay";
+
+			port {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				isp0_in: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&csidphy_out>;
+				};
+			};
+		};
+	};
+
+	fragment@5 {
+		target = <&pinctrl>;
+
+		__overlay__ {
+			camif {
+				cam_pwdn: cam-pwdn {
+					rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+				};
+			};
+		};
+	};
+
+	fragment@6 {
+		// i2c2, i2c@fe5b0000
+		target = <&i2c2>;
+
+		__overlay__ {
+			status = "okay";
+
+			ov5647: ov5647@36 {
+				status = "okay";
+				compatible = "ovti,ov5647";
+				reg = <0x36>;
+				clocks = <&pmucru CLK_WIFI>;
+				clock-names = "xvclk";
+				power-domains = <&power RK3568_PD_VI>;
+				pinctrl-names = "default";
+
+				rockchip,camera-module-index = <0>;
+				rockchip,camera-module-facing = "back";
+				rockchip,camera-module-name = "TongJu";
+				rockchip,camera-module-lens-name = "CHT842-MD";
+
+				port {
+					ov5647_out: endpoint {
+						remote-endpoint = <&mipi_in_ucam2>;
+						data-lanes = <1 2>;
+						clock-lanes = <0>;
+						link-frequencies =
+							/bits/ 64 <150000000>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@7 {
+		target-path = "/";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		__overlay__ {
+			vcc_cam: vcc-camera {
+				compatible = "regulator-fixed";
+				regulator-name = "vcc_cam";
+				pinctrl-names = "default";
+				pinctrl-0 = <&cam_pwdn>;
+				enable-active-high;
+				gpio = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+				regulator-always-on;
+				regulator-boot-on;
+			};
+		};
+	};
+};
