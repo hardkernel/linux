@@ -357,7 +357,7 @@ config ARCH_ROCKCHIP_ODROID_COMMON
 	bool
 
 config ARCH_ROCKCHIP_ODROIDM1
-	bool "Hardkernel's ODROID-M1 Single Board Computer"
+	bool "Hardkernel's ODROID-M1/M1S Single Board Computer"
 	select ARCH_ROCKCHIP_ODROID_COMMON
 	help
 	  This enables support for the board ODROID-M1 of Hardkernel

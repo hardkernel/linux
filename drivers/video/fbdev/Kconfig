@@ -2237,6 +2237,20 @@ config FB_SM712
 	  called sm712fb. If you want to compile it as a module, say M
 	  here and read <file:Documentation/kbuild/modules.rst>.
 
+config FB_SH1106
+	tristate "Sino Wealth SH1106 framebuffer support"
+	depends on FB && I2C
+	depends on OF
+	depends on GPIOLIB || COMPILE_TEST
+	select FB_SYS_FOPS
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_DEFERRED_IO
+	help
+	  This driver implements support for the Sino Wealth SH1106
+	  OLED controller over I2C.
+
 source "drivers/video/fbdev/omap/Kconfig"
 source "drivers/video/fbdev/omap2/Kconfig"
 source "drivers/video/fbdev/mmp/Kconfig"
