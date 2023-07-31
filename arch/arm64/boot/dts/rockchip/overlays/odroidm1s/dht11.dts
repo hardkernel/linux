@@ -1,0 +1,19 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+				humidity_sensor {
+					compatible = "dht11";
+					gpios = <&gpio0 RK_PC2 GPIO_ACTIVE_HIGH>;
+					status = "okay";
+			};
+		};
+	};
+};

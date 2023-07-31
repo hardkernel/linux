@@ -1,0 +1,54 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/{
+	fragment@0 {
+		target = <&spi1>;
+
+		__overlay__ {
+			status = "okay";
+
+			num_chipselect = <2>;
+			cs-gpios = <&gpio3 RK_PA1 GPIO_ACTIVE_LOW>,
+			           <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			hktft32: hktft32@0 {
+				status = "okay";
+				compatible = "hardkernel,hktft32";
+				reg = <0>;
+				spi-max-frequency = <40000000>;
+				rotation = <90>;
+				reset-gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
+				dc-gpios = <&gpio0 RK_PC2 GPIO_ACTIVE_HIGH>;
+			};
+
+			ads7846: ads7846@1 {
+				status = "okay";
+				compatible = "ti,ads7846";
+
+				spi-max-frequency = <2000000>;
+				reg = <1>;
+
+				interrupt-parent = <&gpio0>;
+				interrupts = <RK_PC0 0>;
+				pendown-gpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
+
+				ti,swap-xy = <1>;
+				ti,x-min = /bits/ 16 <0>;
+				ti,x-max = /bits/ 16 <8000>;
+				ti,y-min = /bits/ 16 <0>;
+				ti,y-max = /bits/ 16 <4800>;
+				ti,x-plate-ohms = /bits/ 16 <40>;
+				ti,pressure-max = /bits/ 16 <255>;
+
+				linux,wakeup;
+			};
+		};
+	};
+};
