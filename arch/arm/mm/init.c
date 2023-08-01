@@ -147,6 +147,19 @@ int pfn_valid(unsigned long pfn)
 	return 0;
 }
 EXPORT_SYMBOL(pfn_valid);
+
+#if IS_ENABLED(CONFIG_AMLOGIC_DMC_MONITOR_BREAK_GKI)
+int pfn_is_map_memory(unsigned long pfn)
+{
+	phys_addr_t addr = __pfn_to_phys(pfn);
+
+	if (pfn_valid(pfn))
+		return memblock_is_map_memory(addr);
+
+	return 0;
+}
+EXPORT_SYMBOL(pfn_is_map_memory);
+#endif
 #endif
 
 static bool arm_memblock_steal_permitted = true;
