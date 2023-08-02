@@ -1,0 +1,25 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&i2c1>;
+
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			multiio_oled: oled@3c {
+				status = "okay";
+				compatible = "sinowealth,sh1106-i2c";
+				reg = <0x3c>;
+				width = <128>;
+				height = <64>;
+				rotate = <180>;
+				prechargep1 = <0x01>;
+				prechargep2 = <0x0f>;
+			};
+		};
+	};
+};
