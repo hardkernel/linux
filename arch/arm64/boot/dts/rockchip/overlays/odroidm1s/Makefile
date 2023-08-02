@@ -2,6 +2,10 @@
 
 dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	blueled_off.dtbo \
+	board_multiio.dtbo \
+	board_multiio_canfd.dtbo \
+	board_multiio_oled.dtbo \
+	board_multiio_shtc1.dtbo \
 	board_stepper.dtbo \
 	dht11.dtbo \
 	display_3_5.dtbo \
