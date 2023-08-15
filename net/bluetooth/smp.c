@@ -883,6 +883,13 @@ static int tk_request(struct l2cap_conn *conn, u8 remote_oob, u8 auth,
 	    hcon->io_capability == HCI_IO_NO_INPUT_OUTPUT)
 		smp->method = JUST_WORKS;
 
+#if IS_ENABLED(CONFIG_AMLOGIC_LINUX_BT_SMP)
+	/* If Just Works, Continue with Zero TK */
+	if (smp->method == JUST_WORKS) {
+		set_bit(SMP_FLAG_TK_VALID, &smp->flags);
+		return 0;
+	}
+#else
 	/* If Just Works, Continue with Zero TK and ask user-space for
 	 * confirmation */
 	if (smp->method == JUST_WORKS) {
@@ -895,6 +902,7 @@ static int tk_request(struct l2cap_conn *conn, u8 remote_oob, u8 auth,
 		set_bit(SMP_FLAG_WAIT_USER, &smp->flags);
 		return 0;
 	}
+#endif
 
 	/* If this function is used for SC -> legacy fallback we
 	 * can only recover the just-works case.
