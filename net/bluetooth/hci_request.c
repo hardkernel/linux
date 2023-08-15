@@ -1303,7 +1303,9 @@ static void hci_req_add_set_adv_filter_enable(struct hci_request *req,
 void hci_req_prepare_suspend(struct hci_dev *hdev, enum suspended_state next)
 {
 	int old_state;
+#ifndef CONFIG_AMLOGIC_LINUX_BT_SUPPORT_WAKEUP
 	struct hci_conn *conn;
+#endif
 	struct hci_request req;
 	u8 page_scan;
 	int disconnect_counter;
@@ -1372,10 +1374,12 @@ void hci_req_prepare_suspend(struct hci_dev *hdev, enum suspended_state next)
 
 		disconnect_counter = 0;
 		/* Soft disconnect everything (power off) */
+#ifndef CONFIG_AMLOGIC_LINUX_BT_SUPPORT_WAKEUP
 		list_for_each_entry(conn, &hdev->conn_hash.list, list) {
 			hci_disconnect(conn, HCI_ERROR_REMOTE_POWER_OFF);
 			disconnect_counter++;
 		}
+#endif
 
 		if (disconnect_counter > 0) {
 			bt_dev_dbg(hdev,
