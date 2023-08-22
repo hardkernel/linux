@@ -2,6 +2,7 @@
 
 dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	blueled_off.dtbo \
+	board_stepper.dtbo \
 	dht11.dtbo \
 	display_3_5.dtbo \
 	display_5_0.dtbo \
