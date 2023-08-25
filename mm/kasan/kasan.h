@@ -188,7 +188,11 @@ static inline bool kasan_requires_meta(void)
 #define META_MEM_BYTES_PER_ROW (META_BYTES_PER_ROW * KASAN_GRANULE_SIZE)
 #define META_ROWS_AROUND_ADDR 2
 
+#ifdef CONFIG_AMLOGIC_ARM_KASAN
+#define KASAN_STACK_DEPTH 32
+#else
 #define KASAN_STACK_DEPTH 64
+#endif
 
 struct kasan_track {
 	u32 pid;
