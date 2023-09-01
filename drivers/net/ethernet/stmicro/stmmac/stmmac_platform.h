@@ -24,6 +24,7 @@ extern const struct dev_pm_ops stmmac_pltfr_pm_ops;
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 extern void __iomem *phy_analog_config_addr;
 extern unsigned int phy_pll_mode;
+extern unsigned int phy_mode;
 #endif
 static inline void *get_stmmac_bsp_priv(struct device *dev)
 {

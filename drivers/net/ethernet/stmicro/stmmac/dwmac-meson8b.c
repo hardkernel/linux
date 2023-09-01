@@ -678,6 +678,11 @@ static void dwmac_resume(struct meson8b_dwmac *dwmac)
 		usleep_range(100, 200);
 		writel(0x508200a0, phy_analog_config_addr + 0x44);
 		writel(0x00000110, phy_analog_config_addr + 0x4c);
+		if (phy_mode == 2) {
+			writel(0x74047, phy_analog_config_addr + 0x84);
+			writel(0x34047, phy_analog_config_addr + 0x84);
+			writel(0x74047, phy_analog_config_addr + 0x84);
+		}
 	} else {
 		writel(0x19c0040a, phy_analog_config_addr + 0x44);
 	}
