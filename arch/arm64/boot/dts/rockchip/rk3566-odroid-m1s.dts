@@ -590,7 +590,7 @@
 			assigned-clock-parents = <&cru I2S1_MCLKOUT_TX>, <&cru I2S1_MCLKOUT_TX>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2s1m0_mclk>;
-			hp-volume = <20>;
+			hp-volume = <3>;
 			spk-volume = <3>;
 			mic-in-differential;
 			status = "okay";
