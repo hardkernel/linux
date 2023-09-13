@@ -170,6 +170,25 @@
 	pinctrl-0 = <&i2c3m1_xfer>;
 };
 
+&i2c4 {
+	status = "disabled";
+
+	clock-frequency = <400000>;
+
+	touchscreen: touchscreen {
+		status = "disabled";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&touch_gpios>;
+
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PC4 IRQ_TYPE_LEVEL_LOW>;
+
+		irq-gpios = <&gpio0 RK_PC4 IRQ_TYPE_LEVEL_LOW>;
+		reset-gpios = <&gpio4 RK_PB0 GPIO_ACTIVE_LOW>;
+	};
+};
+
 &pcie30phy {
 	status = "okay";
 };
@@ -178,6 +197,16 @@
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie>;
 	status = "okay";
+};
+
+&pinctrl {
+	lcd {
+		touch_gpios: touch-gpios {
+			rockchip,pins =
+				<4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_up>,
+				<0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
 };
 
 &pwm1 {
