@@ -4,6 +4,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	blueled_off.dtbo \
 	dht11.dtbo \
 	display_3_5.dtbo \
+	display_5_0.dtbo \
 	display_vu8s.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
