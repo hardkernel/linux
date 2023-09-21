@@ -172,6 +172,12 @@
 		io-channels = <&saradc 3>;	//HP_HOOK
 	};
 
+	rk3566-gpiomem {
+		compatible = "rockchip,rk3566-gpiomem", "rockchip,rk3568-gpiomem";
+		reg = <0x0 0xfd660000 0x0 0x1000>;
+		status = "okay";
+	};
+
 	vcc_sys: vcc-5v {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc-5v";
