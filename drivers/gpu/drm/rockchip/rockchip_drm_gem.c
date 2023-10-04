@@ -664,6 +664,9 @@ static struct rockchip_gem_object *
 #else
 	gfp_t gfp_mask = GFP_HIGHUSER | __GFP_RECLAIMABLE;
 #endif
+
+	gfp_mask |= __GFP_DMA32;
+
 	size = round_up(size, PAGE_SIZE);
 
 	rk_obj = kzalloc(sizeof(*rk_obj), GFP_KERNEL);
