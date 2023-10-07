@@ -52,12 +52,16 @@ struct dma_heap_attachment {
 #define HIGH_ORDER_GFP  (((GFP_HIGHUSER | __GFP_ZERO | __GFP_NOWARN \
 				| __GFP_NORETRY) & ~__GFP_RECLAIM) \
 				| __GFP_COMP)
-#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
-#define LOW_ORDER_GFP_NO_WARN (GFP_HIGHUSER | __GFP_ZERO | __GFP_COMP | __GFP_NOWARN)
-static gfp_t order_flags[] = {HIGH_ORDER_GFP,
-				LOW_ORDER_GFP_NO_WARN, LOW_ORDER_GFP_NO_WARN,
-				LOW_ORDER_GFP, LOW_ORDER_GFP};
-static const unsigned int orders[] = {8, 6, 4, 2, 0};
+
+#if IS_ENABLED(CONFIG_AMLOGIC_MEMORY_DEBUG) || IS_ENABLED(CONFIG_AMLOGIC_MEMORY_OPT)
+/*
+ * For middle order:
+ * MID_ORDER_GFP may cost a lot of CPU time in memory compaction when allocate
+ * big system heap, change to HIGH_ORDER_GFP can prevent this cost.
+ * Change order 4 to 3 let system heap can allocate more contiguous memory.
+ */
+static gfp_t order_flags[] = {HIGH_ORDER_GFP, HIGH_ORDER_GFP, LOW_ORDER_GFP};
+static const unsigned int orders[] = {8, 3, 0};
 #else
 static gfp_t order_flags[] = {HIGH_ORDER_GFP, MID_ORDER_GFP, LOW_ORDER_GFP};
 /*
