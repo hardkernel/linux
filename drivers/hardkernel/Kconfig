@@ -1,0 +1,8 @@
+menu "ODROID Specific Hardware"
+
+config ODROID_SYSFS
+	bool "Hardkernel ODROID sysfs Support"
+	default y
+	help
+	   Hardkernel sysfs
+endmenu

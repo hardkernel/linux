@@ -477,6 +477,11 @@
 		reg = <5>;
 		remote-endpoint = <&lvds1_in_vp1>;
 	};
+
+	odroid_sysfs {
+		compatible = "odroid-sysfs";
+		status = "okay";
+	};
 };
 
 &vp2 {
