@@ -65,7 +65,12 @@ kernel_sec_end:
 	.popsection
 
 	.macro	pgtbl, rd, phys
+#ifdef CONFIG_AMLOGIC_RAMDUMP_TEXTOFFSET
+	ldr	r3, =TEXT_OFFSET
+	add	\rd, \phys, r3
+#else
 	add	\rd, \phys, #TEXT_OFFSET
+#endif
 	sub	\rd, \rd, #PG_DIR_SIZE
 	.endm
 
@@ -120,7 +125,12 @@ ENTRY(stext)
 
 #ifndef CONFIG_XIP_KERNEL
 	adr_l	r8, _text			@ __pa(_text)
+#ifdef CONFIG_AMLOGIC_RAMDUMP_TEXTOFFSET
+	ldr	r3, =TEXT_OFFSET
+	sub	r8, r8, r3
+#else
 	sub	r8, r8, #TEXT_OFFSET		@ PHYS_OFFSET
+#endif
 #else
 	ldr	r8, =PLAT_PHYS_OFFSET		@ always constant in this case
 #endif

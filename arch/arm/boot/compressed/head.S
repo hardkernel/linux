@@ -313,7 +313,12 @@ not_angel:
 1:
 #endif /* CONFIG_USE_OF */
 		/* Determine final kernel image address. */
+#ifdef CONFIG_AMLOGIC_RAMDUMP_TEXTOFFSET
+		ldr	r3, =TEXT_OFFSET
+		add	r4, r0, r3
+#else
 		add	r4, r0, #TEXT_OFFSET
+#endif
 #else
 		ldr	r4, =zreladdr
 #endif

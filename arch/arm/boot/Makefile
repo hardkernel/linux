@@ -17,6 +17,11 @@ ifneq ($(MACHINE),)
 include $(MACHINE)/Makefile.boot
 endif
 
+ifeq ($(CONFIG_AMLOGIC_RAMDUMP_TEXTOFFSET),y)
+zreladdr-y       += 0x02008000
+params_phys-y    := 0x02000100
+initrd_phys-y    := 0x02900000
+endif
 # Note: the following conditions must always be true:
 #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
 #   PARAMS_PHYS must be within 4MB of ZRELADDR

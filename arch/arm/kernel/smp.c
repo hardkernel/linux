@@ -55,6 +55,11 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_raise);
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_entry);
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_exit);
 
+#ifdef CONFIG_AMLOGIC_RAMDUMP
+#undef CREATE_TRACE_POINTS
+#include <trace/hooks/debug.h>
+#endif
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -656,6 +661,9 @@ static void do_handle_IPI(int ipinr)
 		break;
 
 	case IPI_CPU_STOP:
+#ifdef CONFIG_AMLOGIC_RAMDUMP
+		trace_android_vh_ipi_stop(get_irq_regs());
+#endif
 		ipi_cpu_stop(cpu);
 		break;
 
