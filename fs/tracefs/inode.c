@@ -536,6 +536,77 @@ static struct dentry *__create_dir(const char *name, struct dentry *parent,
 	return end_creating(dentry);
 }
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static char * const allow_trace[] = {
+	"sched",
+	"irq",
+	"freq",
+	"idle",
+	"block",
+	"binder",
+	"bpf_trace",
+	"cgroup",
+	"compaction",
+	"ext4",
+	"f2fs",
+	"ftrace",
+	"kmem",
+	"ion",
+	"mmap",
+	"power",
+	"rcu",
+	"task",
+	"events",
+	"signal",
+	"options",
+	"dmc_monitor",
+	"kprobes",
+	"vmscan",
+	"timer",
+	"workqueue",
+	"oom",
+	"ipi",
+	"preemptirq",
+	"clk",
+	"mmc",
+	"cpu_frequency",
+	"devfreq",
+	"per_cpu",
+	"thermal",
+	"filemap",
+};
+
+static int is_allowed_trace(const char *name)
+{
+	int i;
+
+	for (i = 0; i  < ARRAY_SIZE(allow_trace); i++) {
+		if (!strcmp(name, allow_trace[i]))
+			return 1;
+	}
+	return 0;
+}
+
+static int allow_trace_enable;
+
+static int __init early_allow_trace_enable_param(char *buf)
+{
+	if (!buf)
+		return -EINVAL;
+
+	if (strcmp(buf, "off") == 0)
+		allow_trace_enable = 0;
+	else if (strcmp(buf, "on") == 0)
+		allow_trace_enable = 1;
+
+	pr_debug("allow_trace_enable %sabled\n", allow_trace_enable ? "en" : "dis");
+
+	return 0;
+}
+
+early_param("allow_trace_enable", early_allow_trace_enable_param);
+#endif
+
 /**
  * tracefs_create_dir - create a directory in the tracefs filesystem
  * @name: a pointer to a string containing the name of the directory to
@@ -558,6 +629,16 @@ struct dentry *tracefs_create_dir(const char *name, struct dentry *parent)
 	if (security_locked_down(LOCKDOWN_TRACEFS))
 		return NULL;
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+	if (allow_trace_enable && !is_allowed_trace(name)) {
+		if (parent) {
+			if (!strcmp(parent->d_iname, "events"))
+				return NULL;
+			if (!is_allowed_trace(parent->d_iname))
+				return NULL;
+		}
+	}
+#endif
 	return __create_dir(name, parent, &simple_dir_inode_operations);
 }
 

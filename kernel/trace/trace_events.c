@@ -2316,7 +2316,9 @@ event_subsystem_dir(struct trace_array *tr, const char *name,
 
 	dir->entry = tracefs_create_dir(name, parent);
 	if (!dir->entry) {
+	#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 		pr_warn("Failed to create system directory %s\n", name);
+	#endif
 		__put_system(system);
 		goto out_free;
 	}
@@ -2416,7 +2418,9 @@ event_create_dir(struct dentry *parent, struct trace_event_file *file)
 	name = trace_event_name(call);
 	file->dir = tracefs_create_dir(name, d_events);
 	if (!file->dir) {
+	#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 		pr_warn("Could not create tracefs '%s' directory\n", name);
+	#endif
 		return -1;
 	}
 
@@ -3016,9 +3020,11 @@ __trace_add_event_dirs(struct trace_array *tr)
 
 	list_for_each_entry(call, &ftrace_events, list) {
 		ret = __trace_add_new_event(call, tr);
+	#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 		if (ret < 0)
 			pr_warn("Could not create directory for event %s\n",
 				trace_event_name(call));
+	#endif
 	}
 }
 
@@ -3482,9 +3488,11 @@ static void __trace_early_add_event_dirs(struct trace_array *tr)
 
 	list_for_each_entry(file, &tr->events, list) {
 		ret = event_create_dir(tr->event_dir, file);
+	#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 		if (ret < 0)
 			pr_warn("Could not create directory for event %s\n",
 				trace_event_name(file->event_call));
+	#endif
 	}
 }
 
