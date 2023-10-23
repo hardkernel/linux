@@ -151,11 +151,6 @@ KVM_NVHE_ALIAS(kvm_protected_mode_initialized);
 
 KVM_NVHE_ALIAS(kvm_ffa_unmap_on_lend);
 
-#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE)
-KVM_NVHE_ALIAS(pstore_io_save);
-KVM_NVHE_ALIAS(vabits_actual);
-#endif
-
 #endif /* CONFIG_KVM */
 
 #ifdef CONFIG_EFI_ZBOOT

@@ -5,9 +5,6 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE)
-#define SKIP_IO_TRACE
-#endif
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/errno.h>

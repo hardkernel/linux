@@ -18,12 +18,6 @@
 #include <asm/alternative.h>
 #include <asm/cpufeature.h>
 
-/* builtin code include iotrace can cause some symbols crc changed */
-#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE)
-#include <linux/amlogic/io_64.h>
-#elif (IS_MODULE(CONFIG_AMLOGIC_DEBUG_IOTRACE)) && defined(MODULE)
-#include <linux/amlogic/io_64.h>
-#else
 /*
  * Generic IO read/write.  These perform native-endian accesses.
  */
@@ -99,7 +93,6 @@ static __always_inline u64 __raw_readq(const volatile void __iomem *addr)
 		     : "=r" (val) : "r" (addr));
 	return val;
 }
-#endif
 
 /* IO barriers */
 #define __io_ar(v)							\

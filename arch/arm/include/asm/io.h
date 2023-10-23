@@ -50,11 +50,6 @@ void __raw_readsb(const volatile void __iomem *addr, void *data, int bytelen);
 void __raw_readsw(const volatile void __iomem *addr, void *data, int wordlen);
 void __raw_readsl(const volatile void __iomem *addr, void *data, int longlen);
 
-#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE)
-#include <linux/amlogic/io_32.h>
-#elif IS_MODULE(CONFIG_AMLOGIC_DEBUG_IOTRACE) && defined(MODULE)
-#include <linux/amlogic/io_32.h>
-#else
 #if __LINUX_ARM_ARCH__ < 6
 /*
  * Half-word accesses are problematic with RiscPC due to limitations of
@@ -120,7 +115,6 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 		     : "Qo" (*(volatile u32 __force *)addr));
 	return val;
 }
-#endif /* CONFIG_AMLOGIC_DEBUG_IOTRACE */
 /*
  * Architecture ioremap implementation.
  */
@@ -276,6 +270,8 @@ extern void _memset_io(volatile void __iomem *, int, size_t);
  * IO port primitives for more information.
  */
 #ifndef readl
+/* use the macro definitions in include/asm-generic/io.h */
+#if !IS_ENABLED(CONFIG_AMLOGIC_DEBUG_IOTRACE)
 #define readb_relaxed(c) ({ u8  __r = __raw_readb(c); __r; })
 #define readw_relaxed(c) ({ u16 __r = le16_to_cpu((__force __le16) \
 					__raw_readw(c)); __r; })
@@ -301,6 +297,7 @@ extern void _memset_io(volatile void __iomem *, int, size_t);
 #define writesb(p,d,l)		__raw_writesb(p,d,l)
 #define writesw(p,d,l)		__raw_writesw(p,d,l)
 #define writesl(p,d,l)		__raw_writesl(p,d,l)
+#endif
 
 #ifndef __ARMBE__
 static inline void memset_io(volatile void __iomem *dst, unsigned c,
@@ -326,11 +323,11 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
 	mmiocpy((void __force *)to, from, count);
 }
 #define memcpy_toio(to,from,count) memcpy_toio(to,from,count)
-#else /* __ARMBE__ */
+#else
 #define memset_io(c,v,l)	_memset_io(c,(v),(l))
 #define memcpy_fromio(a,c,l)	_memcpy_fromio((a),c,(l))
 #define memcpy_toio(c,a,l)	_memcpy_toio(c,(a),(l))
-#endif /*__ARMBE__ */
+#endif
 
 #endif	/* readl */
 

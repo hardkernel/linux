@@ -7,13 +7,7 @@
 
 #include <linux/export.h>
 #include <linux/types.h>
-#if IS_BUILTIN(CONFIG_AMLOGIC_DEBUG_IOTRACE)
-#define SKIP_IO_TRACE
 #include <linux/io.h>
-#undef SKIP_IO_TRACE
-#else
-#include <linux/io.h>
-#endif
 
 /*
  * Copy data from IO memory space to "real" memory space.
