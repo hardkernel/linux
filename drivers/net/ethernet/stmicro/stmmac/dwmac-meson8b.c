@@ -429,15 +429,6 @@ static void set_wol_notify_bl30(struct meson8b_dwmac *dwmac, u32 enable_bl30)
 	scpi_set_ethernet_wol(enable_bl30);
 	#endif
 }
-
-void set_device_init_flag(struct device *pdev, bool enable)
-{
-	if (enable == mac_wol_enable)
-		return;
-
-	device_init_wakeup(pdev, enable);
-	mac_wol_enable = enable;
-}
 #endif
 unsigned int internal_phy;
 static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac *dwmac)
@@ -581,7 +572,7 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 	aml_custom_setting(pdev, dwmac);
 #ifdef CONFIG_PM_SLEEP
-	device_init_wakeup(&pdev->dev, wol_switch_from_user);
+	device_init_wakeup(&pdev->dev, true);
 	mac_wol_enable = wol_switch_from_user;
 
 	/*input device to send virtual pwr key for android*/
@@ -638,7 +629,6 @@ static void meson8b_dwmac_shutdown(struct platform_device *pdev)
 	if (wol_switch_from_user) {
 		set_wol_notify_bl31(0);
 		set_wol_notify_bl30(dwmac, 0);
-		set_device_init_flag(&pdev->dev, 0);
 	}
 
 	pr_info("aml_eth_shutdown\n");
@@ -704,7 +694,6 @@ static int meson8b_suspend(struct device *dev)
 	if ((wol_switch_from_user) && phydev->link) {
 		set_wol_notify_bl31(true);
 		set_wol_notify_bl30(dwmac, true);
-		set_device_init_flag(dev, true);
 		priv->wolopts = 0x1 << 5;
 		/*our phy not support wol by now*/
 		phydev->irq_suspended = 0;
@@ -722,7 +711,6 @@ static int meson8b_suspend(struct device *dev)
 	} else {
 		set_wol_notify_bl31(false);
 		set_wol_notify_bl30(dwmac, false);
-		set_device_init_flag(dev, false);
 
 		ret = stmmac_suspend(dev);
 		if (internal_phy != 2) {
