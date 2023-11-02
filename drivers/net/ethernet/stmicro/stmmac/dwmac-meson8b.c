@@ -41,6 +41,11 @@
 #define PRG_ETH0_EXT_RGMII_MODE		1
 #define PRG_ETH0_EXT_RMII_MODE		4
 
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+#define PRG_ETH0_MAC_ENABLE_RX		BIT(2)
+#define PRG_ETH0_MAC_ENABLE_TX		BIT(3)
+#endif
+
 /* mux to choose between fclk_div2 (bit unset) and mpll2 (bit set) */
 #define PRG_ETH0_CLK_M250_SEL_MASK	GENMASK(4, 4)
 
@@ -728,8 +733,9 @@ static int meson8b_resume(struct device *dev)
 	struct net_device *ndev = dev_get_drvdata(dev);
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	struct meson8b_dwmac *dwmac = priv->plat->bsp_priv;
-	int ret;
 	struct phy_device *phydev = ndev->phydev;
+	int ret;
+	u32 regval;
 
 	priv->wolopts = 0;
 
@@ -751,6 +757,11 @@ static int meson8b_resume(struct device *dev)
 			mii_lpa_to_linkmode_lpa_t(phydev->advertising, backup_adv);
 			genphy_restart_aneg(phydev);
 			backup_adv = 0;
+			msleep(3000);
+			// re-enable MAC Rx/Tx to resolve network broken issue
+			regval = readl(priv->ioaddr + PRG_ETH0);
+			regval |= PRG_ETH0_MAC_ENABLE_RX | PRG_ETH0_MAC_ENABLE_TX;
+			writel(regval, priv->ioaddr + PRG_ETH0);
 		}
 		/*RTC wait linkup*/
 		pr_info("eth hold wakelock 5s\n");
