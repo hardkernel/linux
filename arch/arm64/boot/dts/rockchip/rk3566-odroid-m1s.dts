@@ -266,11 +266,11 @@
 		compatible = "gpio-leds";
 		status = "okay";
 
-		power_led: power {
+		red_led: red {
 			gpios = <&gpio0 RK_PC6 GPIO_ACTIVE_HIGH>;
 			linux,default-trigger = "default-on";
 		};
-		work_led: work {
+		blue_led: blue {
 			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
 			linux,default-trigger = "heartbeat";
 		};
