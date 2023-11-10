@@ -8,7 +8,6 @@
 
 		__overlay__ {
 			status = "okay";
-			assigned-clock-rates = <200000000>;
 		};
 	};
 };
