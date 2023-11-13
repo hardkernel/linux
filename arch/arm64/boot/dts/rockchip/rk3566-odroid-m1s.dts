@@ -16,6 +16,7 @@
 
 / {
 	model = "Hardkernel ODROID-M1S";
+	compatible = "rockchip,rk3566";
 
 	aliases {
 		serial0 = &uart6;
