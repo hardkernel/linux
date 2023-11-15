@@ -1,0 +1,28 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&spdif_out>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&spdif_8ch>;
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&spdifm1_tx>;
+		};
+	};
+
+	fragment@2 {
+		target = <&spdif_sound>;
+		__overlay__ {
+			status = "okay";
+			simple-audio-card,mclk-fs = <128>;
+		};
+	};
+};

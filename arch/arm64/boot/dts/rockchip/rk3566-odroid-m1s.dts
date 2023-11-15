@@ -147,7 +147,7 @@
 		};
 	};
 
-	spdif-sound {
+	spdif_sound: spdif-sound {
 		status = "disabled";
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "ROCKCHIP,SPDIF";
