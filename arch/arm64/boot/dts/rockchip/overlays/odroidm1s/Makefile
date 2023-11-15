@@ -26,10 +26,12 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	pwm2.dtbo \
 	pwm3.dtbo \
 	rknpu.dtbo \
+	spdif_sound.dtbo \
 	spi0.dtbo \
 	ttyfiq0_115200.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo
+
 targets += $(dtbo-y)
 always-y := $(dtbo-y)
