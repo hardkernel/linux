@@ -292,6 +292,14 @@ struct stmmac_priv {
 	struct workqueue_struct *wq;
 	struct work_struct service_task;
 
+#if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
+	/* Workqueue for Amlogic task */
+	struct workqueue_struct *amlogic_wq;
+	struct work_struct amlogic_task;
+	int amlogic_task_action;
+	int linkup_after_resume;
+#endif
+
 	/* Workqueue for handling FPE hand-shaking */
 	unsigned long fpe_task_state;
 	struct workqueue_struct *fpe_wq;
@@ -397,5 +405,6 @@ static inline int stmmac_selftest_get_count(struct stmmac_priv *priv)
 
 #if IS_ENABLED(CONFIG_AMLOGIC_ETH_PRIVE)
 void stmmac_global_err(struct stmmac_priv *priv);
+void stmmac_trigger_amlogic_task(struct stmmac_priv *priv);
 #endif
 #endif /* __STMMAC_H__ */

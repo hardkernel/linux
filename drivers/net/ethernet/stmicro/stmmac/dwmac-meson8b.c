@@ -692,25 +692,15 @@ static int meson8b_suspend(struct device *dev)
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	struct meson8b_dwmac *dwmac = priv->plat->bsp_priv;
 	struct phy_device *phydev = ndev->phydev;
-
 	int ret;
 
 	/*open wol, shutdown phy when not link*/
 	if ((wol_switch_from_user) && phydev->link) {
 		set_wol_notify_bl31(true);
 		set_wol_notify_bl30(dwmac, true);
-		priv->wolopts = 0x1 << 5;
 		/*our phy not support wol by now*/
 		phydev->irq_suspended = 0;
-		/*phy is 100M, change to 10M*/
-		if (phydev->speed != 10) {
-			pr_info("link 100M -> 10M\n");
-			backup_adv = phy_read(phydev, MII_ADVERTISE);
-			phy_write(phydev, MII_ADVERTISE, 0x61);
-			mii_lpa_to_linkmode_lpa_t(phydev->advertising, 0x61);
-			genphy_restart_aneg(phydev);
-			msleep(3000);
-		}
+		priv->wolopts = WAKE_MAGIC;
 		ret = stmmac_suspend(dev);
 		without_reset = 1;
 	} else {
@@ -724,7 +714,6 @@ static int meson8b_suspend(struct device *dev)
 		}
 		without_reset = 0;
 	}
-
 	return ret;
 }
 
@@ -735,7 +724,6 @@ static int meson8b_resume(struct device *dev)
 	struct meson8b_dwmac *dwmac = priv->plat->bsp_priv;
 	struct phy_device *phydev = ndev->phydev;
 	int ret;
-	u32 regval;
 
 	priv->wolopts = 0;
 
@@ -751,21 +739,11 @@ static int meson8b_resume(struct device *dev)
 				EV_KEY, KEY_POWER, 0);
 			input_sync(dwmac->input_dev);
 		}
-
-		if (backup_adv != 0) {
-			phy_write(phydev, MII_ADVERTISE, backup_adv);
-			mii_lpa_to_linkmode_lpa_t(phydev->advertising, backup_adv);
-			genphy_restart_aneg(phydev);
-			backup_adv = 0;
-			msleep(3000);
-			// re-enable MAC Rx/Tx to resolve network broken issue
-			regval = readl(priv->ioaddr + PRG_ETH0);
-			regval |= PRG_ETH0_MAC_ENABLE_RX | PRG_ETH0_MAC_ENABLE_TX;
-			writel(regval, priv->ioaddr + PRG_ETH0);
-		}
 		/*RTC wait linkup*/
 		pr_info("eth hold wakelock 5s\n");
 		pm_wakeup_event(dev, 5000);
+		priv->amlogic_task_action = 100;
+		stmmac_trigger_amlogic_task(priv);
 	} else {
 		if (internal_phy != 2) {
 			if (dwmac->data->resume)
