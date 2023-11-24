@@ -665,7 +665,7 @@
 		/* GPIO2_A0-A3 */
 		"", "", "", "PIN_10",
 		/* GPIO2_A4-A7 */
-		"PIN_8", "PINN_35", "PIN_36", "PIN_12",
+		"PIN_8", "PIN_35", "PIN_36", "PIN_12",
 
 		/* GPIO2_B0-B3 */
 		"PIN_22", "PIN_26", "PIN_32", "",
