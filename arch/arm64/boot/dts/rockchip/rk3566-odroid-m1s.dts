@@ -889,6 +889,10 @@
 	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn &uart1m0_rtsn>;
 };
 
+&uart5 {
+	pinctrl-0 = <&uart5m1_xfer>;
+};
+
 &uart6 {
 	dma-names = "tx", "rx";
 	pinctrl-1 = <&uart6m0_xfer &uart6m0_ctsn &uart6m0_rtsn>;
