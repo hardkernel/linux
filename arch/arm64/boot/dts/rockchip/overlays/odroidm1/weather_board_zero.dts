@@ -10,7 +10,7 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			multiio_shtc1: shtc1@70 {
+			shtc1@70 {
 				status = "okay";
 				compatible = "shtc1";
 				reg = <0x70>;

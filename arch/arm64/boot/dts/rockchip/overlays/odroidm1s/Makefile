@@ -5,7 +5,6 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	board_multiio.dtbo \
 	board_multiio_canfd.dtbo \
 	board_multiio_oled.dtbo \
-	board_multiio_shtc1.dtbo \
 	board_stepper.dtbo \
 	can0.dtbo \
 	dht11.dtbo \
@@ -31,7 +30,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	ttyfiq0_115200.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
-	uart1.dtbo
+	uart1.dtbo \
+	weather_board_zero.dtbo
 
 targets += $(dtbo-y)
 always-y := $(dtbo-y)

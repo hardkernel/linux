@@ -1,0 +1,20 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&i2c3>;
+
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			shtc1@70 {
+				status = "okay";
+				compatible = "shtc1";
+				reg = <0x70>;
+			};
+		};
+	};
+};
