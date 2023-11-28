@@ -21,3 +21,6 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
+	uart5.dtbo \
+	uart7.dtbo \
+	uart9.dtbo \
