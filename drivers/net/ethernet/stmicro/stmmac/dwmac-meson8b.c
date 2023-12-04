@@ -461,6 +461,7 @@ static int aml_custom_setting(struct platform_device *pdev, struct meson8b_dwmac
 
 	/*internal_phy 1:inphy;2:exphy; 0 as default*/
 	if (internal_phy == 2) {
+		ndev->wol_enabled = false;
 		if (of_property_read_u32(np, "cali_val", &cali_val) != 0)
 			pr_err("set default cali_val as 0\n");
 		writel(cali_val, dwmac->regs + PRG_ETH1);
