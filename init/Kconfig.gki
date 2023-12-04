@@ -88,7 +88,7 @@ config GKI_HIDDEN_QCOM_CONFIGS
 
 config GKI_HIDDEN_MEDIA_CONFIGS
 	bool "Hidden Media configs needed for GKI"
-	select VIDEOBUF2_CORE
+	select VIDEOBUF2_CORE if ! AMLOGIC_ZAPPER_CUT
 	select V4L2_MEM2MEM_DEV if ! AMLOGIC_ZAPPER_CUT
 	select MEDIA_CONTROLLER
 	select MEDIA_CONTROLLER_REQUEST_API
@@ -97,8 +97,8 @@ config GKI_HIDDEN_MEDIA_CONFIGS
 	select CEC_CORE if !AMLOGIC_ZAPPER_CUT
 	select CEC_NOTIFIER if !AMLOGIC_ZAPPER_CUT
 	select CEC_PIN if !AMLOGIC_ZAPPER_CUT
-	select VIDEOBUF2_DMA_CONTIG
-	select VIDEOBUF2_DMA_SG
+	select VIDEOBUF2_DMA_CONTIG if ! AMLOGIC_ZAPPER_CUT
+	select VIDEOBUF2_DMA_SG if ! AMLOGIC_ZAPPER_CUT
 	help
 	  Dummy config option used to enable hidden media configs.
 	  These are normally selected implicitly when a module
