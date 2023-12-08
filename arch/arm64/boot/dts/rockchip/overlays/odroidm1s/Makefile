@@ -7,6 +7,8 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	board_multiio_oled.dtbo \
 	board_multiio_shtc1.dtbo \
 	board_stepper.dtbo \
+	can0.dtbo \
+	circuitpython.dtbo \
 	dht11.dtbo \
 	display_3_5.dtbo \
 	display_vu5s.dtbo \
@@ -20,7 +22,6 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	mcp2515_12mhz.dtbo \
 	mcp2515_16mhz.dtbo \
 	onewire.dtbo \
-	can0.dtbo \
 	pcf8563.dtbo \
 	pwm1.dtbo \
 	pwm2.dtbo \
