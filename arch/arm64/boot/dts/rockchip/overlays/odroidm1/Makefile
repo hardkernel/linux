@@ -3,6 +3,7 @@
 dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	blueled_off.dtbo \
 	can0.dtbo \
+	circuitpython.dtbo \
 	dht11.dtbo \
 	display_vu8m.dtbo \
 	fiq0_to_uart2.dtbo \

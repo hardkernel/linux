@@ -7,6 +7,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	board_multiio_oled.dtbo \
 	board_stepper.dtbo \
 	can0.dtbo \
+	circuitpython.dtbo \
 	dht11.dtbo \
 	display_3_5.dtbo \
 	display_vu5s.dtbo \
