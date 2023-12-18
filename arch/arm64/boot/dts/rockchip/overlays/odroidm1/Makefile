@@ -6,6 +6,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	circuitpython.dtbo \
 	dht11.dtbo \
 	display_vu8m.dtbo \
+	display_waveshare_1inch69.dtbo \
 	fiq0_to_uart2.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
