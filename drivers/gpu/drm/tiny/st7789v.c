@@ -47,12 +47,80 @@ struct st7789v_cfg {
 	unsigned int top_offset;
 	unsigned int write_only:1;
 	unsigned int rgb:1;		/* RGB (vs. BGR) */
+	void (*init_sequence)(struct mipi_dbi *dbi);
 };
 
 struct st7789v_priv {
 	struct mipi_dbi_dev dbidev;	/* Must be first for .release() */
 	const struct st7789v_cfg *cfg;
 };
+
+static void ws_2inch_init_sequence(struct mipi_dbi *dbi)
+{
+	mipi_dbi_command(dbi, MIPI_DCS_SET_PIXEL_FORMAT,
+			 MIPI_DCS_PIXEL_FMT_16BIT);
+	mipi_dbi_command(dbi, MIPI_DCS_ENTER_INVERT_MODE);
+	mipi_dbi_command(dbi, ST7789V_PORCTRL, 0x0c, 0x0c, 0x00, 0x33, 0x33);
+	mipi_dbi_command(dbi, ST7789V_GCTRL, 0x35);
+	mipi_dbi_command(dbi, ST7789V_VCOMS, 0x1f);
+	mipi_dbi_command(dbi, ST7789V_LCMCTRL, 0x2c);
+	mipi_dbi_command(dbi, ST7789V_VDVVRHEN, 0x01);
+	mipi_dbi_command(dbi, ST7789V_VRHS, 0x12);
+	mipi_dbi_command(dbi, ST7789V_VDVS, 0x20);
+	mipi_dbi_command(dbi, ST7789V_FRCTRL2, 0x0f);
+	mipi_dbi_command(dbi, ST7789V_PWCTRL1, 0xa4, 0xa1);
+	mipi_dbi_command(dbi, ST7789V_PVGAMCTRL, 0xd0, 0x08, 0x11, 0x08, 0x0c,
+				0x15, 0x39, 0x33, 0x50, 0x36, 0x13, 0x14, 0x29, 0x2d);
+	mipi_dbi_command(dbi, ST7789V_NVGAMCTRL, 0xd0, 0x08, 0x10, 0x08, 0x06,
+				0x06, 0x39, 0x44, 0x51, 0x0b, 0x16, 0x14, 0x2f, 0x31);
+}
+
+static void ws_1inch47_init_sequence(struct mipi_dbi *dbi)
+{
+	mipi_dbi_command(dbi, MIPI_DCS_SET_PIXEL_FORMAT,
+			MIPI_DCS_PIXEL_FMT_16BIT);
+	mipi_dbi_command(dbi, MIPI_DCS_ENTER_INVERT_MODE);
+	mipi_dbi_command(dbi, ST7789V_PORCTRL, 0x0c, 0x0c, 0x00, 0x33, 0x33);
+	mipi_dbi_command(dbi, ST7789V_GCTRL, 0x35);
+	mipi_dbi_command(dbi, ST7789V_VCOMS, 0x35);
+	mipi_dbi_command(dbi, ST7789V_LCMCTRL, 0x2c);
+	mipi_dbi_command(dbi, ST7789V_VDVVRHEN, 0x01);
+	mipi_dbi_command(dbi, ST7789V_VRHS, 0x13);
+	mipi_dbi_command(dbi, ST7789V_VDVS, 0x20);
+	mipi_dbi_command(dbi, ST7789V_FRCTRL2, 0x0f);
+	mipi_dbi_command(dbi, ST7789V_PWCTRL1, 0xa4, 0xa1);
+	mipi_dbi_command(dbi, 0xd6, 0xa1);
+	mipi_dbi_command(dbi, ST7789V_PVGAMCTRL,
+			0xf0, 0xf0, 0x00, 0x04, 0x04, 0x05, 0x29,
+			0x33, 0x3e, 0x38, 0x12, 0x12, 0x27, 0x30);
+	mipi_dbi_command(dbi, ST7789V_NVGAMCTRL,
+			0xf0, 0x07, 0x0a, 0x0d, 0x0b, 0x07, 0x28,
+			0x33, 0x3e, 0x36, 0x14, 0x14, 0x29, 0x32);
+}
+
+static void ws_1inch69_init_sequence(struct mipi_dbi *dbi)
+{
+	mipi_dbi_command(dbi, MIPI_DCS_SET_PIXEL_FORMAT,
+			MIPI_DCS_PIXEL_FMT_16BIT);
+	mipi_dbi_command(dbi, MIPI_DCS_ENTER_INVERT_MODE);
+	mipi_dbi_command(dbi, ST7789V_PORCTRL, 0x0b, 0x0b, 0x00, 0x33, 0x35);
+	mipi_dbi_command(dbi, ST7789V_GCTRL, 0x11);
+	mipi_dbi_command(dbi, ST7789V_VCOMS, 0x35);
+	mipi_dbi_command(dbi, ST7789V_LCMCTRL, 0x2c);
+	mipi_dbi_command(dbi, ST7789V_VDVVRHEN, 0x01);
+	mipi_dbi_command(dbi, ST7789V_VRHS, 0x0d);
+	mipi_dbi_command(dbi, ST7789V_VDVS, 0x20);
+	mipi_dbi_command(dbi, ST7789V_FRCTRL2, 0x13);
+	mipi_dbi_command(dbi, ST7789V_PWCTRL1, 0xa4, 0xa1);
+	mipi_dbi_command(dbi, 0xd6, 0xa1);
+	mipi_dbi_command(dbi, ST7789V_PVGAMCTRL,
+			0xf0, 0x06, 0x0b, 0x0a, 0x09, 0x26, 0x29,
+			0x33, 0x41, 0x18, 0x16, 0x15, 0x29, 0x2d);
+	mipi_dbi_command(dbi, ST7789V_NVGAMCTRL,
+			0xf0, 0x04, 0x08, 0x08, 0x07, 0x03, 0x28,
+			0x32, 0x40, 0x3b, 0x19, 0x18, 0x2a, 0x2e);
+	mipi_dbi_command(dbi, 0xe4, 0x25, 0x00, 0x00);
+}
 
 static void st7789v_pipe_enable(struct drm_simple_display_pipe *pipe,
 				struct drm_crtc_state *crtc_state,
@@ -98,22 +166,11 @@ static void st7789v_pipe_enable(struct drm_simple_display_pipe *pipe,
 		addr_mode |= ST7789V_RGB;
 
 	mipi_dbi_command(dbi, MIPI_DCS_SET_ADDRESS_MODE, addr_mode);
-	mipi_dbi_command(dbi, MIPI_DCS_SET_PIXEL_FORMAT,
-			 MIPI_DCS_PIXEL_FMT_16BIT);
-	mipi_dbi_command(dbi, MIPI_DCS_ENTER_INVERT_MODE);
-	mipi_dbi_command(dbi, ST7789V_PORCTRL, 0x0c, 0x0c, 0x00, 0x33, 0x33);
-	mipi_dbi_command(dbi, ST7789V_GCTRL, 0x35);
-	mipi_dbi_command(dbi, ST7789V_VCOMS, 0x1f);
-	mipi_dbi_command(dbi, ST7789V_LCMCTRL, 0x2c);
-	mipi_dbi_command(dbi, ST7789V_VDVVRHEN, 0x01);
-	mipi_dbi_command(dbi, ST7789V_VRHS, 0x12);
-	mipi_dbi_command(dbi, ST7789V_VDVS, 0x20);
-	mipi_dbi_command(dbi, ST7789V_FRCTRL2, 0x0f);
-	mipi_dbi_command(dbi, ST7789V_PWCTRL1, 0xa4, 0xa1);
-	mipi_dbi_command(dbi, ST7789V_PVGAMCTRL, 0xd0, 0x08, 0x11, 0x08, 0x0c,
-				0x15, 0x39, 0x33, 0x50, 0x36, 0x13, 0x14, 0x29, 0x2d);
-	mipi_dbi_command(dbi, ST7789V_NVGAMCTRL, 0xd0, 0x08, 0x10, 0x08, 0x06,
-				0x06, 0x39, 0x44, 0x51, 0x0b, 0x16, 0x14, 0x2f, 0x31);
+
+	if (priv->cfg->init_sequence)
+		priv->cfg->init_sequence(dbi);
+
+	mipi_dbi_command(dbi, MIPI_DCS_ENTER_NORMAL_MODE);
 	mipi_dbi_command(dbi, MIPI_DCS_SET_DISPLAY_ON);
 	msleep(100);
 	mipi_dbi_enable_flush(dbidev, crtc_state, plane_state);
@@ -134,8 +191,26 @@ static const struct st7789v_cfg ws_2inch_lcd_cfg = {
 	/* Cannot read from Waveshare 2inch lcd module" display via SPI */
 	.write_only	= true,
 	.rgb		= false,
+	.init_sequence	= ws_2inch_init_sequence,
 };
 
+static const struct st7789v_cfg ws_1inch47_lcd_cfg = {
+	.mode           = { DRM_SIMPLE_MODE(172, 320, 28, 33) },
+	.left_offset     = 34,
+	/* Cannot read from Waveshare 1.47inch lcd module" display via SPI */
+	.write_only     = true,
+	.rgb            = false,
+	.init_sequence	= ws_1inch47_init_sequence,
+};
+
+static const struct st7789v_cfg ws_1inch69_lcd_cfg = {
+	.mode           = { DRM_SIMPLE_MODE(240, 280, 28, 33) },
+	.top_offset     = 20,
+	/* Cannot read from Waveshare 1.69inch lcd module" display via SPI */
+	.write_only     = true,
+	.rgb            = false,
+	.init_sequence	= ws_1inch69_init_sequence,
+};
 
 DEFINE_DRM_GEM_CMA_FOPS(st7789v_fops);
 
@@ -153,12 +228,16 @@ static struct drm_driver st7789v_driver = {
 
 static const struct of_device_id st7789v_of_match[] = {
 	{ .compatible = "waveshare,ws2inch", .data = &ws_2inch_lcd_cfg },
+	{ .compatible = "waveshare,ws1inch47", .data = &ws_1inch47_lcd_cfg },
+	{ .compatible = "waveshare,ws1inch69", .data = &ws_1inch69_lcd_cfg },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, st7789v_of_match);
 
 static const struct spi_device_id st7789v_id[] = {
 	{ "ws2inch", (uintptr_t)&ws_2inch_lcd_cfg },
+	{ "ws1inch47", (uintptr_t)&ws_1inch47_lcd_cfg },
+	{ "ws1inch69", (uintptr_t)&ws_1inch69_lcd_cfg },
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, st7789v_id);
