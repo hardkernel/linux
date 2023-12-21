@@ -61,9 +61,9 @@ config ARCH_VIRT
 	depends on ARCH_MULTI_V7
 	select ARM_AMBA
 	select ARM_GIC
-	select ARM_GIC_V2M if PCI
-	select ARM_GIC_V3
-	select ARM_GIC_V3_ITS if PCI
+	select ARM_GIC_V2M if PCI && !AMLOGIC_LINUX_S_OPTIMIZE
+	select ARM_GIC_V3 if !AMLOGIC_LINUX_S_OPTIMIZE
+	select ARM_GIC_V3_ITS if PCI && !AMLOGIC_LINUX_S_OPTIMIZE
 	select ARM_PSCI
 	select HAVE_ARM_ARCH_TIMER
 

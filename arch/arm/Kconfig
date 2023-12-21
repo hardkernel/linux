@@ -164,6 +164,12 @@ config ARM
 	  Europe.  There is an ARM Linux project with a web page at
 	  <http://www.arm.linux.org.uk/>.
 
+config AMLOGIC_LINUX_S_OPTIMIZE
+	bool "linux kernel size optimize"
+	default n
+	help
+	  Amlogic linux kernel size optimize
+
 config ARM_HAS_GROUP_RELOCS
 	def_bool y
 	depends on !LD_IS_LLD || LLD_VERSION >= 140000
