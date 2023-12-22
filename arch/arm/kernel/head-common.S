@@ -105,6 +105,21 @@ __mmap_switched:
 	mov	r1, #0
 	bl	__memset			@ clear .bss
 
+#if defined (CONFIG_KASAN)
+	/* After bss cleard, kasan_early_shadow_page are 0 in cache
+	 * But on A55 it's physical memory keeps random data, this
+	 * physical page will be mapped to shadow memory very soon(few
+	 * lines behind) in function kasan_early_init, this caused kasan
+	 * shadow memory check failed and crashed in function
+	 * fixup_init_thread_union(). However, this problem don't see on
+	 * A35 processor. Rootcause may related with core's cache replace/
+	 * clean policy.
+	 */
+	push	{r0-r12, lr}
+	bl	v7_flush_dcache_all
+	pop	{r0-r12, lr}
+#endif
+
 	ldmia	r4, {r0, r1, r2, r3}
 	str	r9, [r0]			@ Save processor ID
 	str	r7, [r1]			@ Save machine type

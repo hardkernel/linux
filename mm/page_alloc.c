@@ -3223,7 +3223,7 @@ retry:
 	return page;
 }
 
-#ifdef CONFIG_AMLOGIC_CMA
+#if defined(CONFIG_AMLOGIC_CMA) && !defined(CONFIG_KASAN)
 /*
  * get page but not cma
  */
@@ -3966,7 +3966,7 @@ struct page *__rmqueue_pcplist(struct zone *zone, unsigned int order,
 {
 	struct page *page = NULL;
 	struct list_head *list = NULL;
-#ifdef CONFIG_AMLOGIC_CMA
+#if defined(CONFIG_AMLOGIC_CMA) && !defined(CONFIG_KASAN)
 	bool cma = can_use_cma(gfp_flags);
 
 	if (cma)
@@ -3989,7 +3989,7 @@ struct page *__rmqueue_pcplist(struct zone *zone, unsigned int order,
 		}
 
 		page = list_first_entry(list, struct page, pcp_list);
-	#ifdef CONFIG_AMLOGIC_CMA
+	#if defined(CONFIG_AMLOGIC_CMA) && !defined(CONFIG_KASAN)
 		/*
 		 * USING CMA FIRST POLICY situations:
 		 * 1. CMA pages may return to pcp and allocated next
