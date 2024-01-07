@@ -10,6 +10,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	circuitpython.dtbo \
 	dht11.dtbo \
 	display_3_5.dtbo \
+	display_st7735_128x128.dtbo \
 	display_waveshare_1inch47.dtbo \
 	display_waveshare_1inch69.dtbo \
 	display_vu5s.dtbo \
