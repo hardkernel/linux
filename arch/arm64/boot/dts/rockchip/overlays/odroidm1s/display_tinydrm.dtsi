@@ -1,0 +1,47 @@
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	fragment@0 {
+		target = <&spi1>;
+
+		__overlay__ {
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			tinydrm: lcd@0 {
+				status = "okay";
+				reg = <0>;
+				spi-max-frequency = <100000000>;
+
+				backlight = <&backlight_gpio>;
+				dc-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_HIGH>;
+				reset-gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
+
+				pinctrl-names = "default";
+				pinctrl-0 = <&display_pins>;
+
+				display_pins: display-pins {
+					rockchip,pins = <2 RK_PB0 0 &pcfg_pull_none>,
+						<0 RK_PC1 0 &pcfg_pull_none>;
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+
+		__overlay__ {
+			backlight_gpio: backlight-gpio {
+				status = "okay";
+				compatible = "gpio-backlight";
+
+				gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_HIGH>;
+			};
+		};
+	};
+};
+
