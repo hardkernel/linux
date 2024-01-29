@@ -178,7 +178,7 @@ if test ! "$srctree" -ef .; then
 fi
 
 if ${no_local}; then
-	echo "${KERNELVERSION}$(scm_version --no-dirty)"
+	echo "${KERNELVERSION}"
 	exit 0
 fi
 
@@ -205,4 +205,4 @@ elif [ "${LOCALVERSION+set}" != "set" ]; then
 	scm_version="$(scm_version --short)"
 fi
 
-echo "${KERNELVERSION}${file_localversion}${config_localversion}${LOCALVERSION}${scm_version}"
+echo "${KERNELVERSION}${file_localversion}${config_localversion}${LOCALVERSION}"
