@@ -3902,6 +3902,18 @@ uint32_t sink_hdr_support(const struct vinfo_s *vinfo)
 }
 EXPORT_SYMBOL(sink_hdr_support);
 
+static char force_colorrange;
+static int __init amcsc_colorrange_setup(char *s)
+{
+	if (!(strcmp(s, "true")))
+		force_colorrange = 1;
+	else
+		force_colorrange = 0;
+
+	return 0;
+}
+__setup("fullcolorrange=", amcsc_colorrange_setup);
+
 int signal_type_changed(struct vframe_s *vf,
 	struct vinfo_s *vinfo, enum vd_path_e vd_path)
 {
@@ -3957,7 +3969,7 @@ int signal_type_changed(struct vframe_s *vf,
 				/* HD default 709 limit */
 				  (1 << 29)	/* video available */
 				| (5 << 26)	/* unspecified */
-				| (0 << 25)	/* limit */
+				| (force_colorrange << 25)	/* limit */
 				| (1 << 24)	/* color available */
 				| (1 << 16)	/* bt709 */
 				| (1 << 8)	/* bt709 */
