@@ -5491,6 +5491,17 @@ static int afbc_pix_format(u32 fmt_mode)
 	return pix_format;
 }
 
+static char force_colorrange;
+static int __init osd_colorrange_setup(char *s)
+{
+	if (!(strcmp(s, "true")))
+		force_colorrange = 1;
+	else
+		force_colorrange = 0;
+
+	return 0;
+}
+__setup("fullcolorrange=", osd_colorrange_setup);
 
 static void osd_update_color_mode(u32 index)
 {
@@ -5629,11 +5640,17 @@ static void osd_update_color_mode(u32 index)
 			}
 		}
 		if (idx >= COLOR_INDEX_32_BGRX
-		    && idx <= COLOR_INDEX_32_XRGB)
+		    && idx <= COLOR_INDEX_32_XRGB) {
 			VSYNCOSD_WR_MPEG_REG_BITS(
 				osd_reg->osd_ctrl_stat2,
 				0x1ff, 6, 9);
-		else
+			if (force_colorrange)
+				VSYNCOSD_WR_MPEG_REG_BITS(
+					osd_reg->osd_ctrl_stat2, 1, 3, 1);
+			else
+				VSYNCOSD_WR_MPEG_REG_BITS(
+					osd_reg->osd_ctrl_stat2, 0, 3, 1);
+		} else
 			VSYNCOSD_WR_MPEG_REG_BITS(
 				osd_reg->osd_ctrl_stat2,
 				0, 6, 9);
