@@ -329,4 +329,11 @@ config ARCH_ROCKCHIP_ODROIDM1
 	  This enables support for the board ODROID-M1 of Hardkernel
 	  which is based on ARMv8 SoC of Rockchip, Inc.
 
+config ARCH_ROCKCHIP_ODROIDM2
+	bool "Hardkernel's ODROID-M2 Single Board Computer"
+	select ARCH_ROCKCHIP_ODROID_COMMON
+	help
+	  This enables support for the board ODROID-M2 of Hardkernel
+	  which is based on ARMv8 SoC of Rockchip, Inc.
+
 endmenu
