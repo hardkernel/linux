@@ -795,6 +795,11 @@
 	pinctrl-0 = <&pwm1m1_pins>;
 };
 
+&pwm2 {
+	status = "disabled";
+	pinctrl-0 = <&pwm2m1_pins>;
+};
+
 &rk_rga {
 	status = "okay";
 };
