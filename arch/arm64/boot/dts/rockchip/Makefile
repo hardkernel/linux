@@ -222,3 +222,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-odroid-m2.dtb
 
 subdir-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += overlays/odroidm1
 subdir-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += overlays/odroidm1s
+subdir-$(CONFIG_ARCH_ROCKCHIP_ODROIDM2) += overlays/odroidm2
