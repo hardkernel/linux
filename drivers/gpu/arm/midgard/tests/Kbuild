@@ -12,6 +12,5 @@
 #
 #
 
-
 obj-$(CONFIG_MALI_KUTF) += kutf/
 obj-$(CONFIG_MALI_IRQ_LATENCY) += mali_kutf_irq_test/
