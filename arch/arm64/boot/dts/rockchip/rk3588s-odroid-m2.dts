@@ -22,3 +22,7 @@
 	model = "Hardkernel ODROID-M2";
 	compatible = "hardkernel,odroid-m2", "rockchip,rk3588";
 };
+
+&chosen {
+	/delete-property/ bootargs;
+};
