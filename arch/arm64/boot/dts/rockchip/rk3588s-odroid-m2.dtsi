@@ -13,6 +13,17 @@
 #include <dt-bindings/sensor-dev.h>
 
 / {
+	aliases {
+		serial0 = &uart7;
+		serial1 = &uart9;
+		serial7 = &uart0;
+		serial9 = &uart1;
+		i2c0 = &i2c5;
+		i2c1 = &i2c6;
+		i2c5 = &i2c0;
+		i2c6 = &i2c1;
+	};
+
 	backlight: backlight {
 		status = "disabled";
 		compatible = "pwm-backlight";
@@ -925,6 +936,50 @@
 		"", "", "", "",
 		/* GPIO4_D4-D7 */
 		"", "", "", "";
+};
+
+&i2c5 {
+	pinctrl-0 = <&i2c5m2_xfer>;
+	status = "disabled";
+};
+
+&i2c6 {
+	pinctrl-0 = <&i2c6m3_xfer>;
+	status = "disabled";
+};
+
+&pwm3 {
+	pinctrl-0 = <&pwm3m1_pins>;
+	status = "disabled";
+};
+
+&pwm8 {
+	pinctrl-0 = <&pwm8m2_pins>;
+	status = "disabled";
+};
+
+&pwm15 {
+	pinctrl-0 = <&pwm15m1_pins>;
+	status = "disabled";
+};
+
+&spi0 {
+	pinctrl-0 = <&spi0m3_pins>;
+	num-cs = <1>;
+	cs-gpios = <&gpio0 RK_PD5 GPIO_ACTIVE_LOW>;
+	status = "disabled";
+};
+
+&uart7 {
+	pinctrl-0 = <&uart7m1_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart9 {
+	pinctrl-0 = <&uart9m2_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
 };
 
 &vdpu {
