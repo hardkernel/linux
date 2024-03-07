@@ -1,0 +1,17 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	fragment@0 {
+		target = <&uart7>;
+
+		__overlay__ {
+			cts-gpios = <&gpio1 RK_PB7 GPIO_ACTIVE_LOW>;
+			rts-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_LOW>;
+			status = "okay";
+		};
+	};
+};
