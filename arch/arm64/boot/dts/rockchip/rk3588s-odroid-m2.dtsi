@@ -100,11 +100,11 @@
 	};
 
 	fan: pwm-fan {
-		status = "disabled";
+		status = "okay";
 		compatible = "pwm-fan";
 		#cooling-cells = <2>;
-		pwms = <&pwm0 0 50000 0>;
-		cooling-levels = <0 50 100 150 200 255>;
+		pwms = <&pwm0 0 22222 0>;
+		cooling-levels = <0 71 130 170 200 255>;
 		rockchip,temp-trips = <
 			50000	1
 			55000	2
