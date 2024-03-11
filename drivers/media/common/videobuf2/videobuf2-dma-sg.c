@@ -57,6 +57,15 @@ struct vb2_dma_sg_buf {
 
 static void vb2_dma_sg_put(void *buf_priv);
 
+#ifdef CONFIG_AMLOGIC_MEDIA_V4L2
+#define low_order_gfp_flags(gfp_flags)	((gfp_flags) | (GFP_KERNEL) | (__GFP_ZERO))
+#define mid_order_gfp_flags(gfp_flags)	((gfp_flags) | (GFP_KERNEL) | (__GFP_ZERO) | \
+				(__GFP_NOWARN) | (__GFP_NORETRY))
+#define high_order_gfp_flags(gfp_flags)	(((gfp_flags) | ((GFP_KERNEL) | (__GFP_ZERO) | \
+				(__GFP_NOWARN) | (__GFP_NORETRY))) \
+				& (~__GFP_RECLAIM))
+#endif
+
 static int vb2_dma_sg_alloc_compacted(struct vb2_dma_sg_buf *buf,
 		gfp_t gfp_flags)
 {
@@ -75,8 +84,20 @@ static int vb2_dma_sg_alloc_compacted(struct vb2_dma_sg_buf *buf,
 
 		pages = NULL;
 		while (!pages) {
+#ifdef CONFIG_AMLOGIC_MEDIA_V4L2
+			gfp_t flags = gfp_flags;
+
+			if (order >= 3)
+				flags = high_order_gfp_flags(gfp_flags);
+			else if (order >= 1)
+				flags = mid_order_gfp_flags(gfp_flags);
+			else
+				flags = low_order_gfp_flags(gfp_flags);
+			pages = alloc_pages(flags, order);
+#else
 			pages = alloc_pages(GFP_KERNEL | __GFP_ZERO |
 					__GFP_NOWARN | gfp_flags, order);
+#endif
 			if (pages)
 				break;
 
