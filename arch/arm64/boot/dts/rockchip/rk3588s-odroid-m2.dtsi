@@ -338,6 +338,12 @@
 
 		compatible = "nxp,pcf8563";
 		reg = <0x51>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pcf8563_intr>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PB0 IRQ_TYPE_LEVEL_LOW>;
+		wakeup-source;
 	};
 
 	touchscreen: touchscreen {
@@ -637,6 +643,12 @@
 	lcd {
 		lcd_rst_gpio: lcd-rst-gpio {
 			rockchip,pins = <1 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	rtc {
+		pcf8563_intr: pcf8563-intr {
+			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
