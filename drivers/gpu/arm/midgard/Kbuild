@@ -136,7 +136,7 @@ mali_kbase-y := $(SRC:.c=.o)
 # Kconfig passes in the name with quotes for in-tree builds - remove them.
 platform_name := $(shell echo $(CONFIG_MALI_PLATFORM_NAME))
 MALI_PLATFORM_DIR := platform/$(platform_name)
-ccflags-y += -I$(src)/$(MALI_PLATFORM_DIR)
+ccflags-y += -I$(srctree)/$(src)/$(MALI_PLATFORM_DIR)
 include $(src)/$(MALI_PLATFORM_DIR)/Kbuild
 
 ifeq ($(CONFIG_MALI_DEVFREQ),y)
@@ -165,8 +165,8 @@ include  $(src)/backend/gpu/Kbuild
 mali_kbase-y += $(BACKEND:.c=.o)
 
 
-ccflags-y += -I$(src)/backend/gpu
-subdir-ccflags-y += -I$(src)/backend/gpu
+ccflags-y += -I$(srctree)/$(src)/backend/gpu
+subdir-ccflags-y += -I$(srctree)/$(src)/backend/gpu
 
 # For kutf and mali_kutf_irq_latency_test
 obj-$(CONFIG_MALI_KUTF) += tests/
