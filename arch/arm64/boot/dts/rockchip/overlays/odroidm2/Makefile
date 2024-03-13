@@ -9,6 +9,7 @@ dtbo-y += \
 	pwm3.dtbo \
 	pwm7.dtbo \
 	pwm8.dtbo \
+	rknpu.dtbo \
 	spi0.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
