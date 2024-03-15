@@ -620,6 +620,32 @@ static int overlay_merge(void *fdt, void *fdto)
 {
 	int fragment;
 
+#if defined(EN_AMLOGIC_FDTO_REMOVE_NODE)
+	fdt_for_each_subnode(fragment, fdto, 0) {
+		int removenode;
+		int target;
+		int ret;
+		/*
+		 * If the fragments have an __removenode__ node, the
+		 * node defined in "target-path" will be removed.
+		 */
+		removenode = fdt_subnode_offset(fdto, fragment, "__removenode__");
+		if (removenode == -FDT_ERR_NOTFOUND)
+			continue;
+
+		if (removenode < 0)
+			return removenode;
+
+		target = overlay_get_target(fdt, fdto, fragment, NULL);
+		if (target < 0)
+			return target;
+
+		ret = fdt_del_node(fdt, target);
+		if (ret)
+			return ret;
+	}
+#endif /* EN_AMLOGIC_FDTO_REMOVE_NODE */
+
 	fdt_for_each_subnode(fragment, fdto, 0) {
 		int overlay;
 		int target;

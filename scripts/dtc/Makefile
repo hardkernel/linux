@@ -5,6 +5,10 @@
 hostprogs-always-$(CONFIG_DTC)		+= dtc fdtoverlay
 hostprogs-always-$(CHECK_DT_BINDING)	+= dtc
 
+ifdef CONFIG_AMLOGIC_FDTO_REMOVE_NODE
+HOST_EXTRACFLAGS += -DEN_AMLOGIC_FDTO_REMOVE_NODE
+endif
+
 dtc-objs	:= dtc.o flattree.o fstree.o data.o livetree.o treesource.o \
 		   srcpos.o checks.o util.o
 dtc-objs	+= dtc-lexer.lex.o dtc-parser.tab.o
