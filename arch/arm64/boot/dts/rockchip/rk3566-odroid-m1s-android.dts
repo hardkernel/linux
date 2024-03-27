@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2024 Hardkernel Co., Ltd.
+ *
+ */
+
+#include "rk3566-odroid-m1s.dts"
+#include "rk3568-android.dtsi"
+/{
+	aliases {
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc0;
+	};
+};
