@@ -875,7 +875,9 @@ static void hdmi_select_link_config(struct rockchip_hdmi *hdmi,
 	hdmi->link_cfg.add_func = hdmi->add_func;
 
 	if (!max_frl_rate || (tmdsclk < HDMI20_MAX_RATE && mode.clock < HDMI20_MAX_RATE)) {
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 		dev_info(hdmi->dev, "use tmds mode\n");
+#endif
 		hdmi->link_cfg.frl_mode = false;
 		return;
 	}
