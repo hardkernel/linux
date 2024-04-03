@@ -118,8 +118,6 @@ static int address_is_allowed(unsigned long pfn, unsigned long size)
         case 0xfdd20000:
         case 0xfdc20000:
         case 0xfdd60000:
-        case 0xfdd70000:
-        case 0xfe6f0000:
         case 0xfe740000:
         case 0xfe750000:
         case 0xfe760000:
