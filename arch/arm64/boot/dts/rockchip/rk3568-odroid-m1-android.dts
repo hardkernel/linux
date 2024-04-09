@@ -1,0 +1,26 @@
+/*
+ * Copyright (c) 2024 Hardkernel Co., Ltd.
+ *
+ */
+
+#include "rk3568-odroid-m1.dtsi"
+#include "rk3568-android.dtsi"
+
+/{
+	aliases {
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc0;
+	};
+};
+
+&hdmi_sound {
+	simple-audio-card,name = "rockchip-hdmi0";
+};
+
+&rk_headset {
+	headset_gpio = <&gpio4 RK_PC4 GPIO_ACTIVE_HIGH>;
+};
+
+&rk809_sound {
+	rockchip,card-name = "rockchip-rk809";
+};
