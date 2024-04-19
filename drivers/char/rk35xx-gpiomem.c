@@ -2,7 +2,7 @@
  * GPIO memory device driver
  *
  * Creates a chardev /dev/gpiomem which will provide user access to
- * the rk3568's GPIO registers when it is mmap()'d.
+ * the rk35xx's GPIO registers when it is mmap()'d.
  * No longer need root for user GPIO access, but without relaxing permissions
  * on /dev/mem.
  *
@@ -40,8 +40,8 @@
  */
 
 /*
- * Ported to rk3568 from Jörg Wolff, 2022
-*/
+ * Ported to rk35xx from Steve Jeong, 2024
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -52,22 +52,53 @@
 #include <linux/cdev.h>
 #include <linux/pagemap.h>
 #include <linux/io.h>
+#include <linux/of_device.h>
 
-#define DEVICE_NAME "rk3568-gpiomem"
-#define DRIVER_NAME "gpiomem-rk3568"
+#define DEVICE_NAME "rk35xx-gpiomem"
+#define DRIVER_NAME "gpiomem-rk35xx"
 #define DEVICE_MINOR 0
 
-struct rk3568_gpiomem_instance {
-	unsigned long gpio_regs_phys;
+struct rk35xx_gpiomem_instance {
+	unsigned long model;
+	const unsigned long *allowed_addr;
+	int num_of_addr;
 	struct device *dev;
 };
 
-static struct cdev rk3568_gpiomem_cdev;
-static dev_t rk3568_gpiomem_devid;
-static struct class *rk3568_gpiomem_class;
-static struct device *rk3568_gpiomem_dev;
-static struct rk3568_gpiomem_instance *inst;
+static struct cdev rk35xx_gpiomem_cdev;
+static dev_t rk35xx_gpiomem_devid;
+static struct class *rk35xx_gpiomem_class;
+static struct device *rk35xx_gpiomem_dev;
+static struct rk35xx_gpiomem_instance *inst;
 
+enum {
+	ROCKCHIP_RK356X_ADDR,
+	ROCKCHIP_RK3588_ADDR,
+};
+
+static const unsigned long rk356x_allowed_addresses[] = {
+	0xfdc20000,
+	0xfdc60000,
+	0xfdd00000,
+	0xfdd20000,
+	0xfdd60000,
+	0xfe740000,
+	0xfe750000,
+	0xfe760000,
+	0xfe770000,
+};
+
+static const unsigned long rk3588_allowed_addresses[] = {
+	0xfd5f0000,
+	0xfd5f8000,
+	0xfd7c0000,
+	0xfd7f0000,
+	0xfd8a0000,
+	0xfec20000,
+	0xfec30000,
+	0xfec40000,
+	0xfec50000,
+};
 
 /****************************************************************************
 *
@@ -75,7 +106,7 @@ static struct rk3568_gpiomem_instance *inst;
 *
 ***************************************************************************/
 
-static int rk3568_gpiomem_open(struct inode *inode, struct file *file)
+static int rk35xx_gpiomem_open(struct inode *inode, struct file *file)
 {
 	int dev = iminor(inode);
 	int ret = 0;
@@ -89,7 +120,7 @@ static int rk3568_gpiomem_open(struct inode *inode, struct file *file)
 	return ret;
 }
 
-static int rk3568_gpiomem_release(struct inode *inode, struct file *file)
+static int rk35xx_gpiomem_release(struct inode *inode, struct file *file)
 {
 	int dev = iminor(inode);
 	int ret = 0;
@@ -101,7 +132,7 @@ static int rk3568_gpiomem_release(struct inode *inode, struct file *file)
 	return ret;
 }
 
-static const struct vm_operations_struct rk3568_gpiomem_vm_ops = {
+static const struct vm_operations_struct rk35xx_gpiomem_vm_ops = {
 #ifdef CONFIG_HAVE_IOREMAP_PROT
 	.access = generic_access_phys
 #endif
@@ -109,33 +140,27 @@ static const struct vm_operations_struct rk3568_gpiomem_vm_ops = {
 
 static int address_is_allowed(unsigned long pfn, unsigned long size)
 {
-    unsigned long address = pfn << PAGE_SHIFT;
+	unsigned long address = pfn << PAGE_SHIFT;
+	int i;
 
-    dev_info(inst->dev, "address_is_allowed.pfn: 0x%08lx", address);
+	dev_info(inst->dev, "address_is_allowed.pfn: 0x%08lx", address);
 
-    switch(address) {
-        case 0xfdd00000:
-        case 0xfdd20000:
-        case 0xfdc20000:
-        case 0xfdd60000:
-        case 0xfe740000:
-        case 0xfe750000:
-        case 0xfe760000:
-        case 0xfe770000:
-        case 0xfdc60000:
-            dev_info(inst->dev, "address_is_allowed.return 1");
-            return 1;
-            break;
-        default :
-            dev_info(inst->dev, "address_is_allowed.return 0");
-	        return 0;
-    }
+	for (i = 0; i < inst->num_of_addr; i++) {
+		if (address == inst->allowed_addr[i]) {
+			dev_info(inst->dev, "address_is_allowed.return 1");
+			return 1;
+		}
+	}
+
+	dev_info(inst->dev, "address_is_allowed.return 0");
+
+	return 0;
 }
 
-static int rk3568_gpiomem_mmap(struct file *file, struct vm_area_struct *vma)
+static int rk35xx_gpiomem_mmap(struct file *file, struct vm_area_struct *vma)
 {
 
-    size_t size;
+	size_t size;
 
 	size = vma->vm_end - vma->vm_start;
 
@@ -147,14 +172,14 @@ static int rk3568_gpiomem_mmap(struct file *file, struct vm_area_struct *vma)
 						 size,
 						 vma->vm_page_prot);
 
-	vma->vm_ops =  &rk3568_gpiomem_vm_ops;
+	vma->vm_ops =  &rk35xx_gpiomem_vm_ops;
 
 	/* Remap-pfn-range will mark the range VM_IO */
 	if (remap_pfn_range(vma,
-			    vma->vm_start,
-			    vma->vm_pgoff,
-			    size,
-			    vma->vm_page_prot)) {
+				vma->vm_start,
+				vma->vm_pgoff,
+				size,
+				vma->vm_page_prot)) {
 		return -EAGAIN;
 	}
 
@@ -162,11 +187,11 @@ static int rk3568_gpiomem_mmap(struct file *file, struct vm_area_struct *vma)
 }
 
 static const struct file_operations
-rk3568_gpiomem_fops = {
+rk35xx_gpiomem_fops = {
 	.owner = THIS_MODULE,
-	.open = rk3568_gpiomem_open,
-	.release = rk3568_gpiomem_release,
-	.mmap = rk3568_gpiomem_mmap,
+	.open = rk35xx_gpiomem_open,
+	.release = rk35xx_gpiomem_release,
+	.mmap = rk35xx_gpiomem_mmap,
 };
 
 
@@ -177,16 +202,15 @@ rk3568_gpiomem_fops = {
 ***************************************************************************/
 
 
-static int rk3568_gpiomem_probe(struct platform_device *pdev)
+static int rk35xx_gpiomem_probe(struct platform_device *pdev)
 {
 	int err;
 	void *ptr_err;
 	struct device *dev = &pdev->dev;
-	struct resource *ioresource;
+	unsigned long model = (unsigned long)of_device_get_match_data(&pdev->dev);
 
 	/* Allocate buffers and instance data */
-
-	inst = kzalloc(sizeof(struct rk3568_gpiomem_instance), GFP_KERNEL);
+	inst = kzalloc(sizeof(struct rk35xx_gpiomem_instance), GFP_KERNEL);
 
 	if (!inst) {
 		err = -ENOMEM;
@@ -194,75 +218,69 @@ static int rk3568_gpiomem_probe(struct platform_device *pdev)
 	}
 
 	inst->dev = dev;
-
-	ioresource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (ioresource) {
-		inst->gpio_regs_phys = ioresource->start;
-	} else {
-		dev_err(inst->dev, "failed to get IO resource");
-		err = -ENOENT;
-		goto failed_get_resource;
+	inst->model = model;
+	if (inst->model == ROCKCHIP_RK356X_ADDR) {
+		inst->allowed_addr = rk356x_allowed_addresses;
+		inst->num_of_addr = sizeof(rk356x_allowed_addresses) / sizeof(unsigned long);
+	}
+	else {
+		inst->allowed_addr = rk3588_allowed_addresses;
+		inst->num_of_addr = sizeof(rk3588_allowed_addresses) / sizeof(unsigned long);
 	}
 
 	/* Create character device entries */
-
-	err = alloc_chrdev_region(&rk3568_gpiomem_devid,
+	err = alloc_chrdev_region(&rk35xx_gpiomem_devid,
 				  DEVICE_MINOR, 1, DEVICE_NAME);
 	if (err != 0) {
 		dev_err(inst->dev, "unable to allocate device number");
 		goto failed_alloc_chrdev;
 	}
-	cdev_init(&rk3568_gpiomem_cdev, &rk3568_gpiomem_fops);
-	rk3568_gpiomem_cdev.owner = THIS_MODULE;
-	err = cdev_add(&rk3568_gpiomem_cdev, rk3568_gpiomem_devid, 1);
+	cdev_init(&rk35xx_gpiomem_cdev, &rk35xx_gpiomem_fops);
+	rk35xx_gpiomem_cdev.owner = THIS_MODULE;
+	err = cdev_add(&rk35xx_gpiomem_cdev, rk35xx_gpiomem_devid, 1);
 	if (err != 0) {
 		dev_err(inst->dev, "unable to register device");
 		goto failed_cdev_add;
 	}
 
 	/* Create sysfs entries */
-
-	rk3568_gpiomem_class = class_create(THIS_MODULE, DEVICE_NAME);
-	ptr_err = rk3568_gpiomem_class;
+	rk35xx_gpiomem_class = class_create(THIS_MODULE, DEVICE_NAME);
+	ptr_err = rk35xx_gpiomem_class;
 	if (IS_ERR(ptr_err))
 		goto failed_class_create;
 
-	rk3568_gpiomem_dev = device_create(rk3568_gpiomem_class, NULL,
-					rk3568_gpiomem_devid, NULL,
+	rk35xx_gpiomem_dev = device_create(rk35xx_gpiomem_class, NULL,
+					rk35xx_gpiomem_devid, NULL,
 					"gpiomem");
-	ptr_err = rk3568_gpiomem_dev;
+	ptr_err = rk35xx_gpiomem_dev;
 	if (IS_ERR(ptr_err))
 		goto failed_device_create;
-
-	dev_info(inst->dev, "Initialised: Registers at 0x%08lx",
-		inst->gpio_regs_phys);
 
 	return 0;
 
 failed_device_create:
-	class_destroy(rk3568_gpiomem_class);
+	class_destroy(rk35xx_gpiomem_class);
 failed_class_create:
-	cdev_del(&rk3568_gpiomem_cdev);
+	cdev_del(&rk35xx_gpiomem_cdev);
 	err = PTR_ERR(ptr_err);
 failed_cdev_add:
-	unregister_chrdev_region(rk3568_gpiomem_devid, 1);
+	unregister_chrdev_region(rk35xx_gpiomem_devid, 1);
 failed_alloc_chrdev:
-failed_get_resource:
 	kfree(inst);
 failed_inst_alloc:
-	dev_err(inst->dev, "could not load rk3568_gpiomem");
+	dev_err(inst->dev, "could not load rk35xx_gpiomem");
 	return err;
 }
 
-static int rk3568_gpiomem_remove(struct platform_device *pdev)
+static int rk35xx_gpiomem_remove(struct platform_device *pdev)
 {
 	struct device *dev = inst->dev;
 
 	kfree(inst);
-	device_destroy(rk3568_gpiomem_class, rk3568_gpiomem_devid);
-	class_destroy(rk3568_gpiomem_class);
-	cdev_del(&rk3568_gpiomem_cdev);
-	unregister_chrdev_region(rk3568_gpiomem_devid, 1);
+	device_destroy(rk35xx_gpiomem_class, rk35xx_gpiomem_devid);
+	class_destroy(rk35xx_gpiomem_class);
+	cdev_del(&rk35xx_gpiomem_cdev);
+	unregister_chrdev_region(rk35xx_gpiomem_devid, 1);
 
 	dev_info(dev, "GPIO mem driver removed - OK");
 	return 0;
@@ -274,26 +292,33 @@ static int rk3568_gpiomem_remove(struct platform_device *pdev)
 *
 ***************************************************************************/
 
-static const struct of_device_id rk3568_gpiomem_of_match[] = {
-	{.compatible = "rockchip,rk3568-gpiomem",},
+static const struct of_device_id rk35xx_gpiomem_of_match[] = {
+	{
+		.compatible = "rockchip,rk3568-gpiomem",
+		.data = (void *)ROCKCHIP_RK356X_ADDR,
+	},
+	{
+		.compatible = "rockchip,rk3588-gpiomem",
+		.data = (void *)ROCKCHIP_RK3588_ADDR,
+	},
 	{ /* sentinel */ },
 };
 
-MODULE_DEVICE_TABLE(of, rk3568_gpiomem_of_match);
+MODULE_DEVICE_TABLE(of, rk35xx_gpiomem_of_match);
 
-static struct platform_driver rk3568_gpiomem_driver = {
-	.probe = rk3568_gpiomem_probe,
-	.remove = rk3568_gpiomem_remove,
+static struct platform_driver rk35xx_gpiomem_driver = {
+	.probe = rk35xx_gpiomem_probe,
+	.remove = rk35xx_gpiomem_remove,
 	.driver = {
 		   .name = DRIVER_NAME,
 		   .owner = THIS_MODULE,
-		   .of_match_table = rk3568_gpiomem_of_match,
+		   .of_match_table = rk35xx_gpiomem_of_match,
 		   },
 };
 
-module_platform_driver(rk3568_gpiomem_driver);
+module_platform_driver(rk35xx_gpiomem_driver);
 
-MODULE_ALIAS("platform:gpiomem-rk3568");
+MODULE_ALIAS("platform:gpiomem-rk35xx");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("gpiomem driver for accessing GPIO from userspace");
 MODULE_AUTHOR("Luke Wren <luke@raspberrypi.org>");
