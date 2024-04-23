@@ -114,6 +114,11 @@
 		>;
 	};
 
+	rk3588s-gpiomem {
+		status = "okay";
+		compatible = "rockchip,rk3588-gpiomem";
+	};
+
 	hdmi0_sound: hdmi0-sound {
 		status = "okay";
 		compatible = "rockchip,hdmi";
