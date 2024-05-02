@@ -481,6 +481,7 @@
 				regulator-min-microvolt = <1800000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-name = "vccio_sd_s0";
+				regulator-ramp-delay = <800>;
 				regulator-state-mem {
 					regulator-off-in-suspend;
 				};
