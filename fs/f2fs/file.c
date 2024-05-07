@@ -5041,6 +5041,7 @@ static const struct iomap_dio_ops f2fs_iomap_dio_write_ops = {
 	.submit_io	= f2fs_dio_write_submit_io,
 };
 
+#if !IS_ENABLED(CONFIG_AMLOGIC_F2FS_OPTIMIZATION)
 static void f2fs_flush_buffered_write(struct address_space *mapping,
 				      loff_t start_pos, loff_t end_pos)
 {
@@ -5053,6 +5054,7 @@ static void f2fs_flush_buffered_write(struct address_space *mapping,
 				 start_pos >> PAGE_SHIFT,
 				 end_pos >> PAGE_SHIFT);
 }
+#endif
 
 static ssize_t f2fs_dio_write_iter(struct kiocb *iocb, struct iov_iter *from,
 				   bool *may_need_sync)
@@ -5152,10 +5154,20 @@ static ssize_t f2fs_dio_write_iter(struct kiocb *iocb, struct iov_iter *from,
 			loff_t bufio_end_pos = bufio_start_pos + ret2 - 1;
 
 			ret += ret2;
-
+#if IS_ENABLED(CONFIG_AMLOGIC_F2FS_OPTIMIZATION)
+			ret2 = filemap_write_and_wait_range(file->f_mapping,
+							    bufio_start_pos,
+							    bufio_end_pos);
+			if (ret2 < 0)
+				goto out;
+			invalidate_mapping_pages(file->f_mapping,
+						 bufio_start_pos >> PAGE_SHIFT,
+						 bufio_end_pos >> PAGE_SHIFT);
+#else
 			f2fs_flush_buffered_write(file->f_mapping,
 						  bufio_start_pos,
 						  bufio_end_pos);
+#endif
 		}
 	} else {
 		/* iomap_dio_rw() already handled the generic_write_sync(). */
@@ -5257,6 +5269,7 @@ out:
 	if (ret > 0 && may_need_sync)
 		ret = generic_write_sync(iocb, ret);
 
+#if !IS_ENABLED(CONFIG_AMLOGIC_F2FS_OPTIMIZATION)
 	/* If buffered IO was forced, flush and drop the data from
 	 * the page cache to preserve O_DIRECT semantics
 	 */
@@ -5264,7 +5277,7 @@ out:
 		f2fs_flush_buffered_write(iocb->ki_filp->f_mapping,
 					  orig_pos,
 					  orig_pos + ret - 1);
-
+#endif
 	return ret;
 }
 
