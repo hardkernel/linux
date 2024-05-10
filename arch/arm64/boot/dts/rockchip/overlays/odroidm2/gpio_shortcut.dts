@@ -1,0 +1,43 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/{
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			gpio_keys_polled: gpio_keys_polled {
+				status = "okay";
+				compatible =
+					"gpio-keys-polled";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				poll-interval = <100>;
+				autorepeat;
+				button@1 {
+					label = "GPIO Key F7";
+					linux,code = <65>;
+					gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
+				};
+				button@2 {
+					label = "GPIO Key F8";
+					linux,code = <66>;
+					gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+				};
+				button@3 {
+					label = "GPIO Key F9";
+					linux,code = <67>;
+					gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
+				};
+				button@4 {
+					label = "GPIO Key F10";
+					linux,code = <68>;
+					gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
+				};
+			};
+		};
+	};
+};
