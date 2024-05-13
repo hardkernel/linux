@@ -19,6 +19,7 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDC4) +=	\
 					pwm_a-pwmfan.dtbo	\
 					pwm_ab.dtbo		\
 					pwm_backlight.dtbo	\
+					pwm_backlight_for_vu12.dtbo	\
 					pwm_cd.dtbo		\
 					pwm_ef.dtbo		\
 					rtc.dtbo		\
