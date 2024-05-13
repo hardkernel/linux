@@ -15263,3 +15263,8 @@ M:	Chris KIM <codewalker@hardkenrle.com>
 F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/odroidn2l-opp.dts
 F:	arch/arm64/boot/dts/amlogic/meson64_odroidn2l_android.dts
 F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/pcf8563.dts
+
+DTS OVERLAY FOR VU12 PWM BACKLIGHT
+M:	Chris KIM <codewalker@hardkernel.com>
+F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/pwm_backlight_for_vu12.dts
+F:	arch/arm64/boot/dts/amlogic/overlays/odroidc4/pwm_backlight_for_vu12.dts
