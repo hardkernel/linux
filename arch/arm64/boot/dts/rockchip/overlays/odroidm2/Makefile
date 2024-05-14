@@ -19,7 +19,8 @@ dtbo-y += \
 	ttyfiq0_115200.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
-	uart1.dtbo
+	uart1.dtbo \
+	weather_board_zero.dtbo
 
 targets += $(dtbo-y)
 always := $(dtbo-y)
