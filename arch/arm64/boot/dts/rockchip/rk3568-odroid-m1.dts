@@ -125,6 +125,10 @@
 	status = "okay";
 };
 
+&dmc {
+	status = "disabled";
+};
+
 &dsi0 {
 	status = "disabled";
 
