@@ -197,6 +197,14 @@ struct decoder_mem_info {
 	__u32 rp_phy;
 };
 
+/*for set command to dmx*/
+#define DMX_CLEAR_CACHE		0
+
+struct dmx_set_command_info {
+	__u32 command;
+	__u32 reserved0;
+	__u32 reserved1;
+};
 /* amlogic define end */
 
 /* amlogic define */
@@ -210,6 +218,7 @@ struct decoder_mem_info {
 #define DMX_GET_DVR_MEM			_IOR('o', 86, struct dvr_mem_info)
 #define DMX_REMAP_PID			_IOR('o', 87, __u16[2])
 #define DMX_SET_DECODE_INFO     _IOW('o', 88, struct decoder_mem_info)
+#define DMX_SET_COMMAND			_IOW('o', 89, struct dmx_set_command_info)
 /* amlogic define end */
 
 #endif

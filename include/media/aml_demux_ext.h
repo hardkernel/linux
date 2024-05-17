@@ -30,6 +30,8 @@ struct dmx_demux_ext {
 			u16 pids[2]);
 	int (*decode_info)(struct dmx_demux *demux,
 		void *info);
+	int (*dmx_set_command)(struct dmx_demux *demux,
+		void *info);
 };
 
 #endif
