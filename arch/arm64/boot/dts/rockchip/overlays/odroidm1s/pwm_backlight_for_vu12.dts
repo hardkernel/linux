@@ -1,0 +1,21 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		// pwmchip0, pwm@fdd70010
+		target = <&pwm1>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&backlight>;
+		__overlay__ {
+			status = "okay";
+			pwms = <&pwm1 0 43478 0>;
+		};
+	};
+};
