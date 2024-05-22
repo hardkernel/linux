@@ -39,7 +39,9 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	uart5.dtbo \
 	uart7.dtbo \
 	uart9.dtbo \
-	weather_board_zero.dtbo
+	weather_board_zero.dtbo \
+	pwm_backlight.dtbo \
+	pwm_backlight_for_vu12.dtbo
 
 targets += $(dtbo-y)
 always-y := $(dtbo-y)

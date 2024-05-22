@@ -27,7 +27,9 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
-	weather_board_zero.dtbo
+	weather_board_zero.dtbo \
+	pwm_backlight.dtbo \
+	pwm_backlight_for_vu12.dtbo
 
 targets += $(dtbo-y)
 always-y := $(dtbo-y)
