@@ -110,7 +110,7 @@ static struct flash_info spi_flash_tbl[] = {
 	/* XT25F16BS */
 	{ 0x0b4015, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0D, 12, 9, 0 },
 	/* XT25Q128D */
-	{ 0x0b6018, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0D, 15, 9, 0 },
+	{ 0x0b6018, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0D, 14, 9, 0 },
 
 	/* EN25QH64A */
 	{ 0x1c7017, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0C, 14, 0, 0 },
@@ -346,6 +346,22 @@ static int snor_write_status(u32 reg_index, u8 status)
 	return ret;
 }
 
+/*
+ * Since security registers in XTX flash memory uses different address
+ * format than normal memory, the address needs to be calculated.
+ *
+ * Security Register #1 : 0x001000 ~ 0x0013ff (from 0x000000 ~ 0x0003ff)
+ * Security Register #2 : 0x002000 ~ 0x0023ff (from 0x000400 ~ 0x0007ff)
+ * Security Register #3 : 0x003000 ~ 0x0033ff (from 0x000800 ~ 0x000bff)
+ *
+ * This scheme must work with only certain command that access the
+ * security registers, Read (0x48) / Write (0x42) / Erase (0x44), only.
+ */
+static u32 xtx_security_address(u32 addr)
+{
+	return (((addr + 0x400) & 0xc00) << 2) | (addr & 0x3ff);
+}
+
 int snor_erase(struct SFNOR_DEV *p_dev,
 	       u32 addr,
 	       enum NOR_ERASE_TYPE erase_type)
@@ -375,6 +391,15 @@ int snor_erase(struct SFNOR_DEV *p_dev,
 	op.sfctrl.d32 = 0;
 
 	snor_write_en();
+
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+	if (p_dev->secure_on) {
+		if (p_dev->manufacturer == MID_XTX) {
+			op.sfcmd.b.cmd = 0x44;
+			addr = xtx_security_address(addr);
+		}
+	}
+#endif
 
 	ret = sfc_request(&op, addr, NULL, 0);
 	if (ret != SFC_OK)
@@ -408,6 +433,15 @@ int snor_prog_page(struct SFNOR_DEV *p_dev,
 		op.sfcmd.b.addrbits = SFC_ADDR_32BITS;
 
 	snor_write_en();
+
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+	if (p_dev->secure_on) {
+		if (p_dev->manufacturer == MID_XTX) {
+			op.sfcmd.b.cmd = 0x42;
+			addr = xtx_security_address(addr);
+		}
+	}
+#endif
 
 	ret = sfc_request(&op, addr, p_data, size);
 	if (ret != SFC_OK)
@@ -517,6 +551,16 @@ int snor_read_data(struct SFNOR_DEV *p_dev,
 
 	if (p_dev->addr_mode == ADDR_MODE_4BYTE)
 		op.sfcmd.b.addrbits = SFC_ADDR_32BITS;
+
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+	if (p_dev->secure_on) {
+		if (p_dev->manufacturer == MID_XTX) {
+			op.sfcmd.b.cmd = 0x48;
+			op.sfcmd.b.dummybits = 8;
+			addr = xtx_security_address(addr);
+		}
+	}
+#endif
 
 	ret = sfc_request(&op, addr, p_data, size);
 	rkflash_print_dio("%s %x %x\n", __func__, addr, *(u32 *)(p_data));
@@ -770,6 +814,10 @@ int snor_init(struct SFNOR_DEV *p_dev)
 		p_dev->write_status = snor_write_status;
 		snor_reset_device();
 	}
+
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+	p_dev->secure_on = false;
+#endif
 
 	rkflash_print_info("addr_mode: %x\n", p_dev->addr_mode);
 	rkflash_print_info("read_lines: %x\n", p_dev->read_lines);

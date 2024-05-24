@@ -161,11 +161,13 @@ static int snor_secure_request(u8 cmd)
 
 int snor_secure_enter(void)
 {
+	sfnor_dev->secure_on = true;
 	return snor_secure_request(0xb1);	// ENSO
 }
 
 int snor_secure_exit(void)
 {
+	sfnor_dev->secure_on = false;
 	return snor_secure_request(0xc1);	// EXSO
 }
 

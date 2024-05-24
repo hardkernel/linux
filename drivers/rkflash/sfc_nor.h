@@ -98,6 +98,9 @@ struct SFNOR_DEV {
 	u8	mem_type;
 	u16	page_size;
 	u32	blk_size;
+#if defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
+	bool	secure_on;
+#endif
 
 	u8	read_cmd;
 	u8	prog_cmd;
