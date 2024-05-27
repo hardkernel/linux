@@ -23,6 +23,9 @@
 #define EFUSE_INFO_PROVISION		_IO('f', 0x5073)
 #define EFUSE_DUMP			_IO('f', 0x5074)
 #define EFUSE_CLEAR			_IO('f', 0x5075)
+#define EFUSE_OEM_PROVISION		_IO('f', 0x5076)
+
+#define OEM_PROVISION_OFFSET			0x0100
 
 struct odroid_efuse_t {
 	u32 magic;      /* EFUSE_ODROID_MAGIC */
@@ -142,9 +145,45 @@ static int odroid_valid(u8 *data, u32 len, u8 expected)
 	return (sum == expected) ? 0 : -EINVAL;
 }
 
-static int odroid_provision(struct odroid_efuse_t *fuse)
+static int __provision(u8 *data, u32 offset, u32 len, u8 sum)
 {
 	int ret;
+
+	/* Validate before writing */
+	ret = odroid_valid(data, len, sum);
+	if (ret < 0) {
+		pr_err("%s:%d, Invalid checksum\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	/* Write */
+	ret = efuse_write_usr(data, len, offset);
+	if (ret < 0) {
+		pr_err("failed to write efuse\n");
+		return ret;
+	}
+
+	/* Read back */
+	ret = efuse_read_usr(data, len, offset);
+	if (ret < 0) {
+		pr_err("failed to read efuse\n");
+		return ret;
+	}
+
+	/* Verify */
+	ret = odroid_valid(data, len, sum);
+	if (ret < 0) {
+		pr_err("data mismatch\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+int odroid_valid_packet(struct odroid_efuse_t *fuse, u32 maxlen)
+{
+	if (!fuse)
+		return -EINVAL;
 
 	if (memcmp((void *)&fuse->magic, EFUSE_ODROID_MAGIC,
 				sizeof(((struct odroid_efuse_t *)0)->magic))) {
@@ -152,47 +191,60 @@ static int odroid_provision(struct odroid_efuse_t *fuse)
 		return -EINVAL;
 	}
 
+	if (fuse->len > maxlen) {
+		pr_err("data size is wrong (%d > %d)\n",
+				fuse->len, maxlen);
+		return -EINVAL;
+	}
+
+
+	return 0;
+}
+
+static int odroid_provision_info(struct odroid_efuse_t *fuse)
+{
+	int ret;
+
+	ret = odroid_valid_packet(fuse,
+			sizeof((struct odroid_efuse_t *)0)->data);
+	if (ret < 0)
+		return ret;
+
 	if (fuse->offset > MAX_OFFSET_UUID) {
 		pr_err("offset error - (%d > %u)\n", fuse->offset, MAX_OFFSET_UUID);
 		return -EINVAL;
 	}
 
-	if (fuse->len > sizeof((struct odroid_efuse_t *)0)->data) {
-		pr_err("data size is wrong (%d > %ld)\n",
-				fuse->len,
-				sizeof((struct odroid_efuse_t *)0)->data);
+	return __provision(fuse->data, fuse->offset, fuse->len, fuse->sum);
+}
+
+static int offset_by_oem_slot(int n)
+{
+	if ((n < 0) || n > 3)
+		return -EINVAL;
+
+	return OEM_PROVISION_OFFSET + n * 16;
+}
+
+static int odroid_provision_oem(struct odroid_efuse_t *fuse)
+{
+	int offset;
+	int ret;
+
+	ret = odroid_valid_packet(fuse, 16);
+	if (ret < 0)
+		return ret;
+
+	if ((fuse->offset < 0) || (fuse->offset > 3)) {
+		pr_err("out of efuse slot (%d)\n", fuse->offset);
 		return -EINVAL;
 	}
 
-	/* Validate before writing */
-	ret = odroid_valid(fuse->data, fuse->len, fuse->sum);
-	if (ret < 0) {
-		pr_err("%s:%d, Invalid checksum\n", __func__, __LINE__);
+	offset = offset_by_oem_slot(fuse->offset);
+	if (offset < 0)
 		return -EINVAL;
-	}
 
-	/* Write */
-	ret = efuse_write_usr(fuse->data, fuse->len, fuse->offset);
-	if (ret < 0) {
-		pr_err("failed to write efuse\n");
-		return ret;
-	}
-
-	/* Read back */
-	ret = efuse_read_usr(fuse->data, fuse->len, fuse->offset);
-	if (ret < 0) {
-		pr_err("failed to read efuse\n");
-		return ret;
-	}
-
-	/* Verify */
-	ret = odroid_valid(fuse->data, fuse->len, fuse->sum);
-	if (ret < 0) {
-		pr_err("data mismatch\n");
-		return ret;
-	}
-
-	return 0;
+	return __provision(fuse->data, offset, fuse->len, fuse->sum);
 }
 
 static int odroid_clear(u32 offset)
@@ -287,7 +339,23 @@ static long efuse_unlocked_ioctl(struct file *file,
 			break;
 		}
 
-		ret = odroid_provision(&fuse);
+		ret = odroid_provision_info(&fuse);
+		if (ret < 0) {
+			pr_err("%s:%d, Failed (%d)\n",
+					__func__, __LINE__, ret);
+			break;
+		}
+		break;
+
+	case EFUSE_OEM_PROVISION:
+		ret = copy_from_user(&fuse, argp, sizeof(fuse));
+		if (ret != 0) {
+			pr_err("%s:%d, copy_from_user fail\n",
+					__func__, __LINE__);
+			break;
+		}
+
+		ret = odroid_provision_oem(&fuse);
 		if (ret < 0) {
 			pr_err("%s:%d, Failed (%d)\n",
 					__func__, __LINE__, ret);
@@ -356,8 +424,49 @@ static ssize_t uuid_show(struct class *class,
 }
 static CLASS_ATTR_RO(uuid);
 
+static ssize_t __oem16_show(struct class *class,
+		struct class_attribute *attr, char *buf, int slot)
+{
+	u8 in[16];
+	int offset;
+	int ret;
+
+	offset = offset_by_oem_slot(slot);
+	if (offset < 0)
+		return -EINVAL;
+
+	ret = efuse_read_usr(in, sizeof(in), offset);
+	if (ret < 0) {
+		pr_err("failed to read efuse\n");
+		return ret;
+	}
+
+	return snprintf(buf, PAGE_SIZE,
+			/* 9999999999999999 */
+			"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
+			in[0], in[1], in[2], in[3], in[4], in[5], in[6], in[7], in[8],
+			in[9], in[10], in[11], in[12], in[13], in[14], in[15]);
+}
+
+#define OEM_PROVISION_SLOT(x)						\
+	static ssize_t oem##x##_show(struct class *class,		\
+			struct class_attribute *attr, char *buf)	\
+	{								\
+		return __oem16_show(class, attr, buf, x);		\
+	}								\
+	static CLASS_ATTR_RO(oem##x);					\
+
+OEM_PROVISION_SLOT(0);
+OEM_PROVISION_SLOT(1);
+OEM_PROVISION_SLOT(2);
+OEM_PROVISION_SLOT(3);
+
 static struct attribute *efuse_class_attrs[] = {
 	&class_attr_uuid.attr,
+	&class_attr_oem0.attr,
+	&class_attr_oem1.attr,
+	&class_attr_oem2.attr,
+	&class_attr_oem3.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(efuse_class);
