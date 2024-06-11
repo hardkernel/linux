@@ -2493,9 +2493,7 @@ static int rockchip_drm_bind(struct device *dev)
 	drm_for_each_encoder(encoder, drm_dev)
 		rockchip_drm_fix_encoder_possible_clones(encoder);
 
-#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 	rockchip_drm_show_logo(drm_dev);
-#endif
 
 	ret = rockchip_drm_fbdev_init(drm_dev);
 	if (ret)
