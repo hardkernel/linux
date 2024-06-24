@@ -8,9 +8,13 @@
 
 #include <linux/types.h>
 #include <media/demux.h>
+#include <media/dvb_demux.h>
 
 struct dmx_demux_ext {
-	struct dmx_demux dmx;
+	union {
+		struct dmx_demux dmx;
+		struct dvb_demux dvbdmx;
+	};
 	int (*set_input)(struct dmx_demux *demux, int source);
 	int (*get_ts_mem_info)(struct dmx_demux *demux,
 			void *feed,
