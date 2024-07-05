@@ -20,6 +20,9 @@
 #define FE_DTMB			(FE_ANALOG + 1)
 #define FE_ISDBT		(FE_DTMB + 1)
 
+#define FEC_1_4			(FEC_2_5 + 1)
+#define FEC_1_3			(FEC_1_4 + 1)
+
 struct fe_blind_scan_parameters {
 	/* minimum tuner frequency in kHz */
 	__u32 min_frequency;
