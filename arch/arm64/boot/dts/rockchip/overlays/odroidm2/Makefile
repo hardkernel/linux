@@ -6,6 +6,7 @@ dtbo-y += \
 	gpio_shortcut.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	i2c2.dtbo \
 	pwm15.dtbo \
 	pwm3.dtbo \
 	pwm7.dtbo \
@@ -15,6 +16,10 @@ dtbo-y += \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
+	uart2.dtbo \
+	uart3.dtbo \
+	uart4.dtbo \
+	uart5.dtbo \
 	weather_board_zero.dtbo
 
 targets += $(dtbo-y)
