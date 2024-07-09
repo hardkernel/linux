@@ -14,14 +14,20 @@
 
 / {
 	aliases {
+		can0 = &can2;
 		serial0 = &uart7;
 		serial1 = &uart9;
-		serial7 = &uart0;
-		serial9 = &uart1;
+		serial2 = &uart4;
+		serial3 = &uart8;
+		serial4 = &uart1;
+		serial7 = &uart2;
+		serial8 = &uart0;
+		serial9 = &uart3;
 		i2c0 = &i2c5;
 		i2c1 = &i2c6;
+		i2c2 = &i2c1;
 		i2c5 = &i2c0;
-		i2c6 = &i2c1;
+		i2c6 = &i2c2;
 	};
 
 	backlight: backlight {
@@ -978,6 +984,11 @@
 		"", "", "", "";
 };
 
+&i2c1 {
+	pinctrl-0 = <&i2c1m2_xfer>;
+	status = "disabled";
+};
+
 &i2c5 {
 	pinctrl-0 = <&i2c5m2_xfer>;
 	status = "disabled";
@@ -1010,8 +1021,30 @@
 	status = "disabled";
 };
 
+&uart1 {
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart4 {
+	pinctrl-0 = <&uart4m2_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart5 {
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
 &uart7 {
 	pinctrl-0 = <&uart7m1_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart8 {
+	pinctrl-0 = <&uart8m0_xfer>;
 	dma-names = "tx", "rx";
 	status = "disabled";
 };
