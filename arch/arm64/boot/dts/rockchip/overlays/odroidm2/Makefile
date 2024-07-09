@@ -6,6 +6,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM2) += \
 	display_vu8s.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	i2c2.dtbo \
 	onewire.dtbo \
 	pwm15.dtbo \
 	pwm3.dtbo \
@@ -20,4 +21,8 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM2) += \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
+	uart2.dtbo \
+	uart3.dtbo \
+	uart4.dtbo \
+	uart5.dtbo \
 	weather_board_zero.dtbo
