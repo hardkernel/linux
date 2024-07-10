@@ -22,6 +22,7 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDN2) +=	\
 					otg_host_mode.dtbo	\
 					pcf8563.dtbo		\
 					pwm_backlight.dtbo	\
+					pwm_backlight_for_vu12.dtbo	\
 					pwm_c-pwmfan.dtbo		\
 					pwm_cd.dtbo		\
 					pwm_ef.dtbo		\
