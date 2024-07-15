@@ -26,3 +26,7 @@
 &chosen {
 	/delete-property/ bootargs;
 };
+
+&fiq_debugger {
+	rockchip,serial-id = <7>;
+};
