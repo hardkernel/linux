@@ -1585,6 +1585,7 @@ static void __blk_mq_delay_run_hw_queue(struct blk_mq_hw_ctx *hctx, bool async,
 	if (unlikely(blk_mq_hctx_stopped(hctx)))
 		return;
 
+#if !IS_ENABLED(CONFIG_AMLOGIC_MMC_CQHCI)
 	if (!async &&
 	    !(hctx->flags & BLK_MQ_F_BLOCKING &&
 	      blk_queue_is_zoned(hctx->queue)) &&
@@ -1592,7 +1593,18 @@ static void __blk_mq_delay_run_hw_queue(struct blk_mq_hw_ctx *hctx, bool async,
 		__blk_mq_run_hw_queue(hctx);
 		return;
 	}
+#else
+	if (!async && !(hctx->flags & BLK_MQ_F_BLOCKING)) {
+		int cpu = get_cpu();
 
+		if (cpumask_test_cpu(cpu, hctx->cpumask)) {
+			__blk_mq_run_hw_queue(hctx);
+			put_cpu();
+			return;
+		}
+		put_cpu();
+	}
+#endif
 	kblockd_mod_delayed_work_on(blk_mq_hctx_next_cpu(hctx), &hctx->run_work,
 				    msecs_to_jiffies(msecs));
 }
