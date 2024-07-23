@@ -2,9 +2,11 @@
 
 dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM2) += \
 	can0.dtbo \
+	dht11.dtbo \
 	display_vu8s.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	onewire.dtbo \
 	pwm15.dtbo \
 	pwm3.dtbo \
 	pwm7.dtbo \

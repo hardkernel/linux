@@ -1,0 +1,19 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			onewire {
+				compatible = "w1-gpio";
+				gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
+				status = "okay";
+			};
+		};
+	};
+};
