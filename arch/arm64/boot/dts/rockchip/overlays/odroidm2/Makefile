@@ -2,11 +2,13 @@
 
 dtbo-y += \
 	can0.dtbo \
+	dht11.dtbo \
 	display_vu8s.dtbo \
 	gpio_shortcut.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	i2c2.dtbo \
+	onewire.dtbo \
 	pwm15.dtbo \
 	pwm3.dtbo \
 	pwm7.dtbo \
