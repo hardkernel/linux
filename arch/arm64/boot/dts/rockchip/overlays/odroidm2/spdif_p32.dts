@@ -1,0 +1,28 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&spdif_tx_sound>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&spdif_tx_dc>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@2 {
+		target = <&spdif_tx0>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};
