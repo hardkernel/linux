@@ -6,7 +6,6 @@
 		target = <&can2>;
 
 		__overlay__ {
-			compatible="rockchip,canfd-1.0";
 			status = "okay";
 		};
 	};
