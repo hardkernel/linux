@@ -1,0 +1,14 @@
+/dts-v1/;
+/plugin/;
+
+#include "mcp2515.dtsi"
+
+/ {
+	fragment@1 {
+		__overlay__ {
+			can0_clk: can0_clk {
+				clock-frequency = <16000000>;
+			};
+		};
+	};
+};
