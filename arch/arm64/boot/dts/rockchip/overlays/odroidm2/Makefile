@@ -15,6 +15,7 @@ dtbo-y += \
 	pwm8.dtbo \
 	rknpu.dtbo \
 	spi0.dtbo \
+	ttyfiq0_115200.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
