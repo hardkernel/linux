@@ -1,6 +1,7 @@
 # Overlays for the Odroid platform
 
 dtbo-y += \
+	blueled_off.dtbo \
 	can0.dtbo \
 	dht11.dtbo \
 	display_vu8s.dtbo \
