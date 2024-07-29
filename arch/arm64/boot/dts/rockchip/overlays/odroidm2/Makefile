@@ -1,6 +1,7 @@
 # Overlays for the Odroid platform
 
 dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM2) += \
+	blueled_off.dtbo \
 	can0.dtbo \
 	dht11.dtbo \
 	display_vu8s.dtbo \
