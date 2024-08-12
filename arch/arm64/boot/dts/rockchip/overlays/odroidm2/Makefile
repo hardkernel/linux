@@ -20,7 +20,6 @@ dtbo-y += \
 	spdif_p32.dtbo \
 	spi0.dtbo \
 	ttyfiq0_115200.dtbo \
-	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
 	uart2.dtbo \
