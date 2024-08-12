@@ -21,6 +21,7 @@ dtbo-y += \
 	spi0.dtbo \
 	ttyfiq0_115200.dtbo \
 	uart0.dtbo \
+	uart1-with-ctsrts.dtbo \
 	uart1.dtbo \
 	uart2.dtbo \
 	uart3.dtbo \
