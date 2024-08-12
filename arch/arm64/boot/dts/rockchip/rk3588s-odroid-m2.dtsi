@@ -1049,6 +1049,7 @@
 
 &uart9 {
 	pinctrl-0 = <&uart9m2_xfer>;
+	pinctrl-1 = <&uart9m2_xfer &uart9m2_ctsn &uart9m2_rtsn>;
 	dma-names = "tx", "rx";
 	status = "disabled";
 };
