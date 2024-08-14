@@ -34,6 +34,10 @@ extern size_t strlen(const char *s);
 extern int memcmp(const void *cs, const void *ct, size_t count);
 extern char * strchrnul(const char *, int);
 
+#if IS_ENABLED(CONFIG_AMLOGIC_AMFC)
+#define __UNCOMPRESS_IMAGE__
+#include "../../../../common_drivers/drivers/amfc/decompress_amfc.c"
+#else /* CONFIG_AMLOGIC_AMFC */
 #ifdef CONFIG_KERNEL_GZIP
 #include "../../../../lib/decompress_inflate.c"
 #endif
@@ -58,6 +62,7 @@ extern char * strchrnul(const char *, int);
 #ifdef CONFIG_KERNEL_LZ4
 #include "../../../../lib/decompress_unlz4.c"
 #endif
+#endif /* CONFIG_AMLOGIC_AMFC */
 
 int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x))
 {

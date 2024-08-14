@@ -1211,6 +1211,18 @@ __armv7_mmu_cache_off:
 		mcr	p15, 0, r0, c7, c5, 4	@ ISB
 		mov	pc, lr
 
+#if IS_ENABLED(CONFIG_AMLOGIC_AMFC)
+		.global serial_putc
+serial_putc:
+		ldr     r2, =0xfe07840c		@T6D
+1111:
+		ldr     r3, [r2, #0]
+		lsls    r3, r3, #10
+		bmi	1111b
+		ldr	r3, =0xfe078400		@T6D
+		str     r0, [r3, #0]
+		bx	lr
+#endif
 /*
  * Clean and flush the cache to maintain consistency.
  *
@@ -1223,6 +1235,9 @@ __armv7_mmu_cache_off:
  *  r4, r6, r7, r8
  */
 		.align	5
+#if IS_ENABLED(CONFIG_AMLOGIC_AMFC)
+		.global cache_clean_flush
+#endif
 cache_clean_flush:
 		mov	r3, #16
 		mov	r11, r1
