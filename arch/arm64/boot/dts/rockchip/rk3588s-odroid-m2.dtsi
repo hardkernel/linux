@@ -653,6 +653,27 @@
 };
 
 &pinctrl {
+	hdmi {
+		hdmim0_tx0_scl: hdmim0-tx0-scl {
+			rockchip,pins =
+				/* hdmim0_tx0_scl */
+				<4 RK_PB7 5 &pcfg_pull_none_drv_level_5_smt>;
+		};
+
+		/omit-if-no-ref/
+		hdmim0_tx0_sda: hdmim0-tx0-sda {
+			rockchip,pins =
+				/* hdmim0_tx0_sda */
+				<4 RK_PC0 5 &pcfg_pull_none_drv_level_5_smt>;
+		};
+
+		hdmim0_tx1_hpd: hdmim0-tx1-hpd {
+			rockchip,pins =
+				/* hdmim0_tx1_hpd */
+				<1 RK_PA6 5 &pcfg_pull_none_drv_level_5_smt>;
+		};
+	};
+
 	headphone {
 		hp_det: hp-det {
 			rockchip,pins = <1 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -1032,6 +1053,8 @@
 
 &vop {
 	status = "okay";
+	assigned-clocks = <&cru PLL_V0PLL>;
+	assigned-clock-rates = <1152000000>;
 };
 
 &vop_mmu {
@@ -1039,16 +1062,22 @@
 };
 
 &vp0 {
+	assigned-clocks = <&cru DCLK_VOP0>;
+	assigned-clock-parents = <&hdptxphy_hdmi_clk0>;
 	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER0 | 1 << ROCKCHIP_VOP2_ESMART0)>;
 	rockchip,primary-plane = <ROCKCHIP_VOP2_ESMART0>;
 };
 
 &vp1 {
+	assigned-clocks = <&cru DCLK_VOP1_SRC>;
+	assigned-clock-parents = <&cru PLL_V0PLL>;
 	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER1 | 1 << ROCKCHIP_VOP2_ESMART1)>;
 	rockchip,primary-plane = <ROCKCHIP_VOP2_ESMART1>;
 };
 
 &vp2 {
+	assigned-clocks = <&cru DCLK_VOP2_SRC>;
+	assigned-clock-parents = <&cru PLL_GPLL>;
 	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER2 | 1 << ROCKCHIP_VOP2_ESMART2)>;
 	rockchip,primary-plane = <ROCKCHIP_VOP2_ESMART2>;
 };
