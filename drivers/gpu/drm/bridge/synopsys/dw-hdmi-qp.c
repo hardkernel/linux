@@ -3757,7 +3757,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	hdmi_writel(hdmi, 428571429, TIMER_BASE_CONFIG0);
 	hdmi->logo_plug_out = false;
 	if (hdmi->phy.ops->read_hpd(hdmi, hdmi->phy.data) == connector_status_connected &&
-	    hdmi_readl(hdmi, I2CM_INTERFACE_CONTROL0)) {
+			(hdmi_readl(hdmi, I2CM_INTERFACE_CONTROL0) & BIT(21))) {
 		hdmi->initialized = true;
 		hdmi->disabled = false;
 	}
