@@ -23,6 +23,8 @@
 		serial7 = &uart2;
 		serial8 = &uart0;
 		serial9 = &uart3;
+		spi1 = &spi3;
+		spi3 = &spi1;
 		i2c0 = &i2c5;
 		i2c1 = &i2c6;
 		i2c2 = &i2c1;
@@ -1001,6 +1003,13 @@
 	pinctrl-0 = <&spi0m3_pins>;
 	num-cs = <1>;
 	cs-gpios = <&gpio0 RK_PD5 GPIO_ACTIVE_LOW>;
+	status = "disabled";
+};
+
+&spi3 {
+	pinctrl-0 = <&spi3m3_pins>;
+	num-cs = <1>;
+	cs-gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_LOW>;
 	status = "disabled";
 };
 
