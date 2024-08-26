@@ -13,6 +13,7 @@ dtbo-y += \
 	mcp2515.dtbo \
 	mcp2515_12mhz.dtbo \
 	mcp2515_16mhz.dtbo \
+	mcp2517fd.dtbo \
 	onewire.dtbo \
 	pwm15.dtbo \
 	pwm3.dtbo \
