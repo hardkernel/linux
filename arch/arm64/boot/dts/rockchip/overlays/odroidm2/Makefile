@@ -23,6 +23,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM2) += \
 	spdif_p29.dtbo \
 	spdif_p32.dtbo \
 	spi0.dtbo \
+	spi1.dtbo \
 	ttyfiq0_115200.dtbo \
 	uart0.dtbo \
 	uart1-with-ctsrts.dtbo \
