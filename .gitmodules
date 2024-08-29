@@ -1,0 +1,4 @@
+[submodule "common_drivers"]
+	path = common_drivers
+	url = https://git.odroid.com/yocto/kernel/common_drivers
+	branch = odroids7d-5.15.y
