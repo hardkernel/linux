@@ -48,68 +48,8 @@ create_package() {
 	# in case we build in a setuid/setgid directory
 	chmod -R ug-s "$pdir"
 
-	# Create preinstall and post install script to remove dtb
-	if [[ "$1" == *dtb* ]]; then
-		cat >> $pdir/DEBIAN/preinst <<-EOF
-		#!/bin/bash
-		EOF
-
-		cat >> $pdir/DEBIAN/postinst <<-EOF
-		#!/bin/bash
-		cd /boot
-		ln -sfT dtb-$version dtb 2> /dev/null || mv dtb-$version dtb
-		cd - > /dev/null
-		echo dtb-$version > /boot/.dtb.tmp
-		exit 0
-		EOF
-		chmod 775 $pdir/DEBIAN/preinst ; chmod 775 $pdir/DEBIAN/postinst
-	fi
-
-	# Create postinst prerm scripts for headers
-	if [[ "$1" == *headers* ]]; then
-		cat >> $pdir/DEBIAN/postinst <<-EOF
-		#!/bin/bash
-		cd /usr/src/linux-headers-$version
-		echo "Compiling headers - please wait ..."
-		find -type f -exec touch {} +
-
-		pwd
-		gcc -v
-
-		echo "Compiling headers - make -j8 -s scripts > /dev/null 2>&1..."
-		#make -j\$(grep -c 'processor' /proc/cpuinfo) -s scripts > /dev/null 2>&1 || exit 1
-		# Guoping changed to J8 avoid using too many jobs for building in build server
-		#make -j8-s scripts > /dev/null 2>&1 || exit 1
-		make -j8 -s scripts 2>&1 > log.txt || exit 1
-
-		echo "Compiling headers - make -j8 -s M=scripts/mod/ > /dev/null 2>&1..."
-		#make -j\$(grep -c 'processor' /proc/cpuinfo) -s M=scripts/mod/ > /dev/null 2>&1 || exit 1
-		# Guoping changed to J8 avoid using too many jobs for building in build server
-		#make -j8 -s M=scripts/mod/ > /dev/null 2>&1 || exit 1
-		make -j8 -s M=scripts/mod/ 2>&1 > log.txt || exit 1
-
-		echo "Compiling headers - Done ..."
-
-		#exit 0
-		EOF
-
-		cat >> $pdir/DEBIAN/prerm <<-EOF
-		cd /usr/src/linux-headers-$version
-		rm -rf scripts .config.old
-		EOF
-
-		chmod 775 $pdir/DEBIAN/postinst ; chmod 775 $pdir/DEBIAN/prerm
-	fi
-
 	# Create the package
-	echo "Building package: $pdir $pname.deb"
 	dpkg-gencontrol -p$pname -P"$pdir"
-
-	## For HOST jammy, dpkg-deb default use zstd for compress,
-	# it will cause failed log "uses unknown compression for member 'control.tar.zst', giving up"
-	# dpkg -i need xz compress, but HOST jammy default use zst, so de-compress the debs and re-compress to xz
-	# HOST jammy: control.tar.zst  data.tar.zst  debian-binary
-	# HOST focal : control.tar.xz  data.tar.xz  debian-binary
 	dpkg-deb $dpkg_deb_opts ${KDEB_COMPRESS:+-Z$KDEB_COMPRESS} --build "$pdir" ..
 }
 
@@ -122,7 +62,6 @@ deploy_kernel_headers () {
 		cd $srctree
 		find . arch/$SRCARCH -maxdepth 1 -name Makefile\*
 		find include scripts -type f -o -type l
-		find security/*/include -type f
 		find arch/$SRCARCH -name Kbuild.platforms -o -name Platform
 		find $(find arch/$SRCARCH -name include -o -name scripts -type d) -type f
 	) > debian/hdrsrcfiles
@@ -141,12 +80,9 @@ deploy_kernel_headers () {
 
 	destdir=$pdir/usr/src/linux-headers-$version
 	mkdir -p $destdir
-	(cd $destdir; patch -p1 < /tmp/headers-debian-byteshift.patch)
 	tar -c -f - -C $srctree -T debian/hdrsrcfiles | tar -xf - -C $destdir
 	tar -c -f - -T debian/hdrobjfiles | tar -xf - -C $destdir
 	rm -f debian/hdrsrcfiles debian/hdrobjfiles
-
-	(cd $destdir; export sub_make_done=0; make M=scripts clean;)
 
 	# copy .config manually to be where it's expected to be
 	cp $KCONFIG_CONFIG $destdir/.config
@@ -173,14 +109,8 @@ deploy_libc_headers () {
 version=$KERNELRELEASE
 tmpdir=debian/linux-image
 dbg_dir=debian/linux-image-dbg
-dtb_dir=debian/linux-dtb
-packagename=linux-image"$LOCAL_VERSION"
-dtb_packagename=linux-dtb"$LOCAL_VERSION"
+packagename=linux-image-$version
 dbg_packagename=$packagename-dbg
-
-
-echo "Building packagename: $packagename.deb"
-echo "Building dtb_packagename: $dtb_packagename.deb"
 
 if [ "$ARCH" = "um" ] ; then
 	packagename=user-mode-linux-$version
@@ -190,15 +120,6 @@ fi
 # XXX: have each arch Makefile export a variable of the canonical image install
 # path instead
 case $ARCH in
-aarch64|arm64)
-   image_name=Image
-   installed_image_path="boot/vmlinuz-$version"
-
-   ;;
-arm*)
-   image_name=zImage
-   installed_image_path="boot/vmlinuz-$version"
-   ;;
 um)
 	installed_image_path="usr/bin/linux-$version"
 	;;
@@ -212,9 +133,7 @@ esac
 BUILD_DEBUG=$(if_enabled_echo CONFIG_DEBUG_INFO Yes)
 
 # Setup the directory structure
-rm -rf "$tmpdir" "$dbg_dir" "$dtb_dir" debian/files
-mkdir -m 755 -p "$dtb_dir/DEBIAN"
-mkdir -p "$dtb_dir/boot/dtb-$version" "$dtb_dir/usr/share/doc/$dtb_packagename"
+rm -rf "$tmpdir" "$dbg_dir" debian/files
 mkdir -m 755 -p "$tmpdir/DEBIAN"
 mkdir -p "$tmpdir/lib" "$tmpdir/boot"
 
@@ -228,16 +147,12 @@ else
 	cp System.map "$tmpdir/boot/System.map-$version"
 	cp $KCONFIG_CONFIG "$tmpdir/boot/config-$version"
 fi
-cp arch/$ARCH/boot/Image "$tmpdir/$installed_image_path"
+cp "$($MAKE -s -f $srctree/Makefile image_name)" "$tmpdir/$installed_image_path"
 
 if is_enabled CONFIG_OF_EARLY_FLATTREE; then
 	# Only some architectures with OF support have this target
 	if [ -d "${srctree}/arch/$SRCARCH/boot/dts" ]; then
-		if [ -n "$DTBS" ]; then
-			$MAKE -f $srctree/Makefile INSTALL_DTBS_PATH="$tmpdir/usr/lib/$packagename" dtbs_install dtb-y="$DTBS"
-		else
-			$MAKE -f $srctree/Makefile INSTALL_DTBS_PATH="$tmpdir/usr/lib/$packagename" dtbs_install
-		fi
+		$MAKE -f $srctree/Makefile INSTALL_DTBS_PATH="$tmpdir/usr/lib/$packagename" dtbs_install
 	fi
 fi
 
@@ -268,14 +183,6 @@ if is_enabled CONFIG_MODULES; then
 	fi
 fi
 
-if grep -q '^CONFIG_OF=y' $KCONFIG_CONFIG ; then
-	if [ -n "$DTBS" ]; then
-		INSTALL_DTBS_PATH="$dtb_dir/boot/dtb-$version" $MAKE KBUILD_SRC= dtbs_install dtb-y="$DTBS"
-	else
-		INSTALL_DTBS_PATH="$dtb_dir/boot/dtb-$version" $MAKE KBUILD_SRC= dtbs_install
-	fi
-fi
-
 # Install the maintainer scripts
 # Note: hook scripts under /etc/kernel are also executed by official Debian
 # kernel packages, as well as kernel packages built using make-kpkg.
@@ -285,7 +192,7 @@ debhookdir=${KDEB_HOOKDIR:-/etc/kernel}
 for script in postinst postrm preinst prerm ; do
 	mkdir -p "$tmpdir$debhookdir/$script.d"
 	cat <<EOF > "$tmpdir/DEBIAN/$script"
-#!/bin/bash
+#!/bin/sh
 
 set -e
 
@@ -301,55 +208,6 @@ EOF
 	chmod 755 "$tmpdir/DEBIAN/$script"
 done
 
-
-##
-## Create sym link to kernel image
-##
-sed -e "s/set -e//g" -i $tmpdir/DEBIAN/postinst
-sed -e "s/exit 0//g" -i $tmpdir/DEBIAN/postinst
-cat >> $tmpdir/DEBIAN/postinst <<EOT
-if [ "\$(grep nand /proc/partitions)" != "" ] && [ "\$(grep mmc /proc/partitions)" = "" ]; then
-   mkimage -A arm -O linux -T kernel -C none -a "0x40008000" -e "0x40008000" -n "Linux kernel" -d /$installed_image_path /boot/uImage  > /dev/null 2>&1
-   cp /boot/uImage /tmp/uImage
-   sync
-   mountpoint -q /boot || mount /boot
-   cp /tmp/uImage /boot/uImage
-   rm -f /$installed_image_path
-else
-   ln -sf $(basename $installed_image_path) /boot/Image > /dev/null 2>&1 || mv /$installed_image_path /boot/Image
-fi
-exit 0
-EOT
-
-##
-## FAT install workaround
-##
-sed -e "s/set -e//g" -i $tmpdir/DEBIAN/preinst
-sed -e "s/exit 0//g" -i $tmpdir/DEBIAN/preinst
-cat >> $tmpdir/DEBIAN/preinst <<EOT
-# exit if we are running chroot
-if [ "\$(stat -c %d:%i /)" != "\$(stat -c %d:%i /proc/1/root/.)" ]; then exit 0; fi
-
-check_and_unmount (){
-   boot_device=\$(mountpoint -d /boot)
-
-   for file in /dev/* ; do
-       CURRENT_DEVICE=\$(printf "%d:%d" \$(stat --printf="0x%t 0x%T" \$file))
-       if [[ "\$CURRENT_DEVICE" = "\$boot_device" ]]; then
-           boot_partition=\$file
-           break
-       fi
-   done
-
-   bootfstype=\$(blkid -s TYPE -o value \$boot_partition)
-   if [ "\$bootfstype" = "vfat" ]; then
-       rm -f /boot/System.map* /boot/config* /boot/vmlinuz* /boot/$image_name /boot/uImage
-   fi
-}
-mountpoint -q /boot && check_and_unmount
-EOT
-echo "exit 0" >> $tmpdir/DEBIAN/preinst
-
 if [ "$ARCH" != "um" ]; then
 	if is_enabled CONFIG_MODULES; then
 		deploy_kernel_headers debian/linux-headers
@@ -358,8 +216,6 @@ if [ "$ARCH" != "um" ]; then
 
 	deploy_libc_headers debian/linux-libc-dev
 	create_package linux-libc-dev debian/linux-libc-dev
-
-	create_package "$dtb_packagename" "$dtb_dir" "dtb"
 fi
 
 create_package "$packagename" "$tmpdir"
