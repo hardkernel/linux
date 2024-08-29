@@ -94,8 +94,6 @@ else
 	packageversion=$version-$revision
 fi
 sourcename=$KDEB_SOURCENAME
-dtb_packagename=linux-dtb$LOCAL_VERSION
-kernel_headers_packagename=linux-headers$LOCAL_VERSION
 
 if [ "$ARCH" = "um" ] ; then
 	packagename=user-mode-linux
@@ -180,18 +178,11 @@ Rules-Requires-Root: no
 Build-Depends: bc, rsync, kmod, cpio, bison, flex | flex:native $extra_build_depends
 Homepage: https://www.kernel.org/
 
-Package: $packagename$LOCAL_VERSION
+Package: $packagename-$version
 Architecture: $debarch
 Description: Linux kernel, version $version
  This package contains the Linux kernel, modules and corresponding other
  files, version: $version.
-
-Package: $kernel_headers_packagename
-Architecture: $debarch
-Description: Linux kernel headers for $version on $debarch
- This package provides kernel header files for $version on $debarch
- .
- This is useful for people who need to build external modules
 
 Package: linux-libc-dev
 Section: devel
@@ -201,11 +192,6 @@ Description: Linux support headers for userspace development
  This package provides userspaces headers from the Linux kernel.  These headers
  are used by the installed headers for GNU glibc and other system libraries.
 Multi-Arch: same
-
-Package: $dtb_packagename
-Architecture: $debarch
-Description: Linux DTB, version $version
- This package contains device blobs from the Linux kernel, version $version
 EOF
 
 if is_enabled CONFIG_MODULES; then
@@ -223,7 +209,7 @@ fi
 if is_enabled CONFIG_DEBUG_INFO; then
 cat <<EOF >> debian/control
 
-Package: linux-image$LOCAL_VERSION-dbg
+Package: linux-image-$version-dbg
 Section: debug
 Architecture: $debarch
 Description: Linux kernel debugging symbols for $version
