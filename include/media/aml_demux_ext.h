@@ -36,6 +36,10 @@ struct dmx_demux_ext {
 		void *info);
 	int (*dmx_set_command)(struct dmx_demux *demux,
 		void *info);
+	int (*get_dma_buf_fd)(struct dmx_demux *demux,
+		void *info);
+	int (*get_dma_buf_info)(struct dmx_demux *demux,
+		void *info);
 };
 
 #endif

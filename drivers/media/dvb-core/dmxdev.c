@@ -1232,6 +1232,20 @@ static int dvb_demux_do_ioctl(struct file *file,
 		}
 		ret = dmx_ext->dmx_set_command(dmxdev->demux, parg);
 		break;
+	case DMX_GET_DMA_BUF_FD:
+		if (!dmx_ext->get_dma_buf_fd) {
+			ret = -EINVAL;
+			break;
+		}
+		ret = dmx_ext->get_dma_buf_fd(dmxdev->demux, parg);
+		break;
+	case DMX_GET_DMA_BUF_INFO:
+		if (!dmx_ext->get_dma_buf_info) {
+			ret = -EINVAL;
+			break;
+		}
+		ret = dmx_ext->get_dma_buf_info(dmxdev->demux, parg);
+		break;
 #endif
 
 	case DMX_ADD_PID:

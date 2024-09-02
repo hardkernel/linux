@@ -205,6 +205,31 @@ struct dmx_set_command_info {
 	__u32 reserved0;
 	__u32 reserved1;
 };
+
+/*for dma buf*/
+struct dmx_dma_buf_sec_es_data {
+	__u32 magic_num;
+	__u8 pts_dts_flag;
+	__u64 video_pts;
+	__u64 video_dts;
+	__u64 buf_start;
+	__u64 buf_end;
+	__u64 data_start;
+	__u64 data_end;
+	__u64 buf_rp;
+	__u64 av_handle;
+	__u32 token;
+	__u64 extend_addr;
+	__u32 extend_size;
+};
+
+struct dmx_dma_buf_info {
+	__u64 paddr;
+	__u32 size;
+	__u32 handle;
+	__u32 fd;
+	struct dmx_dma_buf_sec_es_data dmxes;
+};
 /* amlogic define end */
 
 /* amlogic define */
@@ -217,8 +242,11 @@ struct dmx_set_command_info {
 #define DMX_SET_SEC_MEM			_IOW('o', 85, struct dmx_sec_mem)
 #define DMX_GET_DVR_MEM			_IOR('o', 86, struct dvr_mem_info)
 #define DMX_REMAP_PID			_IOR('o', 87, __u16[2])
-#define DMX_SET_DECODE_INFO     _IOW('o', 88, struct decoder_mem_info)
+#define DMX_SET_DECODE_INFO		_IOW('o', 88, struct decoder_mem_info)
 #define DMX_SET_COMMAND			_IOW('o', 89, struct dmx_set_command_info)
+/*for dma buf*/
+#define DMX_GET_DMA_BUF_FD		_IOWR('o', 90, struct dmx_dma_buf_info)
+#define DMX_GET_DMA_BUF_INFO		_IOWR('o', 91, struct dmx_dma_buf_info)
 /* amlogic define end */
 
 #endif
