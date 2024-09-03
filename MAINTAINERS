@@ -15268,3 +15268,8 @@ DTS OVERLAY FOR VU12 PWM BACKLIGHT
 M:	Chris KIM <codewalker@hardkernel.com>
 F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/pwm_backlight_for_vu12.dts
 F:	arch/arm64/boot/dts/amlogic/overlays/odroidc4/pwm_backlight_for_vu12.dts
+
+DTS OVERLAY FOR display_vu7c
+M:	Chris KIM <codewalker@hardkernel.com>
+F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/display_vu7.dts
+F:	arch/arm64/boot/dts/amlogic/overlays/odroidn2/display_vu7c.dts

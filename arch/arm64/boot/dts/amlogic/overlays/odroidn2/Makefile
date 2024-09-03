@@ -5,6 +5,7 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDN2) +=	\
 					can0.dtbo		\
 					codec_mm_cma.dtbo	\
 					display_vu7c.dtbo	\
+					display_vu7.dtbo	\
 					fanspeed-full.dtbo		\
 					gpio_shortcut.dtbo \
 					gpio_spdif.dtbo	\
