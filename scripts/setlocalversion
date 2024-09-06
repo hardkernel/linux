@@ -153,7 +153,7 @@ res="${res}${CONFIG_LOCALVERSION}${LOCALVERSION}"
 # scm version string if not at a tagged commit
 if test "$CONFIG_LOCALVERSION_AUTO" = "y"; then
 	# full scm version string
-	res="$res$(scm_version)"
+	res="$res"
 elif [ "${LOCALVERSION+set}" != "set" ]; then
 	# If the variable LOCALVERSION is not set, append a plus
 	# sign if the repository is not in a clean annotated or
