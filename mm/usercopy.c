@@ -199,9 +199,11 @@ static inline void check_heap_object(const void *ptr, unsigned long n,
 		if (unlikely(folio_test_owner_priv_1(folio)))
 			return;
 #endif
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
 		offset = ptr - folio_address(folio);
 		if (n > folio_size(folio) - offset)
 			usercopy_abort("page alloc", NULL, to_user, offset, n);
+#endif
 	}
 }
 
