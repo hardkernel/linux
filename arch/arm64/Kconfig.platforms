@@ -328,4 +328,14 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+config ARCH_MESON_ODROID_COMMON
+	bool
+
+config ARCH_MESON_ODROIDC5
+	bool "Hardkernel's ODROID-C5 Single Board Computer"
+	select ARCH_MESON_ODROID_COMMON
+	help
+	  This enables support for the board ODROID-C5 of Hardkernel
+	  which is based on ARMv7 SoC of Amlogic.
+
 endmenu
