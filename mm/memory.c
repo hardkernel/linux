@@ -1063,11 +1063,23 @@ static inline struct folio *folio_prealloc(struct mm_struct *src_mm,
 {
 	struct folio *new_folio;
 
+#ifdef CONFIG_AMLOGIC_CMA
+	if (need_zero) {
+		gfp_t tmp_flags = GFP_HIGHUSER_MOVABLE |
+				__GFP_ZERO | __GFP_NO_CMA;
+
+		new_folio = vma_alloc_folio(tmp_flags, 0, vma, addr, false);
+	} else {
+		new_folio = vma_alloc_folio(GFP_HIGHUSER_MOVABLE | __GFP_NO_CMA, 0, vma,
+						addr, false);
+	}
+#else
 	if (need_zero)
 		new_folio = vma_alloc_zeroed_movable_folio(vma, addr);
 	else
 		new_folio = vma_alloc_folio(GFP_HIGHUSER_MOVABLE, 0, vma,
 					    addr, false);
+#endif
 
 	if (!new_folio)
 		return NULL;
@@ -5901,6 +5913,12 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
 	pgd_t *pgd;
 	p4d_t *p4d;
 	vm_fault_t ret;
+
+#ifdef CONFIG_AMLOGIC_CMA
+	if (vma->vm_file && vma->vm_file->f_mapping &&
+			(vma->vm_flags & VM_EXEC))
+		vma->vm_file->f_mapping->gfp_mask |= __GFP_NO_CMA;
+#endif
 
 	pgd = pgd_offset(mm, address);
 	p4d = p4d_alloc(mm, pgd, address);

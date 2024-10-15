@@ -52,6 +52,9 @@ enum {
 	___GFP_SKIP_ZERO_BIT,
 	___GFP_SKIP_KASAN_BIT,
 #endif
+#ifdef CONFIG_AMLOGIC_CMA
+	___GFP_NO_CMA_BIT,
+#endif
 #ifdef CONFIG_LOCKDEP
 	___GFP_NOLOCKDEP_BIT,
 #endif
@@ -95,6 +98,9 @@ enum {
 #else
 #define ___GFP_SKIP_ZERO	0
 #define ___GFP_SKIP_KASAN	0
+#endif
+#ifdef CONFIG_AMLOGIC_CMA
+#define ___GFP_NO_CMA		BIT(___GFP_NO_CMA_BIT)
 #endif
 #ifdef CONFIG_LOCKDEP
 #define ___GFP_NOLOCKDEP	BIT(___GFP_NOLOCKDEP_BIT)
@@ -303,6 +309,9 @@ enum {
 #define __GFP_COMP	((__force gfp_t)___GFP_COMP)
 #define __GFP_ZERO	((__force gfp_t)___GFP_ZERO)
 #define __GFP_ZEROTAGS	((__force gfp_t)___GFP_ZEROTAGS)
+#ifdef CONFIG_AMLOGIC_CMA
+#define __GFP_NO_CMA	((__force gfp_t)___GFP_NO_CMA)
+#endif
 #define __GFP_SKIP_ZERO ((__force gfp_t)___GFP_SKIP_ZERO)
 #define __GFP_SKIP_KASAN ((__force gfp_t)___GFP_SKIP_KASAN)
 

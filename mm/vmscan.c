@@ -65,6 +65,10 @@
 #include <linux/balloon_compaction.h>
 #include <linux/sched/sysctl.h>
 
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#endif
+
 #include "internal.h"
 #include "swap.h"
 
@@ -1650,13 +1654,20 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 	struct folio *folio, *next;
 	LIST_HEAD(clean_folios);
 	unsigned int noreclaim_flag;
+#ifdef CONFIG_AMLOGIC_CMA
+	LIST_HEAD(high_active_folios);
+#endif
 
 	list_for_each_entry_safe(folio, next, folio_list, lru) {
 		if (!folio_test_hugetlb(folio) && folio_is_file_lru(folio) &&
 		    !folio_test_dirty(folio) && !__folio_test_movable(folio) &&
 		    !folio_test_unevictable(folio)) {
+		#ifdef CONFIG_AMLOGIC_CMA
+			cma_keep_high_active(folio, &high_active_folios, &clean_folios);
+		#else
 			folio_clear_active(folio);
 			list_move(&folio->lru, &clean_folios);
+		#endif
 		}
 	}
 
@@ -1672,6 +1683,9 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 	memalloc_noreclaim_restore(noreclaim_flag);
 
 	list_splice(&clean_folios, folio_list);
+#ifdef CONFIG_AMLOGIC_CMA
+	list_splice(&high_active_folios, folio_list);
+#endif
 	mod_node_page_state(zone->zone_pgdat, NR_ISOLATED_FILE,
 			    -(long)nr_reclaimed);
 	/*
@@ -1907,6 +1921,9 @@ static bool too_many_isolated(struct pglist_data *pgdat, int file,
 	if (!too_many)
 		wake_throttle_isolated(pgdat);
 
+#ifdef CONFIG_AMLOGIC_CMA
+	check_cma_isolated(&isolated, inactive, inactive);
+#endif
 	return too_many;
 }
 

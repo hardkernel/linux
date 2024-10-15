@@ -44,6 +44,10 @@
 #include <linux/sched/sysctl.h>
 #include <linux/memory-tiers.h>
 #include <linux/pagewalk.h>
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#include <linux/delay.h>
+#endif
 
 #include <asm/tlbflush.h>
 
@@ -396,6 +400,10 @@ void migration_entry_wait(struct mm_struct *mm, pmd_t *pmd,
 	pte_t *ptep;
 	pte_t pte;
 	swp_entry_t entry;
+#ifdef CONFIG_AMLOGIC_CMA
+	struct page *page;
+	bool need_wait = 0;
+#endif
 
 	ptep = pte_offset_map_lock(mm, pmd, address, &ptl);
 	if (!ptep)
@@ -411,10 +419,26 @@ void migration_entry_wait(struct mm_struct *mm, pmd_t *pmd,
 	if (!is_migration_entry(entry))
 		goto out;
 
+#ifdef CONFIG_AMLOGIC_CMA
+	/* This page is under cma allocating, do not increase it ref */
+	page = pfn_swap_entry_to_page(entry);
+	if (in_cma_allocating(page)) {
+		pr_debug("%s, Page:%lx, flags:%lx, m:%d, c:%d, map:%p\n",
+			__func__, page_to_pfn(page), page->flags,
+			folio_mapcount(page_folio(page)), page_count(page),
+			page->mapping);
+		need_wait = 1;
+		goto out;
+	}
+#endif
 	migration_entry_wait_on_locked(entry, ptl);
 	return;
 out:
 	spin_unlock(ptl);
+#ifdef CONFIG_AMLOGIC_CMA
+	if (need_wait)
+		usleep_range(1000, 1100);
+#endif
 }
 
 #ifdef CONFIG_HUGETLB_PAGE
@@ -522,6 +546,10 @@ static int __folio_migrate_mapping(struct address_space *mapping,
 	xas_lock_irq(&xas);
 	if (!folio_ref_freeze(folio, expected_count)) {
 		xas_unlock_irq(&xas);
+	#ifdef CONFIG_AMLOGIC_CMA_INFO
+		cma_debug(2, folio_page(folio, 0), " page free fail, e:%d, p:%d\n",
+				expected_count, folio_has_private(folio));
+	#endif
 		return -EAGAIN;
 	}
 
@@ -621,6 +649,12 @@ int folio_migrate_mapping(struct address_space *mapping,
 		struct folio *newfolio, struct folio *folio, int extra_count)
 {
 	int expected_count = folio_expected_refs(mapping, folio) + extra_count;
+
+#ifdef CONFIG_AMLOGIC_CMA_INFO
+	if (folio_ref_count(folio) != expected_count)
+		cma_debug(2, folio_page(folio, 0), " anon page cnt miss match, e:%d\n",
+				expected_count);
+#endif
 
 	if (folio_ref_count(folio) != expected_count)
 		return -EAGAIN;
@@ -1860,6 +1894,10 @@ static int migrate_pages_batch(struct list_head *from,
 				/* nr_failed isn't updated for not used */
 				stats->nr_thp_failed += thp_retry;
 				rc_saved = rc;
+			#ifdef CONFIG_AMLOGIC_CMA_INFO
+				if (list_empty(&unmap_folios))
+					cma_debug(2, folio_page(folio, 0), " NO MEM\n");
+			#endif
 				if (list_empty(&unmap_folios))
 					goto out;
 				else
@@ -1887,6 +1925,9 @@ static int migrate_pages_batch(struct list_head *from,
 				nr_failed++;
 				stats->nr_thp_failed += is_thp;
 				stats->nr_failed_pages += nr_pages;
+			#ifdef CONFIG_AMLOGIC_CMA_INFO
+				cma_debug(2, folio_page(folio, 0), " migrate unmap failed:%d\n", rc);
+			#endif
 				break;
 			}
 		}
@@ -1935,6 +1976,9 @@ move:
 				nr_failed++;
 				stats->nr_thp_failed += is_thp;
 				stats->nr_failed_pages += nr_pages;
+			#ifdef CONFIG_AMLOGIC_CMA_INFO
+				cma_debug(2, folio_page(folio, 0), " migrate move failed:%d\n", rc);
+			#endif
 				break;
 			}
 			dst = dst2;

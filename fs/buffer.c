@@ -1459,6 +1459,10 @@ struct buffer_head *bdev_getblk(struct block_device *bdev, sector_t block,
 	if (bh)
 		return bh;
 
+#ifdef CONFIG_AMLOGIC_CMA
+	gfp |= __GFP_NO_CMA;
+#endif
+
 	return __getblk_slow(bdev, block, size, gfp);
 }
 EXPORT_SYMBOL(bdev_getblk);

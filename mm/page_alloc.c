@@ -69,6 +69,10 @@
 #include <linux/amlogic/page_trace.h>
 #endif
 
+#ifdef CONFIG_AMLOGIC_CMA
+#include <linux/amlogic/aml_cma.h>
+#endif
+
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_alloc);
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_free);
 
@@ -1729,7 +1733,11 @@ static bool check_new_page(struct page *page)
 	return true;
 }
 
+#ifdef CONFIG_AMLOGIC_CMA
+bool check_new_pages(struct page *page, unsigned int order)
+#else
 static inline bool check_new_pages(struct page *page, unsigned int order)
+#endif
 {
 	if (is_check_pages_enabled()) {
 		for (int i = 0; i < (1 << order); i++) {
@@ -1835,8 +1843,13 @@ inline void post_alloc_hook(struct page *page, unsigned int order,
 	pgalloc_tag_add(page, current, 1 << order);
 }
 
+#ifdef CONFIG_AMLOGIC_CMA
+void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags,
+							unsigned int alloc_flags)
+#else
 static void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags,
 							unsigned int alloc_flags)
+#endif
 {
 	post_alloc_hook(page, order, gfp_flags);
 
@@ -2469,6 +2482,32 @@ __rmqueue(struct zone *zone, unsigned int order, int migratetype,
 
 	return NULL;
 }
+
+#ifdef CONFIG_AMLOGIC_NO_CMA
+/*
+ * get page but not cma
+ */
+static struct page *rmqueue_no_cma(struct zone *zone, unsigned int order,
+				   int migratetype, unsigned int alloc_flags)
+{
+	struct page *page;
+	unsigned long flags;
+
+	spin_lock_irqsave(&zone->lock, flags);
+retry:
+	page = __rmqueue_smallest(zone, order, migratetype);
+	if (unlikely(!page)) {
+		if (!page && __rmqueue_fallback(zone, order, migratetype, alloc_flags))
+			goto retry;
+	}
+	WARN_ON(page && is_migrate_cma(get_pcppage_migratetype(page)));
+	if (page)
+		__mod_zone_page_state(zone, NR_FREE_PAGES, -(1 << order));
+
+	spin_unlock_irqrestore(&zone->lock, flags);
+	return page;
+}
+#endif /* CONFIG_AMLOGIC_NO_CMA */
 
 /*
  * Obtain a specified number of elements from the buddy allocator, all under
@@ -3570,6 +3609,9 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 			min -= min / 2;
 	}
 
+#ifdef CONFIG_AMLOGIC_CMA
+	check_water_mark(free_pages, min + z->lowmem_reserve[highest_zoneidx]);
+#endif
 	/*
 	 * Check watermarks for an order-0 allocation request. If these
 	 * are not met, then a high-order request also cannot go ahead
@@ -5170,8 +5212,13 @@ retry_this_zone:
 			continue;
 		}
 
+#ifdef CONFIG_AMLOGIC_NO_CMA
+		page = __rmqueue_pcplist(zone, 0, ac.migratetype, alloc_flags,
+								pcp, pcp_list, alloc_gfp);
+#else
 		page = __rmqueue_pcplist(zone, 0, ac.migratetype, alloc_flags,
 								pcp, pcp_list);
+#endif
 		if (unlikely(!page)) {
 			/* Try and allocate at least one page */
 			if (!nr_account) {
@@ -5229,6 +5276,10 @@ struct page *__alloc_pages_noprof(gfp_t gfp, unsigned int order,
 	unsigned int alloc_flags = ALLOC_WMARK_LOW;
 	gfp_t alloc_gfp; /* The gfp_t that was actually used for allocation */
 	struct alloc_context ac = { };
+
+#ifdef CONFIG_AMLOGIC_CMA
+	update_gfp_flags(&gfp);
+#endif
 
 	trace_android_vh_alloc_pages_entry(&gfp, order, preferred_nid, nodemask);
 	/*
@@ -7049,7 +7100,11 @@ int __alloc_contig_migrate_range(struct compact_control *cc,
 	return (ret < 0) ? ret : 0;
 }
 
+#ifdef CONFIG_AMLOGIC_CMA
+void split_free_pages(struct list_head *list)
+#else
 static void split_free_pages(struct list_head *list)
+#endif
 {
 	int order;
 
