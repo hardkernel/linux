@@ -16,6 +16,7 @@ load(
     "merged_kernel_uapi_headers",
 )
 load(":modules.bzl", "get_gki_modules_list")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
 package(
     default_visibility = [
@@ -800,3 +801,15 @@ ddk_headers(
 
 load("//common:common_drivers/amlogic.bzl", "define_amlogic")
 define_amlogic()
+
+config_setting(
+    name = "common_drivers_on_top_dir",
+    flag_values = {":common_drivers_on_top": "True"},
+    visibility = ["//visibility:public"],
+)
+
+bool_flag(
+    name = "common_drivers_on_top",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
