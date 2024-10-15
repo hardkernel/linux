@@ -195,6 +195,9 @@ static void show_free_areas(unsigned int filter, nodemask_t *nodemask, int max_z
 	int cpu, nid;
 	struct zone *zone;
 	pg_data_t *pgdat;
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+	unsigned long free_mt[MIGRATE_TYPES] = {0};
+#endif
 
 	for_each_populated_zone(zone) {
 		if (zone_idx(zone) > max_zone_idx)
@@ -380,6 +383,9 @@ static void show_free_areas(unsigned int filter, nodemask_t *nodemask, int max_z
 
 			types[order] = 0;
 			for (type = 0; type < MIGRATE_TYPES; type++) {
+			#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+				free_mt[type] += (area->free_mt[type] << order);
+			#endif
 				if (!free_area_empty(area, type))
 					types[order] |= 1 << type;
 			}
@@ -392,6 +398,12 @@ static void show_free_areas(unsigned int filter, nodemask_t *nodemask, int max_z
 				show_migration_types(types[order]);
 		}
 		printk(KERN_CONT "= %lukB\n", K(total));
+	#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+		for (order = 0; order < MIGRATE_TYPES; order++) {
+			pr_info("Free_%s:%ld\n", migratetype_names[order],
+					free_mt[order]);
+		}
+	#endif
 	}
 
 	for_each_online_node(nid) {

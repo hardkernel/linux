@@ -166,7 +166,9 @@ void __of_phandle_cache_inv_entry(phandle handle)
 
 void __init of_core_init(void)
 {
+#ifndef CONFIG_AMLOGIC_DTB_NODE_OPT
 	struct device_node *np;
+#endif
 
 	of_platform_register_reconfig_notifier();
 
@@ -178,11 +180,13 @@ void __init of_core_init(void)
 		pr_err("failed to register existing nodes\n");
 		return;
 	}
+#ifndef CONFIG_AMLOGIC_DTB_NODE_OPT
 	for_each_of_allnodes(np) {
 		__of_attach_node_sysfs(np);
 		if (np->phandle && !phandle_cache[of_phandle_cache_hash(np->phandle)])
 			phandle_cache[of_phandle_cache_hash(np->phandle)] = np;
 	}
+#endif
 	mutex_unlock(&of_mutex);
 
 	/* Symlink in /proc as required by userspace ABI */

@@ -100,7 +100,11 @@
  *   Similar to ANDROID_KABI_RESERVE, but this is for planned feature backports
  *   (not for LTS).
  */
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+#define ANDROID_KABI_RESERVE(number)
+#else
 #define ANDROID_KABI_RESERVE(number)		u64 __kabi_reserved##number
+#endif
 #define ANDROID_BACKPORT_RESERVE(number)	u64 __kabi_reserved_backport##number
 
 /*

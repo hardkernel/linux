@@ -55,7 +55,11 @@ struct kmem_cache *kmem_cache;
 /*
  * Merge control. If this is set then no merging of slab caches will occur.
  */
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static bool slab_nomerge = true;
+#else
 static bool slab_nomerge = !IS_ENABLED(CONFIG_SLAB_MERGE_DEFAULT);
+#endif
 
 static int __init setup_slab_nomerge(char *str)
 {
@@ -990,6 +994,9 @@ void __init create_kmalloc_caches(void)
 size_t __ksize(const void *object)
 {
 	struct folio *folio;
+#ifdef CONFIG_AMLOGIC_MEMORY_SLAB_LARGE
+	unsigned long page_num;
+#endif
 
 	if (unlikely(object == ZERO_SIZE_PTR))
 		return 0;
@@ -997,10 +1004,21 @@ size_t __ksize(const void *object)
 	folio = virt_to_folio(object);
 
 	if (unlikely(!folio_test_slab(folio))) {
+#ifndef CONFIG_AMLOGIC_MEMORY_SLAB_LARGE
 		if (WARN_ON(folio_size(folio) <= KMALLOC_MAX_CACHE_SIZE))
 			return 0;
+#endif
 		if (WARN_ON(object != folio_address(folio)))
 			return 0;
+	#ifdef CONFIG_AMLOGIC_MEMORY_SLAB_LARGE
+		if (unlikely(PageOwnerPriv1(folio_page(folio, 0)))) {
+			page_num = folio_page(folio, 0)->index;
+			pr_debug("%s, obj:%p, page:%p, index:%ld, size:%ld\n",
+				__func__, object, folio_address(folio),
+				page_num, PAGE_SIZE * page_num);
+			return PAGE_SIZE * page_num;
+		}
+	#endif
 		return folio_size(folio);
 	}
 
@@ -1075,9 +1093,18 @@ static void print_slabinfo_header(struct seq_file *m)
 	 * without _too_ many complaints.
 	 */
 	seq_puts(m, "slabinfo - version: 2.1\n");
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	/* add total bytes for each slab */
+	seq_puts(m, "# name                        <active_objs> <num_objs> ");
+	seq_puts(m, "<objsize> <objperslab> <pagesperslab>");
+#else
 	seq_puts(m, "# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab>");
+#endif
 	seq_puts(m, " : tunables <limit> <batchcount> <sharedfactor>");
 	seq_puts(m, " : slabdata <active_slabs> <num_slabs> <sharedavail>");
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	seq_puts(m, " : <total bytes> <reclaim>");
+#endif
 	trace_android_vh_print_slabinfo_header(m);
 	seq_putc(m, '\n');
 }
@@ -1101,18 +1128,34 @@ static void slab_stop(struct seq_file *m, void *p)
 static void cache_show(struct kmem_cache *s, struct seq_file *m)
 {
 	struct slabinfo sinfo;
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	char name[32];
+	long total;
+#endif
 
 	memset(&sinfo, 0, sizeof(sinfo));
 	get_slabinfo(s, &sinfo);
 
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	strncpy(name, s->name, 31);
+	seq_printf(m, "%-31s %6lu %6lu %6u %4u %4d",
+		name, sinfo.active_objs, sinfo.num_objs, s->size,
+		sinfo.objects_per_slab, (1 << sinfo.cache_order));
+#else
 	seq_printf(m, "%-17s %6lu %6lu %6u %4u %4d",
 		   s->name, sinfo.active_objs, sinfo.num_objs, s->size,
 		   sinfo.objects_per_slab, (1 << sinfo.cache_order));
+#endif
 
 	seq_printf(m, " : tunables %4u %4u %4u",
 		   sinfo.limit, sinfo.batchcount, sinfo.shared);
 	seq_printf(m, " : slabdata %6lu %6lu %6lu",
 		   sinfo.active_slabs, sinfo.num_slabs, sinfo.shared_avail);
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	total = sinfo.num_objs * s->size;
+	seq_printf(m, "%8lu, %s", total,
+		(s->flags & SLAB_RECLAIM_ACCOUNT) ? "S_R" : "S_U");
+#endif
 	trace_android_vh_cache_show(m, &sinfo, s);
 	seq_putc(m, '\n');
 }

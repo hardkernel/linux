@@ -524,10 +524,12 @@ struct page *__cma_alloc(struct cma *cma, unsigned long count,
 		bitmap_no = bitmap_find_next_zero_area_off(cma->bitmap,
 				bitmap_maxno, start, bitmap_count, mask,
 				offset);
+#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 #ifdef CONFIG_ANDROID_VENDOR_OEM_DATA
 		trace_android_rvh_bitmap_find_best_next_area(cma->bitmap,
 				bitmap_maxno, start, bitmap_count, mask,
 				offset, &bitmap_no, cma->android_vendor_data1);
+#endif
 #endif
 		if (bitmap_no >= bitmap_maxno) {
 			if ((num_attempts < max_retries) && (ret == -EBUSY)) {

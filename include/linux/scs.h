@@ -16,7 +16,11 @@
 #ifdef CONFIG_SHADOW_CALL_STACK
 
 #define SCS_ORDER		0
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+#define SCS_SIZE		(SZ_2K)
+#else
 #define SCS_SIZE		(PAGE_SIZE << SCS_ORDER)
+#endif
 #define GFP_SCS			(GFP_KERNEL | __GFP_ZERO)
 
 /* An illegal pointer value to mark the end of the shadow stack. */

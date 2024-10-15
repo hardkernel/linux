@@ -3141,7 +3141,11 @@ ino_t d_parent_ino(struct dentry *dentry)
 }
 EXPORT_SYMBOL(d_parent_ino);
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static unsigned long dhash_entries __initdata = 65536;
+#else
 static __initdata unsigned long dhash_entries;
+#endif
 static int __init set_dhash_entries(char *str)
 {
 	if (!str)

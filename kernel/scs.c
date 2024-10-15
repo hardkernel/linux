@@ -11,6 +11,9 @@
 #include <linux/scs.h>
 #include <linux/vmalloc.h>
 #include <linux/vmstat.h>
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+#include <linux/slab.h>
+#endif
 
 #ifdef CONFIG_DYNAMIC_SCS
 DEFINE_STATIC_KEY_FALSE(dynamic_scs_enabled);
@@ -36,16 +39,22 @@ static void *__scs_alloc(int node)
 	for (i = 0; i < NR_CACHED_SCS; i++) {
 		s = this_cpu_xchg(scs_cache[i], NULL);
 		if (s) {
+		#ifndef CONFIG_AMLOGIC_MEMORY_OPT
 			s = kasan_unpoison_vmalloc(s, SCS_SIZE,
 						   KASAN_VMALLOC_PROT_NORMAL);
+		#endif
 			memset(s, 0, SCS_SIZE);
 			goto out;
 		}
 	}
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+	s = kmalloc(SCS_SIZE, GFP_SCS);
+#else
 	s = __vmalloc_node_range(SCS_SIZE, 1, VMALLOC_START, VMALLOC_END,
 				    GFP_SCS, PAGE_KERNEL, 0, node,
 				    __builtin_return_address(0));
+#endif
 
 out:
 	return kasan_reset_tag(s);
@@ -86,8 +95,12 @@ void scs_free(void *s)
 		if (this_cpu_cmpxchg(scs_cache[i], 0, s) == NULL)
 			return;
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+	kfree(s);
+#else
 	kasan_unpoison_vmalloc(s, SCS_SIZE, KASAN_VMALLOC_PROT_NORMAL);
 	vfree_atomic(s);
+#endif
 }
 
 static int scs_cleanup(unsigned int cpu)
@@ -96,7 +109,11 @@ static int scs_cleanup(unsigned int cpu)
 	void **cache = per_cpu_ptr(scs_cache, cpu);
 
 	for (i = 0; i < NR_CACHED_SCS; i++) {
+	#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+		kfree(cache[i]);
+	#else
 		vfree(cache[i]);
+	#endif
 		cache[i] = NULL;
 	}
 

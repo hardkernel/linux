@@ -86,16 +86,22 @@ static bool is_core_symbol(const Elf_Sym *src, const Elf_Shdr *sechdrs,
 	    !src->st_name)
 		return false;
 
+#ifndef CONFIG_AMLOGIC_KALLSYM_OPT
 #ifdef CONFIG_KALLSYMS_ALL
 	if (src->st_shndx == pcpundx)
 		return true;
+#endif
 #endif
 
 	sec = sechdrs + src->st_shndx;
 	type = sec->sh_entsize >> SH_ENTSIZE_TYPE_SHIFT;
 	if (!(sec->sh_flags & SHF_ALLOC)
+#ifdef CONFIG_AMLOGIC_KALLSYM_OPT
+	    || !(sec->sh_flags & SHF_EXECINSTR)
+#else
 #ifndef CONFIG_KALLSYMS_ALL
 	    || !(sec->sh_flags & SHF_EXECINSTR)
+#endif
 #endif
 	    || mod_mem_type_is_init(type))
 		return false;

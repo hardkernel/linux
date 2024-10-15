@@ -9,7 +9,9 @@
  * Author: Josh Cartwright <joshc@codeaurora.org>
  */
 
+#ifndef CONFIG_AMLOGIC_MEMORY_EXTEND /* save print time */
 #define pr_fmt(fmt)	"OF: reserved mem: " fmt
+#endif
 
 #include <linux/err.h>
 #include <linux/libfdt.h>
@@ -130,8 +132,14 @@ static int __init __reserved_mem_reserve_reg(unsigned long node,
 
 		if (size &&
 		    early_init_dt_reserve_memory(base, size, nomap) == 0)
+		#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+			pr_emerg("\t%08lx - %08lx, %8ld KB, %s\n",
+				(unsigned long)base, (unsigned long)(base + size),
+				(unsigned long)(size >> 10), uname);
+		#else
 			pr_debug("Reserved memory: reserved region for node '%s': base %pa, size %lu MiB\n",
 				uname, &base, (unsigned long)(size / SZ_1M));
+		#endif
 		else
 			pr_err("Reserved memory: failed to reserve memory for node '%s': base %pa, size %lu MiB\n",
 			       uname, &base, (unsigned long)(size / SZ_1M));
@@ -444,8 +452,16 @@ static int __init __reserved_mem_init_node(struct reserved_mem *rmem)
 
 		ret = initfn(rmem);
 		if (ret == 0) {
+		#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+			pr_emerg("\t%08lx - %08lx, %8ld KB, %s\n",
+				 (unsigned long)rmem->base,
+				 (unsigned long)(rmem->base + rmem->size),
+				 (unsigned long)(rmem->size >> 10),
+				 rmem->name);
+		#else
 			pr_info("initialized node %s, compatible id %s\n",
 				rmem->name, compat);
+		#endif
 			break;
 		}
 	}
@@ -539,7 +555,11 @@ static void __init fdt_init_reserved_mem_node(struct reserved_mem *rmem)
 			nomap ? "nomap" : "map",
 			reusable ? "reusable" : "non-reusable",
 			rmem->name ? rmem->name : "unknown");
-
+	#if defined(CONFIG_ARM) && defined(CONFIG_AMLOGIC_MEMORY_EXTEND)
+		if (memblock_end_of_DRAM() > 0x30000000 &&
+			rmem->size / SZ_1M > 100 && end < 0x30000000)
+			pr_info("=== notice: This cma pool in low memory. ===\n");
+	#endif
 		memblock_memsize_record(rmem->name, rmem->base,
 					rmem->size, nomap, reusable);
 		if (reusable && !of_flat_dt_is_compatible(node, "shared-dma-pool"))

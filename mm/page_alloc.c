@@ -73,6 +73,10 @@
 #include <linux/amlogic/aml_cma.h>
 #endif
 
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+#include <linux/amlogic/memory.h>
+#endif
+
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_alloc);
 EXPORT_TRACEPOINT_SYMBOL_GPL(mm_page_free);
 
@@ -1003,7 +1007,15 @@ done_merging:
 	else if (max_order != MAX_PAGE_ORDER)
 		to_tail = false;
 	else
+	#if defined(CONFIG_AMLOGIC_MEMORY_EXTEND) && defined(CONFIG_KASAN)
+		/*
+		 * always put freed page to tail of buddy system, in order to increase
+		 *  probability of use-after-free for KASAN check.
+		 */
+		to_tail = true;
+	#else
 		to_tail = buddy_merge_likely(pfn, buddy_pfn, page, order);
+	#endif
 
 	__add_to_free_list(page, zone, order, migratetype, to_tail);
 
@@ -2835,7 +2847,15 @@ static void free_unref_page_commit(struct zone *zone, struct per_cpu_pages *pcp,
 	pcp->alloc_factor >>= 1;
 	__count_vm_events(PGFREE, 1 << order);
 	pindex = order_to_pindex(migratetype, order);
+#if defined(CONFIG_AMLOGIC_MEMORY_EXTEND) && defined(CONFIG_KASAN)
+	/*
+	 * always put freed page to tail of buddy system, in  order to
+	 * increase probability of use-after-free for KASAN check.
+	 */
+	list_add_tail(&page->pcp_list, &pcp->lists[pindex]);
+#else
 	list_add(&page->pcp_list, &pcp->lists[pindex]);
+#endif
 	pcp->count += 1 << order;
 
 	batch = READ_ONCE(pcp->batch);
@@ -5315,6 +5335,9 @@ struct page *__alloc_pages_noprof(gfp_t gfp, unsigned int order,
 	 */
 	alloc_flags |= alloc_flags_nofragment(zonelist_zone(ac.preferred_zoneref), gfp);
 
+#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+	should_wakeup_kswap(gfp, order, &ac);
+#endif
 	/* First allocation attempt */
 	page = get_page_from_freelist(alloc_gfp, order, alloc_flags, &ac);
 	if (likely(page))
@@ -7639,6 +7662,41 @@ bool put_page_back_buddy(struct page *page)
 	return ret;
 }
 #endif
+
+#ifdef CONFIG_AMLOGIC_MEMORY_STAT
+void count_free_migrate(struct free_area *area, struct page *page,
+			struct list_head *list, int op)
+{
+	int page_mt = -1;
+	int list_mt = -1;
+
+	page_mt = get_pcppage_migratetype(page);
+	if (list)
+		list_mt = ((void *)list - (void *)area) / (sizeof(*list));
+
+	switch (op) {
+	case FREE_LIST_ADD:
+		WARN_ON(list_mt == -1);
+		set_pcppage_migratetype(page, list_mt);
+		area->free_mt[list_mt]++;
+		break;
+
+	case FREE_LIST_MOVE:
+		WARN_ON(list_mt == -1);
+		set_pcppage_migratetype(page, list_mt);
+		area->free_mt[list_mt]++;
+		area->free_mt[page_mt]--;
+		break;
+
+	case FREE_LIST_RM:
+		area->free_mt[page_mt]--;
+		break;
+
+	default:
+		break;
+	}
+}
+#endif /* CONFIG_AMLOGIC_MEMORY_STAT */
 
 #ifdef CONFIG_ZONE_DMA
 bool has_managed_dma(void)

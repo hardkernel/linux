@@ -2410,7 +2410,11 @@ static void __wait_on_freeing_inode(struct inode *inode, bool is_inode_hash_lock
 	rcu_read_lock();
 }
 
+#ifdef CONFIG_AMLOGIC_MEMORY_OPT
+static unsigned long ihash_entries __initdata = 32768;
+#else
 static __initdata unsigned long ihash_entries;
+#endif
 static int __init set_ihash_entries(char *str)
 {
 	if (!str)

@@ -554,6 +554,9 @@ FOLIO_FLAG(swapbacked, FOLIO_HEAD_PAGE)
  */
 PAGEFLAG(Private, private, PF_ANY)
 PAGEFLAG(Private2, private_2, PF_ANY) TESTSCFLAG(Private2, private_2, PF_ANY)
+#ifdef CONFIG_AMLOGIC_MEMORY_SLAB_LARGE
+PAGEFLAG(OwnerPriv1, owner_priv_1, PF_ANY) TESTCLEARFLAG(OwnerPriv1, owner_priv_1, PF_ANY)
+#endif
 
 /* owner_2 can be set on tail pages for anon memory */
 FOLIO_FLAG(owner_2, FOLIO_HEAD_PAGE)
