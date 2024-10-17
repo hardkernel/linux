@@ -19,6 +19,10 @@
 extern void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 			   const char *loglvl);
 
+#ifdef CONFIG_AMLOGIC_VMAP
+extern int unwind_next(struct unwind_state *state);
+#endif
+
 DECLARE_PER_CPU(unsigned long *, irq_stack_ptr);
 
 static inline bool on_irq_stack(unsigned long sp, unsigned long size,

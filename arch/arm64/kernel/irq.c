@@ -61,7 +61,12 @@ static void __init init_irq_stacks(void)
 }
 #else
 /* irq stack only needs to be 16 byte aligned - not IRQ_STACK_SIZE aligned. */
+#ifdef CONFIG_AMLOGIC_VMAP
+DEFINE_PER_CPU_ALIGNED(unsigned long [IRQ_STACK_SIZE/sizeof(long)], irq_stack)
+	__aligned(PAGE_SIZE);
+#else
 DEFINE_PER_CPU_ALIGNED(unsigned long [IRQ_STACK_SIZE/sizeof(long)], irq_stack);
+#endif
 
 static void init_irq_stacks(void)
 {

@@ -325,7 +325,11 @@ alternative_else_nop_endif
 	*/
 	.endm
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	.macro  kernel_exit, el, swap = 0
+#else
 	.macro	kernel_exit, el
+#endif /* CONFIG_AMLOGIC_VMAP */
 	.if	\el != 0
 	disable_daif
 	.endif
@@ -431,6 +435,18 @@ alternative_else_nop_endif
 #endif
 	.else
 	ldr	lr, [sp, #S_LR]
+#ifdef CONFIG_AMLOGIC_VMAP
+	/* restore context sp and per-cpu vmap stack */
+	.if     \swap == 1
+	stp     x19, x20, [sp]
+	mov     x20, sp
+	add     x19, x20, #PT_REGS_SIZE
+	msr     DBGWVR3_EL1, x19
+	mrs     x19, DBGWVR2_EL1
+	mov     sp,  x19
+	ldp     x19, x20, [x20]
+	.endif
+#endif /* CONFIG_AMLOGIC_VMAP */
 	add	sp, sp, #PT_REGS_SIZE		// restore sp
 
 	/* Ensure any device/NC reads complete */
@@ -548,8 +564,34 @@ SYM_CODE_END(__bad_stack)
 #endif /* CONFIG_VMAP_STACK */
 
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	.macro entry_handler el:req, ht:req, regsize:req, label:req, vmap = 0
+#else
 	.macro entry_handler el:req, ht:req, regsize:req, label:req
+#endif
 SYM_CODE_START_LOCAL(el\el\ht\()_\regsize\()_\label)
+#ifdef CONFIG_AMLOGIC_VMAP
+	.if \vmap == 1
+	/*
+	 * register using:
+	 * DBGWVR2_EL1: temp register and back up for sp_el1 of exception
+	 * DBGWVR3_EL1: always point to per-cpu vmap stack
+	 * switch sp_el1 to per-cpu vmap stack and using DBGWVR2_EL1
+	 * to back up sp_el1 under exception
+	 */
+	msr     DBGWVR2_EL1, x29
+	mrs     x29, DBGWVR3_EL1
+	sub     x29, x29, #PT_REGS_SIZE
+	msr     DBGWVR3_EL1, x29
+	stp     x19, x20, [x29]
+	mov     x19, sp
+	mrs     x20, DBGWVR2_EL1
+	msr     DBGWVR2_EL1, x19
+	mov     sp,  x29
+	mov     x29, x20
+	ldp     x19, x20, [sp]
+	.endif
+#endif /* CONFIG_AMLOGIC_VMAP */
 	kernel_entry \el, \regsize
 	mov	x0, sp
 	bl	el\el\ht\()_\regsize\()_\label\()_handler
@@ -569,8 +611,14 @@ SYM_CODE_END(el\el\ht\()_\regsize\()_\label)
 	entry_handler	1, t, 64, fiq
 	entry_handler	1, t, 64, error
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	/* pad vmap option */
+	entry_handler   1, h, 64, sync, 1
+	entry_handler   1, h, 64, irq,  1
+#else
 	entry_handler	1, h, 64, sync
 	entry_handler	1, h, 64, irq
+#endif
 	entry_handler	1, h, 64, fiq
 	entry_handler	1, h, 64, error
 
@@ -1099,3 +1147,77 @@ SYM_CODE_START(__sdei_handler_abort)
 SYM_CODE_END(__sdei_handler_abort)
 NOKPROBE(__sdei_handler_abort)
 #endif /* CONFIG_ARM_SDE_INTERFACE */
+
+#ifdef CONFIG_AMLOGIC_VMAP
+SYM_CODE_START(__setup_vmap_stack)
+	ldr		x10, =vmap_stack
+	add		x10, x10, x0
+	mov		x0, x10
+	mov		x1, #0
+	mov		x2, #THREAD_SIZE
+	mov		x17, lr
+#ifdef CONFIG_KASAN
+	bl		__memset		/* clear stack buffer */
+#else
+	bl		memset			/* clear stack buffer */
+#endif
+	mov		lr, x17
+	mov		x0, #THREAD_START_SP
+	add		x10, x10, x0		/* set stack top */
+	msr		DBGWVR3_EL1, x10
+	ret
+SYM_CODE_END(__setup_vmap_stack)
+
+SYM_CODE_START(__vmap_exit)
+	mov		sp, x0
+	kernel_exit 1, 1	/* return from vmap stack fault */
+SYM_CODE_END(__vmap_exit)
+
+	/* switch conext from vmap handler to normal handler */
+SYM_CODE_START(switch_vmap_context)
+	/*
+	 * Not a vmap fault, copy context saved in per-cpu vmap stack
+	 * to task stack, then switch stack back to task stack under
+	 * exception
+	 *          -------
+	 *          |     |  vmap context
+	 *          |     |
+	 *   x0 ->  |-----|
+	 *          |     |  function stack (diff is x3)
+	 *   sp ->  -------
+	 */
+	mov	x1, sp
+	sub	x3, x0, x1
+	mrs	x0, DBGWVR2_EL1			// load raw context sp
+	sub	x0, x0, x3
+	add	x2, x3, #PT_REGS_SIZE
+	stp	x19, x20, [sp, #-16]!
+	stp	x30, xzr, [sp, #-16]!
+	mov	x19, x2
+	mov	x20, x3
+#ifdef CONFIG_KASAN
+	bl	__memcpy
+#else
+	bl	memcpy
+#endif
+	add	x17, x0, x19
+	add	x19, x20, #S_SP
+	str	x17, [x0, x19]			// restore sp in context
+	add	x29, x0, x20			// old fp
+
+	mrs	x16, DBGWVR3_EL1
+	add	x16, x16, #PT_REGS_SIZE
+	msr	DBGWVR3_EL1, x16		// restore pcp vmap stack
+
+	mov	x17, x0				// sp in function context
+	add	x0,  x0, x20			// real pt-regs
+
+	ldp	x30, xzr, [sp], #16
+	ldp	x19, x20, [sp], #16
+	mov	sp, x17
+	add	x29, x29, #S_STACKFRAME
+	str	x29, [sp]			// restore frame pointer
+	mov	x29, sp
+	ret
+SYM_CODE_END(switch_vmap_context)
+#endif /* CONFIG_AMLOGIC_VMAP */

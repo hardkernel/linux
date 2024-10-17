@@ -121,6 +121,13 @@ NOKPROBE_SYMBOL(read_wb_reg);
 
 static void write_wb_reg(int reg, int n, u64 val)
 {
+#ifdef CONFIG_AMLOGIC_VMAP
+	/* avoid write DBGWVR since we use it for special purpose */
+	if ((reg + n) >= (AARCH64_DBG_REG_WVR + 2) &&
+		(reg + n) < AARCH64_DBG_REG_WCR) {
+		return;
+	}
+#endif
 	switch (reg + n) {
 	GEN_WRITE_WB_REG_CASES(AARCH64_DBG_REG_BVR, AARCH64_DBG_REG_NAME_BVR, val);
 	GEN_WRITE_WB_REG_CASES(AARCH64_DBG_REG_BCR, AARCH64_DBG_REG_NAME_BCR, val);

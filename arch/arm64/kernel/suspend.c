@@ -16,6 +16,9 @@
 #include <asm/mmu_context.h>
 #include <asm/smp_plat.h>
 #include <asm/suspend.h>
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
 
 /*
  * This is allocated by cpu_suspend_init(), and used to store a pointer to
@@ -132,6 +135,9 @@ int cpu_suspend(unsigned long arg, int (*fn)(unsigned long))
 		if (!ret)
 			ret = -EOPNOTSUPP;
 	} else {
+	#ifdef CONFIG_AMLOGIC_VMAP
+		__setup_vmap_stack(my_cpu_offset);
+	#endif
 		RCU_NONIDLE(__cpu_suspend_exit());
 	}
 

@@ -16,6 +16,10 @@
 #include <asm/stack_pointer.h>
 #include <asm/stacktrace.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 /*
  * Start an unwind from a pt_regs.
  *
@@ -88,6 +92,13 @@ static bool on_accessible_stack(const struct task_struct *tsk,
 		return true;
 	if (on_sdei_stack(sp, size, info))
 		return true;
+#ifdef CONFIG_AMLOGIC_VMAP
+	/*
+	 * keep search stack for task
+	 */
+	if (on_vmap_stack(sp, info))
+		return true;
+#endif
 
 	return false;
 }
@@ -99,7 +110,11 @@ static bool on_accessible_stack(const struct task_struct *tsk,
  * records (e.g. a cycle), determined based on the location and fp value of A
  * and the location (but not the fp value) of B.
  */
+#ifdef CONFIG_AMLOGIC_VMAP
+int notrace unwind_next(struct unwind_state *state)
+#else
 static int notrace unwind_next(struct unwind_state *state)
+#endif
 {
 	struct task_struct *tsk = state->task;
 	unsigned long fp = state->fp;
@@ -153,12 +168,41 @@ static void notrace unwind(struct unwind_state *state,
 }
 NOKPROBE_SYMBOL(unwind);
 
+#ifdef CONFIG_AMLOGIC_VMAP
+static noinline notrace void aml_dump_backtrace_entry(void *cookie,
+			struct task_struct *task, struct pt_regs *regs)
+{
+	struct unwind_state state;
+
+	if (regs) {
+		if (task != current)
+			return;
+		unwind_init_from_regs(&state, regs);
+	} else if (task == current) {
+		unwind_init_from_caller(&state);
+	} else {
+		unwind_init_from_task(&state, task);
+	}
+
+	while (1) {
+		int ret;
+
+		dump_backtrace_entry_vmap(state.pc, state.fp,
+			(unsigned long)task->stack, (char *)cookie);
+		ret = unwind_next(&state);
+		if (ret < 0)
+			break;
+	}
+}
+#else
+
 static bool dump_backtrace_entry(void *arg, unsigned long where)
 {
 	char *loglvl = arg;
 	printk("%s %pSb\n", loglvl, (void *)where);
 	return true;
 }
+#endif
 
 void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 		    const char *loglvl)
@@ -175,7 +219,11 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 		return;
 
 	printk("%sCall trace:\n", loglvl);
+#ifdef CONFIG_AMLOGIC_VMAP
+	aml_dump_backtrace_entry((void *)loglvl, tsk, regs);
+#else
 	arch_stack_walk(dump_backtrace_entry, (void *)loglvl, tsk, regs);
+#endif
 
 	put_task_stack(tsk);
 }

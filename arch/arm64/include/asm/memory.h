@@ -97,6 +97,9 @@
 #endif
 
 #define THREAD_SIZE		(UL(1) << THREAD_SHIFT)
+#ifdef CONFIG_AMLOGIC_VMAP
+#define THREAD_START_SP         (THREAD_SIZE - 16)
+#endif
 
 /*
  * By aligning VMAP'd stacks to 2 * THREAD_SIZE, we can detect overflow by
