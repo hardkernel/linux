@@ -12,6 +12,19 @@
 #
 OBJCOPYFLAGS	:=-O binary -R .comment -S
 
+ifeq ($(CONFIG_AMLOGIC_RAMDUMP_TEXTOFFSET),y)
+zreladdr-y       += 0x02008000
+params_phys-y    := 0x02000100
+initrd_phys-y    := 0x02900000
+# Note: the following conditions must always be true:
+#   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
+#   PARAMS_PHYS must be within 4MB of ZRELADDR
+#   INITRD_PHYS must be in RAM
+ZRELADDR    := $(zreladdr-y)
+PARAMS_PHYS := $(params_phys-y)
+INITRD_PHYS := $(initrd_phys-y)
+endif
+
 #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
 ifdef CONFIG_PHYS_OFFSET
 add_hex = $(shell printf 0x%x $$(( $(1) + $(2) )) )
