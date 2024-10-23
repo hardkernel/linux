@@ -442,6 +442,7 @@ endif
 # config cannot be used here to mark AMLOGIC modifications
 # If these three variables are not set externally, set their default values
 export COMMON_DRIVERS_DIR ?= common_drivers
+export MEDIA_DRIVERS_DIR ?= media_modules
 dtstree ?= $(COMMON_DRIVERS_DIR)/arch/$(SRCARCH)/boot/dts/
 export DTC_INCLUDE ?= $(srctree)/$(COMMON_DRIVERS_DIR)/include
 # endif
@@ -716,6 +717,7 @@ drivers-y	:= drivers/ sound/
 ifdef CONFIG_AMLOGIC_IN_KERNEL_MODULES
 drivers-y	+= $(COMMON_DRIVERS_DIR)/drivers/ $(COMMON_DRIVERS_DIR)/sound/
 drivers-y       += $(COMMON_DRIVERS_DIR)/samples/
+drivers-y       += $(MEDIA_DRIVERS_DIR)/drivers/
 endif
 drivers-$(CONFIG_SAMPLES) += samples/
 drivers-$(CONFIG_NET) += net/

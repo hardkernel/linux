@@ -2,3 +2,8 @@
 	path = common_drivers
 	url = https://git.odroid.com/yocto/kernel/common_drivers
 	branch = odroids7d-5.15.y
+
+[submodule "media_modules"]
+	path = media_modules
+	url = https://git.odroid.com/yocto/platform/hardware/amlogic/media_modules
+	branch = odroids7d-5.15.y
