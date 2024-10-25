@@ -181,6 +181,9 @@ typedef struct page *pgtable_t;
 #ifdef CONFIG_HAVE_ARCH_PFN_VALID
 extern int pfn_valid(unsigned long);
 #define pfn_valid pfn_valid
+#if IS_ENABLED(CONFIG_AMLOGIC_DMC_MONITOR_BREAK_GKI)
+extern int pfn_is_map_memory(unsigned long pfn);
+#endif
 #endif
 
 #endif /* !__ASSEMBLY__ */
