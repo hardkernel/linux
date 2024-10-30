@@ -3099,7 +3099,18 @@ CONFIG_GPIO_PL061=y
 # CONFIG_GPIO_VIRTIO is not set
 # end of Virtual GPIO drivers
 
-# CONFIG_W1 is not set
+CONFIG_W1=m
+
+#
+# 1-wire Bus Masters
+#
+CONFIG_W1_MASTER_GPIO=m
+
+#
+# 1-wire Slaves
+#
+CONFIG_W1_SLAVE_THERM=m
+
 CONFIG_POWER_RESET=y
 # CONFIG_POWER_RESET_BRCMSTB is not set
 # CONFIG_POWER_RESET_GPIO is not set
