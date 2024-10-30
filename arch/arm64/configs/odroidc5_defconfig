@@ -6059,7 +6059,7 @@ CONFIG_IIO_CONSUMERS_PER_TRIGGER=2
 # Humidity sensors
 #
 # CONFIG_AM2315 is not set
-# CONFIG_DHT11 is not set
+CONFIG_DHT11=m
 # CONFIG_HDC100X is not set
 # CONFIG_HDC2010 is not set
 # CONFIG_HTS221 is not set
