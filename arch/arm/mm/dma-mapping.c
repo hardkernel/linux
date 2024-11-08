@@ -34,6 +34,9 @@
 #include <asm/mach/map.h>
 #include <asm/system_info.h>
 #include <asm/xen/xen-ops.h>
+#ifdef CONFIG_AMLOGIC_PCIE_DMA_OPS
+#include <linux/amlogic/dma_pcie_mapping.h>
+#endif
 
 #include "dma.h"
 #include "mm.h"
@@ -1783,6 +1786,11 @@ void arch_setup_dma_ops(struct device *dev, bool coherent)
 
 	if (device_iommu_mapped(dev))
 		arm_setup_iommu_dma_ops(dev);
+
+#ifdef CONFIG_AMLOGIC_PCIE_DMA_OPS
+	if (dev->bus && dev->bus->name && !strcmp(dev->bus->name, "pci"))
+		set_dma_ops(dev, &aml_pcie_dma_ops);
+#endif
 
 	xen_setup_dma_ops(dev);
 	dev->archdata.dma_ops_setup = true;
