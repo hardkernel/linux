@@ -20,6 +20,10 @@
 extern void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 			   const char *loglvl);
 
+#ifdef CONFIG_AMLOGIC_VMAP
+//extern __always_inline int kunwind_next(struct kunwind_state *state);
+#endif
+
 DECLARE_PER_CPU(unsigned long *, irq_stack_ptr);
 
 static inline struct stack_info stackinfo_get_irq(void)

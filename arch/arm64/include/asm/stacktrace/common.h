@@ -11,6 +11,10 @@
 
 #include <linux/types.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 struct stack_info {
 	unsigned long low;
 	unsigned long high;
@@ -93,6 +97,14 @@ static inline int unwind_consume_stack(struct unwind_state *state,
 
 	if (stackinfo_on_stack(&state->stack, sp, size))
 		goto found;
+
+#ifdef CONFIG_AMLOGIC_VMAP
+	/*
+	 * keep search stack for task
+	 */
+	if (on_vmap_stack(sp, &state->stack))
+		goto found;
+#endif
 
 	next = unwind_find_next_stack(state, sp, size);
 	if (!next)

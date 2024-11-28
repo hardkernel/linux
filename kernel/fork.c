@@ -114,6 +114,10 @@
 #include <asm/cacheflush.h>
 #include <asm/tlbflush.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 #include <trace/events/sched.h>
 
 #define CREATE_TRACE_POINTS
@@ -354,6 +358,7 @@ static void free_thread_stack(struct task_struct *tsk)
 
 #  else /* !CONFIG_VMAP_STACK */
 
+#ifndef CONFIG_AMLOGIC_VMAP
 static void thread_stack_free_rcu(struct rcu_head *rh)
 {
 	__free_pages(virt_to_page(rh), THREAD_SIZE_ORDER);
@@ -365,9 +370,18 @@ static void thread_stack_delayed_free(struct task_struct *tsk)
 
 	call_rcu(rh, thread_stack_free_rcu);
 }
+#endif
 
 static int alloc_thread_stack_node(struct task_struct *tsk, int node)
 {
+#ifdef CONFIG_AMLOGIC_VMAP
+	void *stack = aml_stack_alloc(node, tsk);
+	if (stack) {
+		tsk->stack = stack;
+		return 0;
+	}
+	return -ENOMEM;
+#else /* CONFIG_AMLOGIC_VMAP */
 	struct page *page = alloc_pages_node(node, THREADINFO_GFP,
 					     THREAD_SIZE_ORDER);
 
@@ -376,11 +390,16 @@ static int alloc_thread_stack_node(struct task_struct *tsk, int node)
 		return 0;
 	}
 	return -ENOMEM;
+#endif /* CONFIG_AMLOGIC_VMAP */
 }
 
 static void free_thread_stack(struct task_struct *tsk)
 {
+#ifdef CONFIG_AMLOGIC_VMAP
+	aml_stack_free(tsk);
+#else
 	thread_stack_delayed_free(tsk);
+#endif /* CONFIG_AMLOGIC_VMAP */
 	tsk->stack = NULL;
 }
 
@@ -522,6 +541,9 @@ void vm_area_free(struct vm_area_struct *vma)
 
 static void account_kernel_stack(struct task_struct *tsk, int account)
 {
+#ifdef CONFIG_AMLOGIC_VMAP
+	aml_account_task_stack(tsk, account);
+#else
 	if (IS_ENABLED(CONFIG_VMAP_STACK)) {
 		struct vm_struct *vm = task_stack_vm_area(tsk);
 		int i;
@@ -536,6 +558,7 @@ static void account_kernel_stack(struct task_struct *tsk, int account)
 		mod_lruvec_kmem_state(stack, NR_KERNEL_STACK_KB,
 				      account * (THREAD_SIZE / 1024));
 	}
+#endif
 }
 
 void exit_task_stack_account(struct task_struct *tsk)
@@ -1086,7 +1109,9 @@ void set_task_stack_end_magic(struct task_struct *tsk)
 	unsigned long *stackend;
 
 	stackend = end_of_stack(tsk);
+#ifndef CONFIG_AMLOGIC_VMAP
 	*stackend = STACK_END_MAGIC;	/* for overflow detection */
+#endif
 }
 
 static struct task_struct *dup_task_struct(struct task_struct *orig, int node)

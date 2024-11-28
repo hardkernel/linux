@@ -27,11 +27,15 @@ static __always_inline void *task_stack_page(const struct task_struct *task)
 
 static __always_inline unsigned long *end_of_stack(const struct task_struct *task)
 {
+#ifdef CONFIG_AMLOGIC_VMAP
+	return task->stack;
+#else /* CONFIG_AMLOGIC_VMAP */
 #ifdef CONFIG_STACK_GROWSUP
 	return (unsigned long *)((unsigned long)task->stack + THREAD_SIZE) - 1;
 #else
 	return task->stack;
 #endif
+#endif /* CONFIG_AMLOGIC_VMAP */
 }
 
 #elif !defined(__HAVE_THREAD_FUNCTIONS)
@@ -83,8 +87,12 @@ static inline void put_task_stack(struct task_struct *tsk) {}
 
 void exit_task_stack_account(struct task_struct *tsk);
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#define task_stack_end_corrupted(task) (false)
+#else
 #define task_stack_end_corrupted(task) \
 		(*(end_of_stack(task)) != STACK_END_MAGIC)
+#endif
 
 static inline int object_is_on_stack(const void *obj)
 {

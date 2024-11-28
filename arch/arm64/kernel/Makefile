@@ -13,6 +13,9 @@ CFLAGS_REMOVE_return_address.o = $(CC_FLAGS_FTRACE)
 # checks due to randomize_kstack_offset.
 CFLAGS_REMOVE_syscall.o	 = -fstack-protector -fstack-protector-strong
 CFLAGS_syscall.o	+= -fno-stack-protector
+ifeq ($(CONFIG_AMLOGIC_PTR_AUTH_KERNEL),y)
+CFLAGS_REMOVE_entry.o = -mbranch-protection=pac-ret
+endif
 
 # When KASAN is enabled, a stack trace is recorded for every alloc/free, which
 # can significantly impact performance. Avoid instrumenting the stack trace

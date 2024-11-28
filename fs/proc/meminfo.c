@@ -23,6 +23,10 @@
 #include "internal.h"
 #include <trace/hooks/mm.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 void __attribute__((weak)) arch_report_meminfo(struct seq_file *m)
 {
 }
@@ -111,8 +115,13 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 	show_val_kb(m, "Slab:           ", sreclaimable + sunreclaim);
 	show_val_kb(m, "SReclaimable:   ", sreclaimable);
 	show_val_kb(m, "SUnreclaim:     ", sunreclaim);
+#ifdef CONFIG_AMLOGIC_VMAP
+	seq_printf(m, "KernelStack:    %8u kB\n",
+			get_vmap_stack_size() << (PAGE_SHIFT - 10));
+#else
 	seq_printf(m, "KernelStack:    %8lu kB\n",
 		   global_node_page_state(NR_KERNEL_STACK_KB));
+#endif
 #ifdef CONFIG_SHADOW_CALL_STACK
 	seq_printf(m, "ShadowCallStack:%8lu kB\n",
 		   global_node_page_state(NR_KERNEL_SCS_KB));

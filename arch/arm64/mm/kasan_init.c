@@ -286,7 +286,11 @@ static void __init clear_next_level(int pgd_idx, int start, int end)
 	memset(&pudp[start], 0, (end - start) * sizeof(pud_t));
 }
 
+#ifdef CONFIG_AMLOGIC_VMAP
+void __init clear_shadow(u64 start, u64 end)
+#else
 static void __init clear_shadow(u64 start, u64 end)
+#endif
 {
 	int l = root_level_idx(start), m = root_level_idx(end);
 

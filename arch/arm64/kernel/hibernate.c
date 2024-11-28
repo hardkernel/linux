@@ -34,6 +34,9 @@
 #include <asm/trans_pgd.h>
 #include <asm/virt.h>
 #include <trace/hooks/bl_hib.h>
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
 
 /*
  * Hibernate core relies on this value being 0 on resume, and marks it
@@ -356,6 +359,9 @@ int swsusp_arch_suspend(void)
 		sleep_cpu = smp_processor_id();
 		ret = swsusp_save();
 	} else {
+	#ifdef CONFIG_AMLOGIC_VMAP
+		__setup_vmap_stack(my_cpu_offset);
+	#endif
 		/* Clean kernel core startup/idle code to PoC*/
 		dcache_clean_inval_poc((unsigned long)__mmuoff_data_start,
 				    (unsigned long)__mmuoff_data_end);

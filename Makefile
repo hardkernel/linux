@@ -886,9 +886,11 @@ ifdef CONFIG_READABLE_ASM
 KBUILD_CFLAGS += -fno-reorder-blocks -fno-ipa-cp-clone -fno-partial-inlining
 endif
 
+ifndef CONFIG_AMLOGIC_STACKPROTECTOR
 stackp-flags-y                                    := -fno-stack-protector
 stackp-flags-$(CONFIG_STACKPROTECTOR)             := -fstack-protector
 stackp-flags-$(CONFIG_STACKPROTECTOR_STRONG)      := -fstack-protector-strong
+endif
 
 KBUILD_CFLAGS += $(stackp-flags-y)
 
@@ -898,6 +900,11 @@ KBUILD_RUSTFLAGS += $(KBUILD_RUSTFLAGS-y)
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
 KBUILD_RUSTFLAGS += -Cforce-frame-pointers=y
+ifdef CONFIG_AMLOGIC_VMAP
+ifdef CONFIG_ARM64
+KBUILD_CFLAGS += -mno-omit-leaf-frame-pointer
+endif
+endif
 else
 # Some targets (ARM with Thumb2, for example), can't be built with frame
 # pointers.  For those, we don't have FUNCTION_TRACER automatically

@@ -2006,7 +2006,13 @@ extern unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)];
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 # define task_thread_info(task)	(&(task)->thread_info)
 #elif !defined(__HAVE_THREAD_FUNCTIONS)
+#ifdef CONFIG_AMLOGIC_VMAP
+#define task_thread_info(task)		\
+	((struct thread_info *)(((unsigned long)(task)->stack) + \
+				  THREAD_INFO_OFFSET))
+#else
 # define task_thread_info(task)	((struct thread_info *)(task)->stack)
+#endif /* CONFIG_AMLOGIC_VMAP */
 #endif
 
 /*

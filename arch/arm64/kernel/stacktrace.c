@@ -20,6 +20,10 @@
 #include <asm/stack_pointer.h>
 #include <asm/stacktrace.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 /*
  * Kernel unwind state
  *
@@ -295,12 +299,59 @@ noinline noinstr void arch_bpf_stack_walk(bool (*consume_entry)(void *cookie, u6
 }
 EXPORT_SYMBOL_GPL(arch_stack_walk);
 
+#ifdef CONFIG_AMLOGIC_VMAP
+static noinline notrace void aml_dump_backtrace_entry(void *cookie,
+		struct task_struct *task, struct pt_regs *regs)
+{
+	struct stack_info stacks[] = {
+		stackinfo_get_task(task),
+		STACKINFO_CPU(irq),
+#if defined(CONFIG_VMAP_STACK)
+		STACKINFO_CPU(overflow),
+#endif
+#if defined(CONFIG_VMAP_STACK) && defined(CONFIG_ARM_SDE_INTERFACE)
+		STACKINFO_SDEI(normal),
+		STACKINFO_SDEI(critical),
+#endif
+#ifdef CONFIG_EFI
+		STACKINFO_EFI,
+#endif
+	};
+	struct kunwind_state state = {
+		.common = {
+			.stacks = stacks,
+			.nr_stacks = ARRAY_SIZE(stacks),
+		},
+	};
+
+	if (regs) {
+		if (task != current)
+			return;
+		kunwind_init_from_regs(&state, regs);
+	} else if (task == current) {
+		kunwind_init_from_caller(&state);
+	} else {
+		kunwind_init_from_task(&state, task);
+	}
+	
+	while(1) {
+		int ret;
+
+		dump_backtrace_entry_vmap(state.common.pc, state.common.fp,
+				(unsigned long)task->stack, (char *)cookie);
+		ret = kunwind_next(&state);
+		if (ret < 0)
+			break;
+	}
+}
+#else
 static bool dump_backtrace_entry(void *arg, unsigned long where)
 {
 	char *loglvl = arg;
 	printk("%s %pSb\n", loglvl, (void *)where);
 	return true;
 }
+#endif
 
 void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 		    const char *loglvl)
@@ -317,7 +368,11 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
 		return;
 
 	printk("%sCall trace:\n", loglvl);
+#ifdef CONFIG_AMLOGIC_VMAP
+	aml_dump_backtrace_entry((void *)loglvl, tsk, regs);
+#else
 	arch_stack_walk(dump_backtrace_entry, (void *)loglvl, tsk, regs);
+#endif
 
 	put_task_stack(tsk);
 }

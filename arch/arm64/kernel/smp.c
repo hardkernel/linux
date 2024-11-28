@@ -57,6 +57,10 @@
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/debug.h>
 
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#endif
+
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_raise);
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_entry);
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_exit);
@@ -213,6 +217,9 @@ asmlinkage notrace void secondary_start_kernel(void)
 	const struct cpu_operations *ops;
 	unsigned int cpu = smp_processor_id();
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	__setup_vmap_stack(my_cpu_offset);
+#endif
 	/*
 	 * All kernel threads share the same mm context; grab a
 	 * reference and switch to it.
@@ -467,6 +474,9 @@ void __init smp_prepare_boot_cpu(void)
 	 */
 	set_my_cpu_offset(per_cpu_offset(smp_processor_id()));
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	__setup_vmap_stack(my_cpu_offset);
+#endif
 	cpuinfo_store_boot_cpu();
 	setup_boot_cpu_features();
 
