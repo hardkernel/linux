@@ -650,6 +650,11 @@ call_fpe:
 	.word	0xff100000			@ mask
 	.word	0xf4000000			@ opcode
 
+#ifdef CONFIG_AMLOGIC_ARMV8_AARCH32
+	.word	0xff000800			@ mask
+	.word	0xfc000800			@ opcode
+#endif
+
 	.word	0x00000000			@ mask
 	.word	0x00000000			@ opcode
 
@@ -659,6 +664,11 @@ call_fpe:
 
 	.word	0xff100000			@ mask
 	.word	0xf9000000			@ opcode
+
+#ifdef CONFIG_AMLOGIC_ARMV8_AARCH32
+	.word	0xff000800			@ mask
+	.word	0xfc000800			@ opcode
+#endif
 
 	.word	0x00000000			@ mask
 	.word	0x00000000			@ opcode
