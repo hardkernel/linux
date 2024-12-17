@@ -75,6 +75,25 @@ static struct devfreq_governor devfreq_rknpu_ondemand = {
 	.event_handler = devfreq_rknpu_ondemand_handler,
 };
 
+static int rk3576_npu_set_read_margin(struct device *dev,
+				      struct rockchip_opp_info *opp_info,
+				      u32 rm)
+{
+	if (!opp_info->grf || !opp_info->volt_rm_tbl)
+		return 0;
+
+	if (rm == opp_info->current_rm || rm == UINT_MAX)
+		return 0;
+
+	LOG_DEV_DEBUG(dev, "set rm to %d\n", rm);
+
+	regmap_write(opp_info->grf, 0x08, 0x001c0000 | (rm << 2));
+	regmap_write(opp_info->grf, 0x0c, 0x003c0000 | (rm << 2));
+	regmap_write(opp_info->grf, 0x10, 0x001c0000 | (rm << 2));
+
+	return 0;
+}
+
 static int rk3588_npu_get_soc_info(struct device *dev, struct device_node *np,
 				   int *bin, int *process)
 {
@@ -162,7 +181,6 @@ static int rk3588_npu_set_read_margin(struct device *dev,
 				      struct rockchip_opp_info *opp_info,
 				      u32 rm)
 {
-	struct rknpu_device *rknpu_dev = dev_get_drvdata(dev);
 	u32 offset = 0, val = 0;
 	int i, ret = 0;
 
@@ -174,7 +192,7 @@ static int rk3588_npu_set_read_margin(struct device *dev,
 
 	LOG_DEV_DEBUG(dev, "set rm to %d\n", rm);
 
-	for (i = 0; i < rknpu_dev->config->num_irqs; i++) {
+	for (i = 0; i < 3; i++) {
 		ret = regmap_read(opp_info->grf, offset, &val);
 		if (ret < 0) {
 			LOG_DEV_ERROR(dev, "failed to get rm from 0x%x\n",
@@ -214,6 +232,18 @@ static int npu_opp_config_clks(struct device *dev, struct opp_table *opp_table,
 }
 #endif
 
+static const struct rockchip_opp_data rk3576_npu_opp_data = {
+	.set_read_margin = rk3576_npu_set_read_margin,
+	/**
+	 * RKLLM hotfix
+	 */
+	// .set_soc_info = rockchip_opp_set_low_length,
+#if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
+	.config_regulators = npu_opp_config_regulators,
+	.config_clks = npu_opp_config_clks,
+#endif
+};
+
 static const struct rockchip_opp_data rk3588_npu_opp_data = {
 	.get_soc_info = rk3588_npu_get_soc_info,
 	.set_soc_info = rk3588_npu_set_soc_info,
@@ -225,6 +255,10 @@ static const struct rockchip_opp_data rk3588_npu_opp_data = {
 };
 
 static const struct of_device_id rockchip_npu_of_match[] = {
+	{
+		.compatible = "rockchip,rk3576",
+		.data = (void *)&rk3576_npu_opp_data,
+	},
 	{
 		.compatible = "rockchip,rk3588",
 		.data = (void *)&rk3588_npu_opp_data,
@@ -365,7 +399,11 @@ int rknpu_devfreq_init(struct rknpu_device *rknpu_dev)
 err_remove_governor:
 	devfreq_remove_governor(&devfreq_rknpu_ondemand);
 err_uinit_table:
+#if KERNEL_VERSION(5, 10, 198) <= LINUX_VERSION_CODE
 	rockchip_uninit_opp_table(dev, info);
+#else
+	dev_pm_opp_of_remove_table(dev);
+#endif
 
 	return ret;
 }
@@ -699,7 +737,11 @@ out:
 err_remove_governor:
 	devfreq_remove_governor(&devfreq_rknpu_ondemand);
 err_remove_table:
+#if KERNEL_VERSION(5, 10, 198) <= LINUX_VERSION_CODE
 	rockchip_uninit_opp_table(dev, &rknpu_dev->opp_info);
+#else
+	dev_pm_opp_of_remove_table(dev);
+#endif
 
 	rknpu_dev->devfreq = NULL;
 
@@ -760,6 +802,10 @@ void rknpu_devfreq_remove(struct rknpu_device *rknpu_dev)
 	}
 	if (rknpu_dev->devfreq)
 		devfreq_remove_governor(&devfreq_rknpu_ondemand);
+#if KERNEL_VERSION(5, 10, 198) <= LINUX_VERSION_CODE
 	rockchip_uninit_opp_table(rknpu_dev->dev, &rknpu_dev->opp_info);
+#else
+	dev_pm_opp_of_remove_table(rknpu_dev->dev);
+#endif
 }
 EXPORT_SYMBOL(rknpu_devfreq_remove);

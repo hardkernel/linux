@@ -31,11 +31,6 @@
 #define RKNPU_OFFSET_INT_STATUS 0x28
 #define RKNPU_OFFSET_INT_RAW_STATUS 0x2c
 
-#define RKNPU_OFFSET_CLR_ALL_RW_AMOUNT 0x8010
-#define RKNPU_OFFSET_DT_WR_AMOUNT 0x8034
-#define RKNPU_OFFSET_DT_RD_AMOUNT 0x8038
-#define RKNPU_OFFSET_WT_RD_AMOUNT 0x803c
-
 #define RKNPU_OFFSET_ENABLE_MASK 0xf008
 
 #define RKNPU_INT_CLEAR 0x1ffff
@@ -44,10 +39,10 @@
 
 #define RKNPU_STR_HELPER(x) #x
 
-#define RKNPU_GET_DRV_VERSION_STRING(MAJOR, MINOR, PATCHLEVEL)                 \
-	RKNPU_STR_HELPER(MAJOR)                                                \
+#define RKNPU_GET_DRV_VERSION_STRING(MAJOR, MINOR, PATCHLEVEL) \
+	RKNPU_STR_HELPER(MAJOR)                                \
 	"." RKNPU_STR_HELPER(MINOR) "." RKNPU_STR_HELPER(PATCHLEVEL)
-#define RKNPU_GET_DRV_VERSION_CODE(MAJOR, MINOR, PATCHLEVEL)                   \
+#define RKNPU_GET_DRV_VERSION_CODE(MAJOR, MINOR, PATCHLEVEL) \
 	(MAJOR * 10000 + MINOR * 100 + PATCHLEVEL)
 #define RKNPU_GET_DRV_VERSION_MAJOR(CODE) (CODE / 10000)
 #define RKNPU_GET_DRV_VERSION_MINOR(CODE) ((CODE % 10000) / 100)
@@ -67,7 +62,7 @@ enum e_rknpu_mem_type {
 	RKNPU_MEM_WRITE_COMBINE = 1 << 2,
 	/* dma attr kernel mapping */
 	RKNPU_MEM_KERNEL_MAPPING = 1 << 3,
-	/* iommu mapping */
+	/* IOMMU mapping */
 	RKNPU_MEM_IOMMU = 1 << 4,
 	/* zero mapping */
 	RKNPU_MEM_ZEROING = 1 << 5,
@@ -79,19 +74,22 @@ enum e_rknpu_mem_type {
 	RKNPU_MEM_TRY_ALLOC_SRAM = 1 << 8,
 	/* request NBUF */
 	RKNPU_MEM_TRY_ALLOC_NBUF = 1 << 9,
+	/* IOMMU limiting IOVA alignment */
+	RKNPU_MEM_IOMMU_LIMIT_IOVA_ALIGNMENT = 1 << 10,
 	RKNPU_MEM_MASK = RKNPU_MEM_NON_CONTIGUOUS | RKNPU_MEM_CACHEABLE |
 			 RKNPU_MEM_WRITE_COMBINE | RKNPU_MEM_KERNEL_MAPPING |
 			 RKNPU_MEM_IOMMU | RKNPU_MEM_ZEROING |
 			 RKNPU_MEM_SECURE | RKNPU_MEM_DMA32 |
-			 RKNPU_MEM_TRY_ALLOC_SRAM | RKNPU_MEM_TRY_ALLOC_NBUF
+			 RKNPU_MEM_TRY_ALLOC_SRAM | RKNPU_MEM_TRY_ALLOC_NBUF |
+			 RKNPU_MEM_IOMMU_LIMIT_IOVA_ALIGNMENT
 };
 
 /* sync mode definitions. */
 enum e_rknpu_mem_sync_mode {
 	RKNPU_MEM_SYNC_TO_DEVICE = 1 << 0,
 	RKNPU_MEM_SYNC_FROM_DEVICE = 1 << 1,
-	RKNPU_MEM_SYNC_MASK =
-		RKNPU_MEM_SYNC_TO_DEVICE | RKNPU_MEM_SYNC_FROM_DEVICE
+	RKNPU_MEM_SYNC_MASK = RKNPU_MEM_SYNC_TO_DEVICE |
+			      RKNPU_MEM_SYNC_FROM_DEVICE
 };
 
 /* job mode definitions. */
@@ -134,6 +132,8 @@ enum e_rknpu_action {
 	RKNPU_POWER_OFF = 21,
 	RKNPU_GET_TOTAL_SRAM_SIZE = 22,
 	RKNPU_GET_FREE_SRAM_SIZE = 23,
+	RKNPU_GET_IOMMU_DOMAIN_ID = 24,
+	RKNPU_SET_IOMMU_DOMAIN_ID = 25,
 };
 
 /**
@@ -147,6 +147,8 @@ enum e_rknpu_action {
  * @dma_addr: dma address that access by rknpu.
  * @sram_size: user-desired sram memory allocation size.
  *  - this size value would be page-aligned internally.
+ * @iommu_domain_id: iommu domain id
+ * @reserved: just padding to be 64-bit aligned.
  */
 struct rknpu_mem_create {
 	__u32 handle;
@@ -155,6 +157,8 @@ struct rknpu_mem_create {
 	__u64 obj_addr;
 	__u64 dma_addr;
 	__u64 sram_size;
+	__s32 iommu_domain_id;
+	__u32 core_mask;
 };
 
 /**
@@ -249,7 +253,8 @@ struct rknpu_subcore_task {
  * @task_counter: task counter
  * @priority: submit priority
  * @task_obj_addr: address of task object
- * @regcfg_obj_addr: address of register config object
+ * @iommu_domain_id: iommu domain id
+ * @reserved: just padding to be 64-bit aligned.
  * @task_base_addr: task base address
  * @hw_elapse_time: hardware elapse time
  * @core_mask: core mask of rknpu
@@ -265,7 +270,8 @@ struct rknpu_submit {
 	__u32 task_counter;
 	__s32 priority;
 	__u64 task_obj_addr;
-	__u64 regcfg_obj_addr;
+	__u32 iommu_domain_id;
+	__u32 reserved;
 	__u64 task_base_addr;
 	__s64 hw_elapse_time;
 	__u32 core_mask;
@@ -299,25 +305,25 @@ struct rknpu_action {
 
 #include <drm/drm.h>
 
-#define DRM_IOCTL_RKNPU_ACTION                                                 \
+#define DRM_IOCTL_RKNPU_ACTION \
 	DRM_IOWR(DRM_COMMAND_BASE + RKNPU_ACTION, struct rknpu_action)
-#define DRM_IOCTL_RKNPU_SUBMIT                                                 \
+#define DRM_IOCTL_RKNPU_SUBMIT \
 	DRM_IOWR(DRM_COMMAND_BASE + RKNPU_SUBMIT, struct rknpu_submit)
-#define DRM_IOCTL_RKNPU_MEM_CREATE                                             \
+#define DRM_IOCTL_RKNPU_MEM_CREATE \
 	DRM_IOWR(DRM_COMMAND_BASE + RKNPU_MEM_CREATE, struct rknpu_mem_create)
-#define DRM_IOCTL_RKNPU_MEM_MAP                                                \
+#define DRM_IOCTL_RKNPU_MEM_MAP \
 	DRM_IOWR(DRM_COMMAND_BASE + RKNPU_MEM_MAP, struct rknpu_mem_map)
-#define DRM_IOCTL_RKNPU_MEM_DESTROY                                            \
+#define DRM_IOCTL_RKNPU_MEM_DESTROY \
 	DRM_IOWR(DRM_COMMAND_BASE + RKNPU_MEM_DESTROY, struct rknpu_mem_destroy)
-#define DRM_IOCTL_RKNPU_MEM_SYNC                                               \
+#define DRM_IOCTL_RKNPU_MEM_SYNC \
 	DRM_IOWR(DRM_COMMAND_BASE + RKNPU_MEM_SYNC, struct rknpu_mem_sync)
 
 #define IOCTL_RKNPU_ACTION RKNPU_IOWR(RKNPU_ACTION, struct rknpu_action)
 #define IOCTL_RKNPU_SUBMIT RKNPU_IOWR(RKNPU_SUBMIT, struct rknpu_submit)
-#define IOCTL_RKNPU_MEM_CREATE                                                 \
+#define IOCTL_RKNPU_MEM_CREATE \
 	RKNPU_IOWR(RKNPU_MEM_CREATE, struct rknpu_mem_create)
 #define IOCTL_RKNPU_MEM_MAP RKNPU_IOWR(RKNPU_MEM_MAP, struct rknpu_mem_map)
-#define IOCTL_RKNPU_MEM_DESTROY                                                \
+#define IOCTL_RKNPU_MEM_DESTROY \
 	RKNPU_IOWR(RKNPU_MEM_DESTROY, struct rknpu_mem_destroy)
 #define IOCTL_RKNPU_MEM_SYNC RKNPU_IOWR(RKNPU_MEM_SYNC, struct rknpu_mem_sync)
 

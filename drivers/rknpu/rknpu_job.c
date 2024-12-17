@@ -14,8 +14,9 @@
 #include "rknpu_reset.h"
 #include "rknpu_gem.h"
 #include "rknpu_fence.h"
-#include "rknpu_job.h"
 #include "rknpu_mem.h"
+#include "rknpu_iommu.h"
+#include "rknpu_job.h"
 
 #define _REG_READ(base, offset) readl(base + (offset))
 #define _REG_WRITE(base, value, offset) writel(value, base + (offset))
@@ -128,6 +129,7 @@ static inline struct rknpu_job *rknpu_job_alloc(struct rknpu_device *rknpu_dev,
 						struct rknpu_submit *args)
 {
 	struct rknpu_job *job = NULL;
+	int i = 0;
 #ifdef CONFIG_ROCKCHIP_RKNPU_DRM_GEM
 	struct rknpu_gem_object *task_obj = NULL;
 #endif
@@ -143,6 +145,9 @@ static inline struct rknpu_job *rknpu_job_alloc(struct rknpu_device *rknpu_dev,
 			    ((args->core_mask & RKNPU_CORE2_MASK) >> 2);
 	atomic_set(&job->run_count, job->use_core_num);
 	atomic_set(&job->interrupt_count, job->use_core_num);
+	job->iommu_domain_id = args->iommu_domain_id;
+	for (i = 0; i < rknpu_dev->config->num_irqs; i++)
+		atomic_set(&job->submit_count[i], 0);
 #ifdef CONFIG_ROCKCHIP_RKNPU_DRM_GEM
 	task_obj = (struct rknpu_gem_object *)(uintptr_t)args->task_obj_addr;
 	if (task_obj)
@@ -205,8 +210,10 @@ static inline int rknpu_job_wait(struct rknpu_job *job)
 					(elapse_time_us < args->timeout * 1000);
 			spin_unlock_irqrestore(&rknpu_dev->irq_lock, flags);
 			LOG_ERROR(
-				"job: %p, wait_count: %d, continue wait: %d, commit elapse time: %lldus, wait time: %lldus, timeout: %uus\n",
-				job, wait_count, continue_wait,
+				"job: %p, mask: %#x, job iommu domain id: %d, dev iommu domain id: %d, wait_count: %d, continue wait: %d, commit elapse time: %lldus, wait time: %lldus, timeout: %uus\n",
+				job, args->core_mask, job->iommu_domain_id,
+				rknpu_dev->iommu_domain_id, wait_count,
+				continue_wait,
 				(job->hw_commit_time == 0 ? 0 : elapse_time_us),
 				ktime_us_delta(ktime_get(), job->timestamp),
 				args->timeout * 1000);
@@ -446,9 +453,8 @@ static void rknpu_job_next(struct rknpu_device *rknpu_dev, int core_index)
 	job->hw_recoder_time = job->hw_commit_time;
 	spin_unlock_irqrestore(&rknpu_dev->irq_lock, flags);
 
-	if (atomic_dec_and_test(&job->run_count)) {
+	if (atomic_dec_and_test(&job->run_count))
 		rknpu_job_commit(job);
-	}
 }
 
 static void rknpu_job_done(struct rknpu_job *job, int ret, int core_index)
@@ -478,6 +484,8 @@ static void rknpu_job_done(struct rknpu_job *job, int ret, int core_index)
 
 	if (atomic_dec_and_test(&job->interrupt_count)) {
 		int use_core_num = job->use_core_num;
+
+		rknpu_iommu_domain_put(rknpu_dev);
 
 		job->flags |= RKNPU_JOB_DONE;
 		job->ret = ret;
@@ -529,6 +537,11 @@ static void rknpu_job_schedule(struct rknpu_job *job)
 		atomic_set(&job->interrupt_count, job->use_core_num);
 	}
 
+	if (rknpu_iommu_domain_get_and_switch(rknpu_dev, job->iommu_domain_id)) {
+		job->ret = -EINVAL;
+		return;
+	}
+
 	spin_lock_irqsave(&rknpu_dev->irq_lock, flags);
 	for (i = 0; i < rknpu_dev->config->num_irqs; i++) {
 		if (job->args->core_mask & rknpu_core_mask(i)) {
@@ -551,6 +564,8 @@ static void rknpu_job_abort(struct rknpu_job *job)
 	struct rknpu_subcore_data *subcore_data = NULL;
 	unsigned long flags;
 	int i = 0;
+
+	rknpu_iommu_domain_put(rknpu_dev);
 
 	msleep(100);
 
@@ -885,11 +900,6 @@ int rknpu_get_bw_priority(struct rknpu_device *rknpu_dev, uint32_t *priority,
 {
 	void __iomem *base = rknpu_dev->bw_priority_base;
 
-	if (!rknpu_dev->config->bw_enable) {
-		LOG_WARN("Get bw_priority is not supported on this device!\n");
-		return 0;
-	}
-
 	if (!base)
 		return -EINVAL;
 
@@ -914,11 +924,6 @@ int rknpu_set_bw_priority(struct rknpu_device *rknpu_dev, uint32_t priority,
 {
 	void __iomem *base = rknpu_dev->bw_priority_base;
 
-	if (!rknpu_dev->config->bw_enable) {
-		LOG_WARN("Set bw_priority is not supported on this device!\n");
-		return 0;
-	}
-
 	if (!base)
 		return -EINVAL;
 
@@ -941,28 +946,41 @@ int rknpu_set_bw_priority(struct rknpu_device *rknpu_dev, uint32_t priority,
 int rknpu_clear_rw_amount(struct rknpu_device *rknpu_dev)
 {
 	void __iomem *rknpu_core_base = rknpu_dev->base[0];
+	const struct rknpu_config *config = rknpu_dev->config;
 	unsigned long flags;
 
-	if (!rknpu_dev->config->bw_enable) {
+	if (config->amount_top == NULL) {
 		LOG_WARN("Clear rw_amount is not supported on this device!\n");
 		return 0;
 	}
 
-	if (rknpu_dev->config->pc_dma_ctrl) {
+	if (config->pc_dma_ctrl) {
 		uint32_t pc_data_addr = 0;
 
 		spin_lock_irqsave(&rknpu_dev->irq_lock, flags);
 		pc_data_addr = REG_READ(RKNPU_OFFSET_PC_DATA_ADDR);
 
 		REG_WRITE(0x1, RKNPU_OFFSET_PC_DATA_ADDR);
-		REG_WRITE(0x80000101, RKNPU_OFFSET_CLR_ALL_RW_AMOUNT);
-		REG_WRITE(0x00000101, RKNPU_OFFSET_CLR_ALL_RW_AMOUNT);
+		REG_WRITE(0x80000101, config->amount_top->offset_clr_all);
+		REG_WRITE(0x00000101, config->amount_top->offset_clr_all);
+		if (config->amount_core) {
+			REG_WRITE(0x80000101,
+				  config->amount_core->offset_clr_all);
+			REG_WRITE(0x00000101,
+				  config->amount_core->offset_clr_all);
+		}
 		REG_WRITE(pc_data_addr, RKNPU_OFFSET_PC_DATA_ADDR);
 		spin_unlock_irqrestore(&rknpu_dev->irq_lock, flags);
 	} else {
 		spin_lock(&rknpu_dev->lock);
-		REG_WRITE(0x80000101, RKNPU_OFFSET_CLR_ALL_RW_AMOUNT);
-		REG_WRITE(0x00000101, RKNPU_OFFSET_CLR_ALL_RW_AMOUNT);
+		REG_WRITE(0x80000101, config->amount_top->offset_clr_all);
+		REG_WRITE(0x00000101, config->amount_top->offset_clr_all);
+		if (config->amount_core) {
+			REG_WRITE(0x80000101,
+				  config->amount_core->offset_clr_all);
+			REG_WRITE(0x00000101,
+				  config->amount_core->offset_clr_all);
+		}
 		spin_unlock(&rknpu_dev->lock);
 	}
 
@@ -973,23 +991,42 @@ int rknpu_get_rw_amount(struct rknpu_device *rknpu_dev, uint32_t *dt_wr,
 			uint32_t *dt_rd, uint32_t *wd_rd)
 {
 	void __iomem *rknpu_core_base = rknpu_dev->base[0];
-	int amount_scale = rknpu_dev->config->pc_data_amount_scale;
+	const struct rknpu_config *config = rknpu_dev->config;
+	int amount_scale = config->pc_data_amount_scale;
 
-	if (!rknpu_dev->config->bw_enable) {
+	if (config->amount_top == NULL) {
 		LOG_WARN("Get rw_amount is not supported on this device!\n");
 		return 0;
 	}
 
 	spin_lock(&rknpu_dev->lock);
 
-	if (dt_wr != NULL)
-		*dt_wr = REG_READ(RKNPU_OFFSET_DT_WR_AMOUNT) * amount_scale;
+	if (dt_wr != NULL) {
+		*dt_wr = REG_READ(config->amount_top->offset_dt_wr) *
+			 amount_scale;
+		if (config->amount_core) {
+			*dt_wr += REG_READ(config->amount_core->offset_dt_wr) *
+				  amount_scale;
+		}
+	}
 
-	if (dt_rd != NULL)
-		*dt_rd = REG_READ(RKNPU_OFFSET_DT_RD_AMOUNT) * amount_scale;
+	if (dt_rd != NULL) {
+		*dt_rd = REG_READ(config->amount_top->offset_dt_rd) *
+			 amount_scale;
+		if (config->amount_core) {
+			*dt_rd += REG_READ(config->amount_core->offset_dt_rd) *
+				  amount_scale;
+		}
+	}
 
-	if (wd_rd != NULL)
-		*wd_rd = REG_READ(RKNPU_OFFSET_WT_RD_AMOUNT) * amount_scale;
+	if (wd_rd != NULL) {
+		*wd_rd = REG_READ(config->amount_top->offset_wt_rd) *
+			 amount_scale;
+		if (config->amount_core) {
+			*wd_rd += REG_READ(config->amount_core->offset_wt_rd) *
+				  amount_scale;
+		}
+	}
 
 	spin_unlock(&rknpu_dev->lock);
 
@@ -998,12 +1035,13 @@ int rknpu_get_rw_amount(struct rknpu_device *rknpu_dev, uint32_t *dt_wr,
 
 int rknpu_get_total_rw_amount(struct rknpu_device *rknpu_dev, uint32_t *amount)
 {
+	const struct rknpu_config *config = rknpu_dev->config;
 	uint32_t dt_wr = 0;
 	uint32_t dt_rd = 0;
 	uint32_t wd_rd = 0;
 	int ret = -EINVAL;
 
-	if (!rknpu_dev->config->bw_enable) {
+	if (config->amount_top == NULL) {
 		LOG_WARN(
 			"Get total_rw_amount is not supported on this device!\n");
 		return 0;
