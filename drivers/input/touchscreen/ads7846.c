@@ -1126,6 +1126,16 @@ static int ads7846_setup_spi_msg(struct ads7846 *ts,
 	return 0;
 }
 
+static const struct spi_device_id ads7846_spi_ids[] = {
+	{ .name = "tsc2046" },
+	{ .name = "ads7843" },
+	{ .name = "ads7845" },
+	{ .name = "ads7846" },
+	{ .name = "ads7873" },
+	{},
+};
+MODULE_DEVICE_TABLE(spi, ads7846_spi_ids);
+
 #ifdef CONFIG_OF
 static const struct of_device_id ads7846_dt_ids[] = {
 	{ .compatible = "ti,tsc2046",	.data = (void *) 7846 },
@@ -1479,6 +1489,7 @@ static struct spi_driver ads7846_driver = {
 	},
 	.probe		= ads7846_probe,
 	.remove		= ads7846_remove,
+	.id_table	= ads7846_spi_ids,
 };
 
 module_spi_driver(ads7846_driver);
