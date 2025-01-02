@@ -158,9 +158,23 @@ ENDPROC(__und_invalid)
 #define SPFIX(code...)
 #endif
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	.macro	svc_entry, stack_hole=0, trace=1, uaccess=1, overflow_check=1, vmap=0
+#else
 	.macro	svc_entry, stack_hole=0, trace=1, uaccess=1, overflow_check=1
+#endif
  UNWIND(.fnstart		)
+#ifdef CONFIG_AMLOGIC_VMAP
+	.if \vmap
+	/* keep using stack of abt mode */
+	str     sp, [r0, #TI_VMAP_BACK_SP]
+	sub     sp, r0, #(SVC_REGS_SIZE + \stack_hole)
+	.else
+	sub     sp, sp, #(SVC_REGS_SIZE + \stack_hole)
+	.endif
+#else /* !CONFIG_AMLOGIC_VMAP */
 	sub	sp, sp, #(SVC_REGS_SIZE + \stack_hole)
+#endif /* CONFIG_AMLOGIC_VMAP */
  THUMB(	add	sp, r1		)	@ get SP in a GPR without
  THUMB(	sub	r1, sp, r1	)	@ using a temp register
 
@@ -169,6 +183,8 @@ ENDPROC(__und_invalid)
 	do_overflow_check (SVC_REGS_SIZE + \stack_hole)
 	.endif
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	.if !\vmap
 #ifdef CONFIG_THUMB2_KERNEL
 	tst	r1, #4			@ test stack pointer alignment
 	sub	r1, sp, r1		@ restore original R1
@@ -177,6 +193,17 @@ ENDPROC(__und_invalid)
  SPFIX(	tst	sp, #4		)
 #endif
  SPFIX(	subne	sp, sp, #4	)
+	.endif
+#else
+#ifdef CONFIG_THUMB2_KERNEL
+	tst	r1, #4			@ test stack pointer alignment
+	sub	r1, sp, r1		@ restore original R1
+	sub	sp, r1			@ restore original SP
+#else
+ SPFIX(	tst	sp, #4		)
+#endif
+ SPFIX(	subne	sp, sp, #4	)
+#endif /* CONFIG_AMLOGIC_VMAP */
 
  ARM(	stmib	sp, {r1 - r12}	)
  THUMB(	stmia	sp, {r0 - r12}	)	@ No STMIB in Thumb-2
@@ -184,8 +211,17 @@ ENDPROC(__und_invalid)
 	ldmia	r0, {r3 - r5}
 	add	r7, sp, #S_SP		@ here for interlock avoidance
 	mov	r6, #-1			@  ""  ""      ""       ""
+#ifdef CONFIG_AMLOGIC_VMAP
+	.if \vmap
+	ldr     r2, [sp, #(TI_VMAP_BACK_SP + SVC_REGS_SIZE)]
+	.else
 	add	r2, sp, #(SVC_REGS_SIZE + \stack_hole)
  SPFIX(	addne	r2, r2, #4	)
+	.endif
+#else
+	add	r2, sp, #(SVC_REGS_SIZE + \stack_hole)
+ SPFIX(	addne	r2, r2, #4	)
+#endif
 	str	r3, [sp]		@ save the "real" r0 copied
 					@ from the exception stack
 
@@ -202,6 +238,19 @@ ENDPROC(__und_invalid)
 	@
 	stmia	r7, {r2 - r6}
 
+#ifdef CONFIG_AMLOGIC_VMAP
+	.if \vmap
+	/*
+	 * get fault task thread info
+	 */
+	ldr	r0, [sp, #(SVC_REGS_SIZE + TI_VMAP_BACK_SP)]
+	/* sp may not access able when switch task */
+	mov	r1, r0
+	bl	pmd_check
+	get_thread_info tsk
+	.endif
+#endif
+
 	get_thread_info tsk
 	uaccess_entry tsk, r0, r1, r2, \uaccess
 
@@ -214,7 +263,34 @@ ENDPROC(__und_invalid)
 
 	.align	5
 __dabt_svc:
+#ifdef CONFIG_AMLOGIC_VMAP
+	svc_entry uaccess=0, vmap=1
+	mrc     p15, 0, r1, c5, c0, 0           @ get FSR
+	mrc     p15, 0, r0, c6, c0, 0           @ get FAR
+	mov     r2, sp
+	uaccess_disable ip                      @ disable user space access
+	bl      handle_vmap_fault
+	cmp     r0, #0
+	bne     .L__dabt_svc_next
+	/* handled by vmap fault handler */
+	svc_exit r5, vmap=1			@ return from exception
+.L__dabt_svc_next:
+	/* re-build context for normal abort handler */
+	ldr	r0, [sp, #(SVC_REGS_SIZE + TI_VMAP_BACK_SP)]
+	sub	r0, #SVC_REGS_SIZE
+	tst	r0, #4
+	subne	r0, r0, #4
+	mov	r1, sp
+	mov	r2, #SVC_REGS_SIZE
+#ifdef CONFIG_KASAN
+	bl	__memcpy		/* copy back sp	*/
+#else
+	bl	memcpy			/* copy back sp	*/
+#endif
+	mov	sp, r0
+#else
 	svc_entry uaccess=0
+#endif
 	mov	r2, sp
 	dabt_helper
  THUMB(	ldr	r5, [sp, #S_PSR]	)	@ potentially updated CPSR
@@ -291,10 +367,30 @@ ENDPROC(__und_svc)
 
 	.align	5
 __pabt_svc:
+#ifdef CONFIG_AMLOGIC_VMAP
+	svc_entry vmap=1	/* keep using abt stack */
+	/* re-build context for normal abort handler */
+	ldr	r0, [sp, #(SVC_REGS_SIZE + TI_VMAP_BACK_SP)]
+	sub	r0, #SVC_REGS_SIZE
+	tst	r0, #4
+	subne	r0, r0, #4
+	mov	r1, sp
+	mov	r2, #SVC_REGS_SIZE
+#ifdef CONFIG_KASAN
+	bl	__memcpy		/* copy back sp	*/
+#else
+	bl	memcpy			/* copy back sp	*/
+#endif
+	mov	sp, r0
+	mov	r2, sp				@ regs
+	pabt_helper
+	svc_exit r5				@ return from exception
+#else
 	svc_entry
 	mov	r2, sp				@ regs
 	pabt_helper
 	svc_exit r5				@ return from exception
+#endif
  UNWIND(.fnend		)
 ENDPROC(__pabt_svc)
 
@@ -525,6 +621,7 @@ ENTRY(__switch_to)
 	ldr	r6, [r2, #TI_CPU_DOMAIN]
 #endif
 	switch_tls r1, r4, r5, r3, r7
+#ifndef CONFIG_AMLOGIC_STACKPROTECTOR
 #if defined(CONFIG_STACKPROTECTOR) && !defined(CONFIG_SMP) && \
     !defined(CONFIG_STACKPROTECTOR_PER_TASK)
 	ldr	r8, =__stack_chk_guard
@@ -535,6 +632,7 @@ ENTRY(__switch_to)
 	ldr	r9, [r2, #TSK_STACK_CANARY & IMM12_MASK]
 	.endif
 #endif
+#endif /* CONFIG_AMLOGIC_STACKPROTECTOR */
 	mov	r7, r2				@ Preserve 'next'
 #ifdef CONFIG_CPU_USE_DOMAINS
 	mcr	p15, 0, r6, c3, c0, 0		@ Set domain register
@@ -544,10 +642,12 @@ ENTRY(__switch_to)
 	ldr	r0, =thread_notify_head
 	mov	r1, #THREAD_NOTIFY_SWITCH
 	bl	atomic_notifier_call_chain
+#ifndef CONFIG_AMLOGIC_STACKPROTECTOR
 #if defined(CONFIG_STACKPROTECTOR) && !defined(CONFIG_SMP) && \
     !defined(CONFIG_STACKPROTECTOR_PER_TASK)
 	str	r9, [r8]
 #endif
+#endif /* CONFIG_AMLOGIC_STACKPROTECTOR */
 	mov	r0, r5
 #if !defined(CONFIG_THUMB2_KERNEL) && !defined(CONFIG_VMAP_STACK)
 	set_current r7, r8

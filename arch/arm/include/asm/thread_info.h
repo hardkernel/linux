@@ -23,7 +23,18 @@
 #define THREAD_SIZE_ORDER	1
 #endif
 #define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
+
+#ifdef CONFIG_AMLOGIC_VMAP
+/* must align up to 8 bytes */
+//#define THREAD_INFO_SIZE        ((sizeof(struct thread_info) + 7) & 0xfffffff8)
+#define THREAD_INFO_SIZE        0
+#define THREAD_INFO_OFFSET      (THREAD_SIZE - THREAD_INFO_SIZE)
+#define THREAD_START_SP         (THREAD_SIZE - 8 - THREAD_INFO_SIZE)
+#define VMAP_RESERVE_SIZE       (8 + 4 * 4)
+#define VMAP_BACK_SP            12
+#else
 #define THREAD_START_SP		(THREAD_SIZE - 8)
+#endif
 
 #ifdef CONFIG_VMAP_STACK
 #define THREAD_ALIGN		(2 * THREAD_SIZE)
