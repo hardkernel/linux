@@ -167,10 +167,7 @@
 
 	rk_headset: rk-headset {
 		compatible = "rockchip_headset";
-		headset_gpio = <&gpio4 RK_PC4 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&hp_det>;
-		io-channels = <&saradc 3>;	//HP_HOOK
+		status = "disabled";
 	};
 
 	rk3566-gpiomem {
@@ -1146,12 +1143,6 @@
 				<3 RK_PD6 3 &pcfg_pull_none_drv_level_15>,
 				/* gmac1_txd3m1 */
 				<3 RK_PD7 3 &pcfg_pull_none_drv_level_15>;
-		};
-	};
-
-	headphone {
-		hp_det: hp-det {
-			rockchip,pins = <4 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
