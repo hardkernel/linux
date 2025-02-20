@@ -333,7 +333,27 @@ config ARCH_MESON_ODROID_COMMON
 
 config ARCH_MESON_ODROIDC5
 	bool "Hardkernel's ODROID-C5 Single Board Computer"
+	select AMLOGIC_AMLOGIC_THERMAL
+	select AMLOGIC_COMMON_CLK
+	select AMLOGIC_COMMON_CLK_G12A
+	select AMLOGIC_COMMON_CLK_S7D
+	select AMLOGIC_CPU_INFO
+	select AMLOGIC_HWSPINLOCK
+	select AMLOGIC_MESON_CPUFREQ
+	select AMLOGIC_MHU_MBOX
+	select AMLOGIC_MMC_MESON_GX
+	select AMLOGIC_PINCTRL_MESON_S7D
+	select AMLOGIC_POWER
+	select AMLOGIC_RESET_MESON
+	select AMLOGIC_SECMON
 	select ARCH_MESON_ODROID_COMMON
+	select ARM_SCMI_CPUFREQ
+	select ARM_SCPI_CPUFREQ
+	select COMMON_CLK_SCMI
+	select DMABUF_HEAPS_SYSTEM
+	select MMC_CQHCI
+	select REGULATOR_GPIO
+	select REGULATOR_PWM
 	help
 	  This enables support for the board ODROID-C5 of Hardkernel
 	  which is based on ARMv7 SoC of Amlogic.
