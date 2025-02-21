@@ -4871,7 +4871,7 @@ CONFIG_HID_WIIMOTE=y
 # CONFIG_HID_ZYDACRON is not set
 # CONFIG_HID_SENSOR_HUB is not set
 # CONFIG_HID_ALPS is not set
-# CONFIG_HID_MCP2221 is not set
+CONFIG_HID_MCP2221=y
 # end of Special HID drivers
 
 #
