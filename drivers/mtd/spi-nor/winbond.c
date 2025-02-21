@@ -102,6 +102,9 @@ static const struct flash_info winbond_parts[] = {
 			    SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_DUAL_READ) },
 	{ "w25q512jvq", INFO(0xef4020, 0, 64 * 1024, 1024,
 			     SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+#ifdef	CONFIG_AMLOGIC_MODIFY
+	{ "W25X40CL", INFO(0xEF3013, 0x0, 64 * 1024,  8, SECT_4K) },
+#endif
 };
 
 /**
