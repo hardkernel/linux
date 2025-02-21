@@ -50,6 +50,9 @@ static const struct flash_info gigadevice_parts[] = {
 			   SPI_NOR_4B_OPCODES | SPI_NOR_HAS_LOCK |
 			   SPI_NOR_HAS_TB | SPI_NOR_TB_SR_BIT6)
 		.fixups = &gd25q256_fixups },
+#ifdef	CONFIG_AMLOGIC_MODIFY
+	{ "GD25Q40C", INFO(0xC84013, 0x0, 64 * 1024,  8, SECT_4K) },
+#endif
 };
 
 const struct spi_nor_manufacturer spi_nor_gigadevice = {
