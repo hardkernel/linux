@@ -351,9 +351,12 @@ config ARCH_MESON_ODROIDC5
 	select ARM_SCPI_CPUFREQ
 	select COMMON_CLK_SCMI
 	select DMABUF_HEAPS_SYSTEM
+	select LEDS_TRIGGER_DEFAULT_ON
+	select LEDS_TRIGGER_HEARTBEAT
 	select MMC_CQHCI
 	select REGULATOR_GPIO
 	select REGULATOR_PWM
+
 	help
 	  This enables support for the board ODROID-C5 of Hardkernel
 	  which is based on ARMv7 SoC of Amlogic.
