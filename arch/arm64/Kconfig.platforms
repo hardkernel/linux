@@ -402,7 +402,10 @@ config ARCH_MESON_ODROID_COMMON
 config ARCH_MESON_ODROIDC5
 	bool "Hardkernel's ODROID-C5 Single Board Computer"
 	select ARCH_MESON_ODROID_COMMON
+	select LEDS_TRIGGER_DEFAULT_ON
+	select LEDS_TRIGGER_HEARTBEAT
 	select PM_GENERIC_DOMAINS
+
 	help
 	  This enables support for the board ODROID-C5 of Hardkernel
 	  which is based on ARMv7 SoC of Amlogic.
