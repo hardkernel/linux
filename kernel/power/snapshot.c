@@ -995,8 +995,16 @@ void __init register_nosave_region(unsigned long start_pfn, unsigned long end_pf
 		}
 	}
 	/* This allocation cannot fail */
+#ifndef CONFIG_AMLOGIC_STD
 	region = memblock_alloc(sizeof(struct nosave_region),
 				SMP_CACHE_BYTES);
+#else
+	if(!slab_is_available())
+		region = memblock_alloc(sizeof(struct nosave_region),
+				SMP_CACHE_BYTES);
+	else
+		region = kzalloc(sizeof(struct nosave_region), GFP_KERNEL);
+#endif
 	if (!region)
 		panic("%s: Failed to allocate %zu bytes\n", __func__,
 		      sizeof(struct nosave_region));
@@ -1733,7 +1741,11 @@ int hibernate_preallocate_memory(void)
 {
 	struct zone *zone;
 	unsigned long saveable, size, max_size, count, highmem, pages = 0;
+#ifdef CONFIG_AMLOGIC_STD
+	unsigned long alloc, save_highmem, pages_highmem, avail_normal, mini_pages;
+#else
 	unsigned long alloc, save_highmem, pages_highmem, avail_normal;
+#endif
 	ktime_t start, stop;
 	int error;
 
@@ -1798,6 +1810,9 @@ int hibernate_preallocate_memory(void)
 
 	/* Estimate the minimum size of the image. */
 	pages = minimum_image_size(saveable);
+#ifdef CONFIG_AMLOGIC_STD
+	mini_pages = pages;
+#endif
 	/*
 	 * To avoid excessive pressure on the normal zone, leave room in it to
 	 * accommodate an image of the minimum size (unless it's already too
@@ -1832,6 +1847,18 @@ int hibernate_preallocate_memory(void)
 	else
 		alloc = 0;
 	pages = preallocate_image_memory(alloc, avail_normal);
+#ifdef CONFIG_AMLOGIC_STD
+	/*
+	 * Define the mini_pages variable to be equivalent to the minimum size of
+	 * the std function to create an image. pages represents the maximum number
+	 * of pages that can be allocated. If pages is greater than mini_pages, it
+	 * means there is enough space to store the std image and the pre-allocation
+	 * is successful. Otherwise, it fails.
+	 */
+	if (pages >= mini_pages){
+		alloc = pages;
+	}
+#endif
 	if (pages < alloc) {
 		/* We have exhausted non-highmem pages, try highmem. */
 		alloc -= pages;

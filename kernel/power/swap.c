@@ -34,7 +34,16 @@
 
 #include "power.h"
 
+#ifdef CONFIG_AMLOGIC_STD
+/*
+ * If the std function needs to use the same image every time it resumes,
+ * then set HIBERNATE_SIG to "SWAPSPACE2". This way, every time it resumes,
+ * as long as it is "SWAPSPACE2", it will go through the wakeup process.
+ */
+#define HIBERNATE_SIG	"SWAPSPACE2"
+#else
 #define HIBERNATE_SIG	"S1SUSPEND"
+#endif
 
 /*
  * When reading an {un,}compressed image, we may restore pages in place,
