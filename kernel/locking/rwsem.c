@@ -28,6 +28,9 @@
 #include <linux/rwsem.h>
 #include <linux/atomic.h>
 #include <trace/events/lock.h>
+#ifdef CONFIG_AMLOGIC_PREEMPT_RT
+#include <trace/hooks/rwsem.h>
+#endif
 
 #ifndef CONFIG_PREEMPT_RT
 #include "lock_events.h"
