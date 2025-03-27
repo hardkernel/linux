@@ -1351,6 +1351,8 @@ static void rk817_of_property_prepare(struct rk808 *rk808, struct device *dev)
 	u32 inner;
 	int ret, func, msk, val;
 	struct device_node *np = dev->of_node;
+	int low_voltage_threshold;
+	int shutdown_voltage_threshold;
 
 	ret = of_property_read_u32_index(np, "fb-inner-reg-idxs", 0, &inner);
 	if (!ret && inner == RK817_ID_DCDC3)
@@ -1385,6 +1387,43 @@ static void rk817_of_property_prepare(struct rk808 *rk808, struct device *dev)
 	ret = register_reboot_notifier(&rk817_reboot_data.reboot_notifier);
 	if (ret)
 		dev_err(dev, "failed to register reboot nb\n");
+
+	ret = device_property_read_u32(dev,
+			"low_voltage_threshold", &low_voltage_threshold);
+	if (ret < 0) {
+		low_voltage_threshold = 0;
+		dev_info(dev, "low_voltage_threshold missing!\n");
+	} else {
+		if ((low_voltage_threshold > 3500) ||
+				(low_voltage_threshold < 2800)) {
+			dev_err(dev, "low_voltage_threshold out [2800 3500]!\n");
+			low_voltage_threshold = 2800;
+		}
+	}
+
+	if (low_voltage_threshold) {
+		regmap_update_bits(rk808->regmap, RK817_SYS_CFG(0), BIT(3), BIT(3));
+		regmap_update_bits(rk808->regmap, RK817_SYS_CFG(0), 0x07,
+				(low_voltage_threshold - 2800) / 100);
+	}
+
+	ret = device_property_read_u32(dev,
+			"shutdown_voltage_threshold", &shutdown_voltage_threshold);
+	if (ret < 0) {
+		shutdown_voltage_threshold = 0;
+		dev_info(dev, "shutdown_voltage_threshold missing!\n");
+	}
+
+	if ((shutdown_voltage_threshold > 3400) ||
+			(shutdown_voltage_threshold < 2700)) {
+		dev_err(dev, "shutdown_voltage_threshold out [2700 3400]!\n");
+		shutdown_voltage_threshold = 2700;
+	}
+
+	if (shutdown_voltage_threshold) {
+		regmap_update_bits(rk808->regmap, RK817_SYS_CFG(0), 0x7 << 4,
+				((shutdown_voltage_threshold - 2700) / 100) << 4);
+	}
 }
 
 static struct kobject *rk8xx_kobj;
