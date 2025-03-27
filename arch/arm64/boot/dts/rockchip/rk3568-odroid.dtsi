@@ -170,6 +170,13 @@
 	};
 };
 
+&rk809 {
+	/* 2800mv-3500mv */
+	low_voltage_threshold = <2800>;
+	/* 2700mv-3400mv */
+	shutdown_voltage_threshold = <2700>;
+};
+
 &rk809_codec {
 	#sound-dai-cells = <0>;
 	hp-volume = <3>;
