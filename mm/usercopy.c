@@ -195,7 +195,7 @@ static inline void check_heap_object(const void *ptr, unsigned long n,
 		/* Check slab allocator for flags and size. */
 		__check_heap_object(ptr, n, folio_slab(folio), to_user);
 	} else if (folio_test_large(folio)) {
-#ifdef CONFIG_AMLOGIC_MEMORY_EXTEND
+#ifdef CONFIG_AMLOGIC_MEMORY_SLAB_LARGE
 		if (unlikely(folio_test_owner_priv_1(folio)))
 			return;
 #endif
