@@ -33,6 +33,7 @@ dtbo-y += \
 	uart3.dtbo \
 	uart4.dtbo \
 	uart5.dtbo \
+	wdt.dtbo \
 	weather_board_zero.dtbo
 
 targets += $(dtbo-y)
