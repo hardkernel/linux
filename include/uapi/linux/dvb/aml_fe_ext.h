@@ -65,8 +65,9 @@ struct fe_blind_scan_parameters {
 #define DTV_SINGLE_CABLE_BANK           113
 #define DTV_SINGLE_CABLE_UNCOMMITTED    114
 #define DTV_SINGLE_CABLE_COMMITTED      115
+#define DTV_BLIND_SCAN_STEP_NEXT        116
 /* Blind scan end*/
-#define DTV_DELIVERY_SUB_SYSTEM			116
+#define DTV_DELIVERY_SUB_SYSTEM			117
 #define AML_DTV_MAX_COMMAND		DTV_DELIVERY_SUB_SYSTEM
 
 #define SYS_ANALOG		(SYS_DVBC_ANNEX_C + 1)
