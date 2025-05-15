@@ -929,6 +929,7 @@ static int rk817_shutdown_prepare(struct sys_off_data *data)
 	int ret = 0;
 	struct rk808 *rk808 = data->cb_data;
 
+#ifndef CONFIG_ARCH_ROCKCHIP_ODROID_COMMON
 	/* close rtc int when power off */
 	regmap_update_bits(rk808->regmap,
 			   RK817_INT_STS_MSK_REG0,
@@ -936,6 +937,7 @@ static int rk817_shutdown_prepare(struct sys_off_data *data)
 	regmap_update_bits(rk808->regmap,
 			   RK817_RTC_INT_REG,
 			   (0x3 << 2), (0x0 << 2));
+#endif
 
 	if (rk808->pins && rk808->pins->p && rk808->pins->power_off) {
 		ret = regmap_update_bits(rk808->regmap,
