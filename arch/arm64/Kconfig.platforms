@@ -349,8 +349,10 @@ config ARCH_MESON_ODROIDC5
 	select ARCH_MESON_ODROID_COMMON
 	select ARM_SCMI_CPUFREQ
 	select ARM_SCPI_CPUFREQ
+	select BACKLIGHT_PWM
 	select COMMON_CLK_SCMI
 	select DMABUF_HEAPS_SYSTEM
+	select DRM_LT8619C_QC4011
 	select GPIO_RESET_CONTROLLER
 	select I2C_CHARDEV
 	select LEDS_TRIGGER_DEFAULT_ON
@@ -358,6 +360,7 @@ config ARCH_MESON_ODROIDC5
 	select MMC_CQHCI
 	select REGULATOR_GPIO
 	select REGULATOR_PWM
+	select TOUCHSCREEN_GOODIX
 
 	help
 	  This enables support for the board ODROID-C5 of Hardkernel
