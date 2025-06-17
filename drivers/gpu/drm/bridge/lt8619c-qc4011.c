@@ -22,29 +22,9 @@
 
 #include <drm/drm_panel.h>
 
-#if 1
-
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_bridge.h>
-//- #include <drm/drm_dp_helper.h>
-//- #include <drm/drm_mipi_dsi.h>
-//- #include <drm/drm_of.h>
-//- #include <drm/drm_panel.h>
-//- #include <drm/drm_probe_helper.h>
-#define __need___va_list
-
-#else
-
-#include "drm_crtc.h"
-#include "drm_crtc_helper.h"
-#include "drm_atomic_helper.h"
-#include "drm_edid.h"
-#include "drmP.h"
-
-#endif
-
-
 
 #include "lt8619c.h"
 
@@ -75,7 +55,7 @@ uint8_t onchip_edid[256] = {
 	0x3d, 0x2f, 0x31, 0x07, 0x00, 0x0a, 0x20, 0x20,
 	0x20, 0x20, 0x20, 0x20, 0x00, 0x00, 0x00, 0xfc,
 	0x00, 0x48, 0x4b, 0x5f, 0x56, 0x55, 0x37, 0x43,
-	0x0a, 0x20, 0x20, 0x20, 0x20, 0x20, 0x00, 0x6a,
+	0x0a, 0x20, 0x20, 0x20, 0x20, 0x20, 0x01, 0x6a,
 
 	0x02, 0x03, 0x12, 0xf1, 0x23, 0x09, 0x07, 0x07,
 	0x83, 0x01, 0x00, 0x00, 0x65, 0x03, 0x0c, 0x00,
@@ -365,6 +345,7 @@ static void lt8619c_poweron(void)
 	/* calculate timing & set edid */
 	lt8619c_edid_calc(onchip_edid + 0x36, &lcd_timing);
 	onchip_edid[127] = lt8619c_edid_checksum(0, &onchip_edid[0]);
+	onchip_edid[255] = lt8619c_edid_checksum(1, &onchip_edid[0]);
 	lt8619c_set_edid(onchip_edid);
 
 	mdelay(100);
