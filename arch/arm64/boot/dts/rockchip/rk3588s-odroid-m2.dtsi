@@ -99,11 +99,11 @@
 			"Headphone Jack", "HPOR";
 		simple-audio-card,cpu {
 			sound-dai = <&i2s0_8ch>;
-			system-clock-frequency = <11289600>;
+			system-clock-frequency = <12288000>;
 		};
 		simple-audio-card,codec {
 			sound-dai = <&es8316>;
-			system-clock-frequency = <11289600>;
+			system-clock-frequency = <12288000>;
 		};
 	};
 
