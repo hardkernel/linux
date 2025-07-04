@@ -1232,7 +1232,7 @@ static int imx219_probe(struct i2c_client *client,
 		return -EPROBE_DEFER;
 	}
 
-	/* 1920 * 1080 by default */
+	/* 3280 * 2464 by default */
 	priv->cur_mode = &supported_modes[1];
 	priv->cfg_num = ARRAY_SIZE(supported_modes);
 
