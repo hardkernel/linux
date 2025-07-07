@@ -332,6 +332,8 @@ config ARCH_ROCKCHIP_ODROIDM1
 config ARCH_ROCKCHIP_ODROIDM2
 	bool "Hardkernel's ODROID-M2 Single Board Computer"
 	select ARCH_ROCKCHIP_ODROID_COMMON
+	select ROCKCHIP_MPP_RKVENC
+	select ROCKCHIP_MPP_RKVENC2
 	help
 	  This enables support for the board ODROID-M2 of Hardkernel
 	  which is based on ARMv8 SoC of Rockchip, Inc.
