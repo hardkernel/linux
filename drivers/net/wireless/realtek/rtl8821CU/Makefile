@@ -1,3 +1,5 @@
+src := $(srctree)/drivers/net/wireless/realtek/rtl8821CU
+
 ccflags-y += $(USER_EXTRA_CFLAGS)
 ccflags-y += -O1
 #ccflags-y += -O3
