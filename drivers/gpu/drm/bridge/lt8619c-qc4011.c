@@ -19,6 +19,9 @@
 #include <linux/i2c.h>
 #include <linux/regmap.h>
 #include <linux/module.h>
+#include <linux/backlight.h>
+#include <linux/err.h>
+#include <linux/pwm.h>
 
 #include <drm/drm_panel.h>
 
@@ -26,10 +29,13 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_bridge.h>
 
+#if (defined(CONFIG_AMLOGIC_HDMITX) || defined(CONFIG_AMLOGIC_HDMITX21))
+#include <linux/amlogic/media/vout/hdmi_tx_ext.h>
+#endif
+
 #include "lt8619c.h"
 
 static struct _LT8619C_RXStatus RXStat, *pRXStat;
-
 static uint16_t h_active, v_active;
 static uint16_t h_syncwidth, v_syncwidth;
 static uint16_t h_bkporch, v_bkporch;
@@ -37,25 +43,28 @@ static uint16_t h_total, v_total;
 static uint8_t h_syncpol, v_syncpol;
 static uint32_t frame_counter;
 
+#define LT8619C_MAX_BRIGHTNESS 100
+#define LT8619C_DEFAULT_BRIGHTNESS 80
+
 /* onchip EDID */
 uint8_t onchip_edid[256] = {
-	/* 1024*768 */
+	/* 1024*600 */
 	0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
-	0x21, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x08, 0x20, 0x01, 0x03, 0x80, 0x10, 0x09, 0x78,
-	0xea, 0x5e, 0xc0, 0xa4, 0x59, 0x4a, 0x98, 0x25,
-	0x20, 0x50, 0x54, 0x00, 0x08, 0x00, 0x61, 0x40,
+	0x21, 0x64, 0x12, 0x00, 0x00, 0x88, 0x88, 0x88,
+	0x20, 0x22, 0x01, 0x03, 0x80, 0x1d, 0x0b, 0x78,
+	0x0a, 0x0d, 0xc9, 0xa0, 0x57, 0x47, 0x98, 0x27,
+	0x12, 0x48, 0x4c, 0x00, 0x00, 0x00, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x64, 0x19,
-	0x00, 0x40, 0x41, 0x00, 0x26, 0x30, 0x08, 0x90,
-	0x36, 0x00, 0x63, 0x0a, 0x11, 0x00, 0x00, 0x18,
-	0x00, 0x00, 0x00, 0xff, 0x00, 0x4c, 0x69, 0x6e,
-	0x75, 0x78, 0x20, 0x23, 0x30, 0x0a, 0x20, 0x20,
-	0x20, 0x20, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x3b,
-	0x3d, 0x2f, 0x31, 0x07, 0x00, 0x0a, 0x20, 0x20,
-	0x20, 0x20, 0x20, 0x20, 0x00, 0x00, 0x00, 0xfc,
-	0x00, 0x48, 0x4b, 0x5f, 0x56, 0x55, 0x37, 0x43,
-	0x0a, 0x20, 0x20, 0x20, 0x20, 0x20, 0x01, 0x6a,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x14,
+	0x00, 0x40, 0x41, 0x58, 0x23, 0x20, 0x08, 0x90,
+	0x36, 0x00, 0x80, 0x38, 0x74, 0x00, 0x00, 0x1c,
+	0x00, 0x00, 0x00, 0xfc, 0x00, 0x48, 0x61, 0x72,
+	0x64, 0x6b, 0x65, 0x72, 0x6e, 0x65, 0x6c, 0x20,
+	0x20, 0x20, 0x00, 0x00, 0x00, 0xfc, 0x00, 0x4f,
+	0x44, 0x52, 0x4f, 0x49, 0x44, 0x2d, 0x56, 0x55,
+	0x37, 0x43, 0x20, 0x20, 0x00, 0x00, 0x00, 0xff,
+	0x00, 0x32, 0x30, 0x32, 0x35, 0x2e, 0x30, 0x37,
+	0x2e, 0x31, 0x35, 0x2e, 0x56, 0x31, 0x01, 0x4a,
 
 	0x02, 0x03, 0x12, 0xf1, 0x23, 0x09, 0x07, 0x07,
 	0x83, 0x01, 0x00, 0x00, 0x65, 0x03, 0x0c, 0x00,
@@ -86,12 +95,11 @@ struct lt8619c {
 	struct device *dev;
 	struct regmap *regmap;
 
-	struct drm_bridge bridge;
-	struct drm_connector connector;
-	struct drm_panel *panel;
-
 	struct i2c_client *client;
 	struct gpio_desc *gpiod_reset;
+
+	struct pwm_device	*pwm;
+	struct backlight_device *bl;
 };
 
 static struct lt8619c *lt8619c;
@@ -204,6 +212,15 @@ static void lt8619c_setHPD(uint8_t level)
 		lt8619c_reg_write(0x06, (lt8619c_reg_read(0x06)|0x08));
 	else
 		lt8619c_reg_write(0x06, (lt8619c_reg_read(0x06)&0xF7));
+}
+
+static void lt8619c_reset_N(uint8_t level)
+{
+	/* reset */
+	if (lt8619c->gpiod_reset) {
+		gpiod_set_value(lt8619c->gpiod_reset, level);
+		usleep_range(5000, 10000);
+	}
 }
 
 static void lt8619c_edid_calc(uint8_t *pbuf, struct video_timing *timing)
@@ -340,7 +357,7 @@ void lt8619c_audio_init(uint8_t audio_input)
 static void lt8619c_poweron(void)
 {
 	/* set HPD as low */
-	lt8619c_setHPD(0);
+	//lt8619c_setHPD(0);
 
 	/* calculate timing & set edid */
 	lt8619c_edid_calc(onchip_edid + 0x36, &lcd_timing);
@@ -947,10 +964,91 @@ static void lt8619c_print_rxinfo(void)
 	}
 }
 
+static void pwm_backlight_power_on(struct lt8619c *lt8619c)
+{
+	struct pwm_state state;
+
+	pwm_get_state(lt8619c->pwm, &state);
+	if (state.enabled)
+		return;
+
+	state.enabled = true;
+	pwm_apply_state(lt8619c->pwm, &state);
+}
+
+static void pwm_backlight_power_off(struct lt8619c *lt8619c)
+{
+	struct pwm_state state;
+
+	pwm_get_state(lt8619c->pwm, &state);
+	if (!state.enabled)
+		return;
+
+	state.enabled = false;
+	pwm_apply_state(lt8619c->pwm, &state);
+}
+
+static int lt8619c_backlight_update(struct backlight_device *bl)
+{
+	struct lt8619c *lt8619c = dev_get_drvdata(&bl->dev);
+	int brightness = backlight_get_brightness(bl);
+	struct pwm_state state;
+	int ret = 0;
+
+	if (brightness > 0) {
+		pwm_get_state(lt8619c->pwm, &state);
+		state.duty_cycle = (state.period * brightness) / 100;
+		pwm_apply_state(lt8619c->pwm, &state);
+	}
+	else {
+		pwm_backlight_power_off(lt8619c);
+	}
+	return ret;
+}
+
+static const struct backlight_ops lt8619c_backlight_ops = {
+	.update_status	= lt8619c_backlight_update,
+};
+
+#if (defined(CONFIG_AMLOGIC_HDMITX) || defined(CONFIG_AMLOGIC_HDMITX21))
+static int hdmitx_notify_callback(struct notifier_block *block,
+				  unsigned long cmd, void *para)
+{
+	int ret = 0;
+
+	switch (cmd) {
+	case HDMITX_UNBLANK:
+		lt8619c_reset_N(0);
+		lt8619c_poweron();
+		pwm_backlight_power_on(lt8619c);
+		ret = NOTIFY_OK;
+		break;
+	case HDMITX_BLANK:
+		pwm_backlight_power_off(lt8619c);
+		lt8619c_rx_reset();
+		lt8619c_reset_N(1);
+		ret = NOTIFY_OK;
+		break;
+	default:
+		printk("[%s] unsupported notify:%ld\n", __func__, cmd);
+		ret = NOTIFY_DONE;
+		break;
+	}
+	return ret;
+}
+
+static struct notifier_block hdmitx_notifier_nb = {
+	.notifier_call	= hdmitx_notify_callback,
+};
+#endif
+
 static int lt8619c_probe(struct i2c_client *client,
 			  const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
+	struct device_node *node = client->dev.of_node;
+	struct pwm_state state;
+	int ret;
 
 	lt8619c = devm_kzalloc(dev, sizeof(*lt8619c), GFP_KERNEL);
 	if (!lt8619c)
@@ -968,15 +1066,12 @@ static int lt8619c_probe(struct i2c_client *client,
 	if (IS_ERR(lt8619c->gpiod_reset))
 		return PTR_ERR(lt8619c->gpiod_reset);
 
+	/* reset : odroid-c5 do nothing*/
+	//lt8619c_reset_N(0);
+
 	/* init variable */
 	pRXStat = &RXStat;
 	memset(pRXStat, 0, sizeof(RXStat));
-
-	/* reset */
-	if (lt8619c->gpiod_reset) {
-		gpiod_set_value_cansleep(lt8619c->gpiod_reset, 0);
-		usleep_range(5000, 10000);
-	}
 
 	/* check chip ID */
 	if (!lt8619c_check_chipid()) {
@@ -994,6 +1089,35 @@ static int lt8619c_probe(struct i2c_client *client,
 		lt8619c_print_rxinfo();
 	}
 
+	lt8619c->pwm = devm_pwm_get(&client->dev, NULL);
+	if (IS_ERR(lt8619c->pwm) && PTR_ERR(lt8619c->pwm) != -EPROBE_DEFER && !node) {
+		dev_err(&client->dev, "unable to request PWM, trying legacy API\n");
+		lt8619c->pwm = pwm_request(0, "lt8619c-backlight");
+	}
+
+	if (IS_ERR(lt8619c->pwm)) {
+		ret = PTR_ERR(lt8619c->pwm);
+		if (ret != -EPROBE_DEFER)
+			dev_err(&client->dev, "unable to request PWM\n");
+	}
+	/* Sync up PWM state. */
+	pwm_init_state(lt8619c->pwm, &state);
+
+	lt8619c->bl = backlight_device_register("lt8619c-backlight",
+				dev, lt8619c, &lt8619c_backlight_ops, NULL);
+	if (IS_ERR(lt8619c->bl)) {
+		dev_err(&client->dev, "failed to register backlight\n");
+		ret = PTR_ERR(lt8619c->bl);
+		lt8619c->bl = NULL;
+	}
+	lt8619c->bl->props.max_brightness = LT8619C_MAX_BRIGHTNESS;
+	lt8619c->bl->props.brightness = LT8619C_DEFAULT_BRIGHTNESS;
+	backlight_update_status(lt8619c->bl);
+
+#if (defined(CONFIG_AMLOGIC_HDMITX) || defined(CONFIG_AMLOGIC_HDMITX21))
+	hdmitx_event_notifier_regist(&hdmitx_notifier_nb);
+#endif
+
 	dev_info(lt8619c->dev, "LT8619C init done\n");
 
 	return 0;
@@ -1001,6 +1125,9 @@ static int lt8619c_probe(struct i2c_client *client,
 
 static int lt8619c_remove(struct i2c_client *client)
 {
+#if (defined(CONFIG_AMLOGIC_HDMITX) || defined(CONFIG_AMLOGIC_HDMITX21))
+	hdmitx_event_notifier_unregist(&hdmitx_notifier_nb);
+#endif
 	return 0;
 }
 
@@ -1023,8 +1150,7 @@ static int __init lt8619c_init(void)
 {
 	return i2c_add_driver(&lt8619c_driver);
 }
-/* must be loaded after rk817 mfd driver */
-late_initcall(lt8619c_init);
+module_init(lt8619c_init);
 
 static void __exit lt8619c_exit(void)
 {
