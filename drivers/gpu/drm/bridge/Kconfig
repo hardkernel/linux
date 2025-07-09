@@ -261,7 +261,7 @@ config DRM_TOSHIBA_TC358767
 config DRM_LT8619C_QC4011
 	tristate "LT8619c HDMI to LVDS Converter"
 	depends on OF
-	select DRM_KMS_HELPER
+	default m
 	select REGMAP_I2C
 	help
 	  lt8619c chip driver
