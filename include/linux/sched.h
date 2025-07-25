@@ -1683,6 +1683,14 @@ struct task_struct {
 	 */
 	randomized_struct_fields_end
 
+#ifdef CONFIG_AMLOGIC_DEBUG_BGKI_SCHED
+	unsigned long long sched_last_wakeup_time;
+	unsigned long long sched_last_in_cpu_time;
+	unsigned long long sched_last_out_cpu_time;
+	unsigned long long sched_last_sleep_time;
+	unsigned long long sched_last_tick_time;
+#endif
+
 	/* CPU-specific state of this task: */
 	struct thread_struct		thread;
 
