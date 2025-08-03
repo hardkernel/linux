@@ -2401,8 +2401,15 @@ static void bpf_prog_select_func(struct bpf_prog *fp)
 	 * But for non-JITed programs, we don't need bpf_func, so no bounds
 	 * check needed.
 	 */
+#ifdef CONFIG_ARM
+	/* Workaround: when user space run unsupported code with jit,
+	 * interpreters should be used or network can not work.
+	 */
+	if (!WARN_ON_ONCE(idx >= ARRAY_SIZE(interpreters))) {
+#else
 	if (!fp->jit_requested &&
 	    !WARN_ON_ONCE(idx >= ARRAY_SIZE(interpreters))) {
+#endif
 		fp->bpf_func = interpreters[idx];
 	} else {
 		fp->bpf_func = __bpf_prog_ret0_warn;
