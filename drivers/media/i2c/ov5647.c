@@ -624,7 +624,7 @@ static const struct ov5647_mode ov5647_modes[] = {
 	},
 };
 
-/* Default sensor mode is 2x2 binned 640x480 SBGGR10_1X10. */
+/* Default sensor mode is 2592x1944 SBGGR10_1X10. */
 #define OV5647_DEFAULT_MODE	(&ov5647_modes[0])
 #define OV5647_DEFAULT_FORMAT	(ov5647_modes[0].format)
 
