@@ -269,7 +269,7 @@
 			route_lvds: route-lvds {
 				status = "disabled";
 				logo,uboot = "logo.bmp";
-				logo,kernel = "logo_kernel.bmp";
+				logo,kernel = "logo.bmp";
 				logo,mode = "center";
 				charge_logo,mode = "center";
 				connect = <&vp1_out_lvds>;
