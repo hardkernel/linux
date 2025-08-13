@@ -1692,6 +1692,8 @@ static const void *drm_edid_extension_block_data(const struct drm_edid *drm_edid
 static const struct drm_edid *drm_edid_legacy_init(struct drm_edid *drm_edid,
 						   const struct edid *edid)
 {
+	uint8_t *block1;
+
 	if (!edid)
 		return NULL;
 
@@ -1699,6 +1701,16 @@ static const struct drm_edid *drm_edid_legacy_init(struct drm_edid *drm_edid,
 
 	drm_edid->edid = edid;
 	drm_edid->size = edid_size(edid);
+	if (drm_edid->size == 256) {
+		/* Handle HDMI Forum EDID Extension Override Data Block */
+		block1 = ((uint8_t *)edid) + EDID_LENGTH;
+		if (block1[0] == 2 && block1[1] == 3 /* CTA ext */ &&
+		    (block1[4] & 0xE0) == 0xE0 /* Extension block */ &&
+		    (block1[4] & 0x1F) >= 2 /* Size check */ &&
+			block1[5] == 0x78 /* HF-EEODB */) {
+			drm_edid->size = edid_size_by_blocks(1 + block1[6]);
+		}
+	}
 
 	return drm_edid;
 }
