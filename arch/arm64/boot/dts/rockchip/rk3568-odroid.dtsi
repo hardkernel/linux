@@ -157,6 +157,49 @@
 	status = "okay";
 };
 
+&pwm3 {
+	status = "okay";
+
+	compatible = "rockchip,remotectl-pwm";
+	remote_pwm_id = <3>;
+	handle_cpu_id = <1>;
+	remote_support_psci = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm3_pins>;
+
+	ir_key1 {
+		rockchip,usercode = <0x4db2>;
+		rockchip,key_table =
+			<0x23	KEY_POWER>,
+			<0x77	KEY_MUTE>,
+			<0x7d	KEY_HOME>,
+			<0x31	KEY_ENTER>,
+			<0x35	KEY_UP>,
+			<0x66	KEY_LEFT>,
+			<0x3e	KEY_RIGHT>,
+			<0x2d	KEY_DOWN>,
+			<0x3a	KEY_MENU>,
+			<0x65	KEY_BACK>,
+			<0x7e	KEY_VOLUMEDOWN>,
+			<0x7f	KEY_VOLUMEUP>;
+	};
+};
+
+&pwm7 {
+	compatible = "rockchip,rk3568-pwm", "rockchip,rk3328-pwm";
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm7_pins>;
+
+	status = "disabled";
+
+	/delete-property/ remote_pwm_id;
+	/delete-property/ handle_cpu_id;
+	/delete-property/ remote_support_psci;
+	/delete-node/ ir_key1;
+	/delete-node/ ir_key2;
+	/delete-node/ ir_key3;
+};
+
 &rknpu_mmu {
 	status = "disabled";
 };
