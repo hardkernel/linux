@@ -26,7 +26,11 @@ obj-$(CONFIG_MTD_SWAP)		+= mtdswap.o
 nftl-objs		:= nftlcore.o nftlmount.o
 inftl-objs		:= inftlcore.o inftlmount.o
 
+ifdef CONFIG_AMLOGIC_TXHD2_REMOVE
+obj-y		+= chips/ lpddr/ maps/ devices/
+else
 obj-y		+= chips/ lpddr/ maps/ devices/ nand/ tests/
+endif
 
 obj-$(CONFIG_MTD_SPI_NOR)	+= spi-nor/
 obj-$(CONFIG_MTD_UBI)		+= ubi/

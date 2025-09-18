@@ -3469,11 +3469,12 @@ static inline int node_match(struct slab *slab, int node)
 }
 
 #ifdef CONFIG_SLUB_DEBUG
+#ifndef CONFIG_AMLOGIC_TXHD2_REMOVE
 static int count_free(struct slab *slab)
 {
 	return slab->objects - slab->inuse;
 }
-
+#endif
 static inline unsigned long node_nr_objs(struct kmem_cache_node *n)
 {
 	return atomic_long_read(&n->total_objects);
@@ -3539,6 +3540,7 @@ out:
 #endif /* CONFIG_SLUB_DEBUG */
 
 #if defined(CONFIG_SLUB_DEBUG) || defined(SLAB_SUPPORTS_SYSFS)
+#ifndef CONFIG_AMLOGIC_TXHD2_REMOVE
 static unsigned long count_partial(struct kmem_cache_node *n,
 					int (*get_count)(struct slab *))
 {
@@ -3552,6 +3554,7 @@ static unsigned long count_partial(struct kmem_cache_node *n,
 	spin_unlock_irqrestore(&n->list_lock, flags);
 	return x;
 }
+#endif
 #endif /* CONFIG_SLUB_DEBUG || SLAB_SUPPORTS_SYSFS */
 
 #ifdef CONFIG_SLUB_DEBUG

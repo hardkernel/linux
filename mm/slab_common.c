@@ -533,7 +533,9 @@ void kmem_cache_destroy(struct kmem_cache *s)
 	cpus_read_unlock();
 
 	if (slab_state >= FULL)
+#ifdef SLAB_SUPPORTS_SYSFS
 		sysfs_slab_unlink(s);
+#endif
 	debugfs_slab_release(s);
 
 	if (err)

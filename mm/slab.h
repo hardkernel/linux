@@ -288,8 +288,10 @@ struct kmem_cache {
 	unsigned int red_left_pad;	/* Left redzone padding size */
 	const char *name;		/* Name (only for display!) */
 	struct list_head list;		/* List of slab caches */
+#ifndef CONFIG_AMLOGIC_TXHD2_REMOVE
 #ifdef CONFIG_SYSFS
 	struct kobject kobj;		/* For sysfs */
+#endif
 #endif
 #ifdef CONFIG_SLAB_FREELIST_HARDENED
 	unsigned long random;
@@ -320,7 +322,9 @@ struct kmem_cache {
 };
 
 #if defined(CONFIG_SYSFS) && !defined(CONFIG_SLUB_TINY)
+#ifndef CONFIG_AMLOGIC_TXHD2_REMOVE
 #define SLAB_SUPPORTS_SYSFS 1
+#endif
 void sysfs_slab_unlink(struct kmem_cache *s);
 void sysfs_slab_release(struct kmem_cache *s);
 #else
