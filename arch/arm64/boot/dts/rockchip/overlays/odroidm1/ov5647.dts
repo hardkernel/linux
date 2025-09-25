@@ -106,23 +106,23 @@
 				status = "okay";
 				compatible = "ovti,ov5647";
 				reg = <0x36>;
+				assigned-clocks = <&pmucru CLK_WIFI>;
+				assigned-clock-rates = <25000000>;
 				clocks = <&pmucru CLK_WIFI>;
-				clock-names = "xvclk";
+				clock-names = "xclk";
 				power-domains = <&power RK3568_PD_VI>;
 				pinctrl-names = "default";
 
 				rockchip,camera-module-index = <0>;
 				rockchip,camera-module-facing = "back";
-				rockchip,camera-module-name = "TongJu";
-				rockchip,camera-module-lens-name = "CHT842-MD";
+				rockchip,camera-module-name = "THDS11073";
+				rockchip,camera-module-lens-name = "Largan-40122a1";
 
 				port {
 					ov5647_out: endpoint {
 						remote-endpoint = <&mipi_in_ucam2>;
 						data-lanes = <1 2>;
 						clock-lanes = <0>;
-						link-frequencies =
-							/bits/ 64 <150000000>;
 					};
 				};
 			};
