@@ -1005,6 +1005,27 @@ static int imx219_enum_frame_interval(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int imx219_enum_frame_size(struct v4l2_subdev *sd,
+				  struct v4l2_subdev_state *sd_state,
+				  struct v4l2_subdev_frame_size_enum *fse)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct imx219 *priv = to_imx219(client);
+
+	if (fse->index >= priv->cfg_num)
+		return -EINVAL;
+
+	if (fse->code != MEDIA_BUS_FMT_SRGGB10_1X10)
+		return -EINVAL;
+
+	fse->min_width = supported_modes[fse->index].width;
+	fse->max_width = supported_modes[fse->index].width;
+	fse->min_height = supported_modes[fse->index].height;
+	fse->max_height = supported_modes[fse->index].height;
+
+	return 0;
+}
+
 /* Various V4L2 operations tables */
 static struct v4l2_subdev_video_ops imx219_subdev_video_ops = {
 	.s_stream = imx219_s_stream,
@@ -1022,6 +1043,7 @@ static struct v4l2_subdev_core_ops imx219_subdev_core_ops = {
 static const struct v4l2_subdev_pad_ops imx219_subdev_pad_ops = {
 	.enum_mbus_code = imx219_enum_mbus_code,
 	.enum_frame_interval = imx219_enum_frame_interval,
+	.enum_frame_size = imx219_enum_frame_size,
 	.set_fmt = imx219_set_fmt,
 	.get_fmt = imx219_get_fmt,
 	.get_mbus_config = imx219_g_mbus_config,
