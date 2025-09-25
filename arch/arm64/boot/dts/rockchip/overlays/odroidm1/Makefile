@@ -13,6 +13,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	imx219.dtbo \
 	mcp2515.dtbo \
 	mcp2515_12mhz.dtbo \
 	mcp2515_16mhz.dtbo \
