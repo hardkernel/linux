@@ -24,6 +24,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	pwm2.dtbo \
 	pwm9.dtbo \
 	rknpu.dtbo \
+	rpi_camera_v1.dtbo \
 	spi0.dtbo \
 	ttyfiq0_115200.dtbo \
 	uart0-with-ctsrts.dtbo \

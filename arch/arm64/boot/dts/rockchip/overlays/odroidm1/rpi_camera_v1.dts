@@ -10,8 +10,8 @@
 
 		__overlay__ {
 			ov5647: ov5647@36 {
-				rockchip,camera-module-name = "THDS11073";
-				rockchip,camera-module-lens-name = "Largan-40122a1";
+				rockchip,camera-module-name = "rpi-camera-v1p3";
+				rockchip,camera-module-lens-name = "default";
 			};
 		};
 	};
