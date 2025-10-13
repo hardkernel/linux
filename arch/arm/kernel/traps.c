@@ -138,10 +138,16 @@ void dump_backtrace_stm(u32 *stack, u32 instruction, const char *loglvl)
  */
 static int verify_stack(unsigned long sp)
 {
+#ifdef CONFIG_AMLOGIC_VMAP
+	if (!IS_ENABLED(CONFIG_VMAP_STACK) &&
+	     sp > (unsigned long)high_memory && high_memory != NULL)
+		return -EFAULT;
+#else
 	if (sp < PAGE_OFFSET ||
 	    (!IS_ENABLED(CONFIG_VMAP_STACK) &&
 	     sp > (unsigned long)high_memory && high_memory != NULL))
 		return -EFAULT;
+#endif
 
 	return 0;
 }

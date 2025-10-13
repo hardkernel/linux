@@ -25,7 +25,7 @@
 #endif
 
 #ifdef CONFIG_AMLOGIC_VMAP
-#define SIZE_VSTACK             (48 * 1024 * 1024)
+#define SIZE_VSTACK             (36 * 1024 * 1024)
 #endif
 
 #include <asm/kasan_def.h>
@@ -47,7 +47,7 @@
  */
 #ifndef CONFIG_KASAN
 #ifdef CONFIG_AMLOGIC_VMAP
-#define TASK_SIZE		(UL(CONFIG_PAGE_OFFSET) - UL(SZ_16M) - SIZE_VSTACK)
+#define TASK_SIZE		(UL(CONFIG_PAGE_OFFSET) - UL(SZ_16M) - UL(0xc00000) - SIZE_VSTACK)
 #else
 #define TASK_SIZE		(UL(CONFIG_PAGE_OFFSET) - UL(SZ_16M))
 #endif
