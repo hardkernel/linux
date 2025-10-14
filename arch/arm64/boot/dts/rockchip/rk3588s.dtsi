@@ -7830,6 +7830,11 @@
 			#interrupt-cells = <2>;
 		};
 	};
+
+	odroid_sysfs {
+		compatible = "odroid-sysfs";
+		status = "okay";
+	};
 };
 
 #include "rk3588s-pinctrl.dtsi"
