@@ -585,6 +585,10 @@ hook_fault_code(int nr, int (*fn)(unsigned long, unsigned int, struct pt_regs *)
 	fsr_info[nr].name = name;
 }
 
+#ifdef CONFIG_AMLOGIC_DEBUG_IOTM
+extern void dabt_arm_serror(const char *reason, struct pt_regs *regs);
+#endif
+
 /*
  * Dispatch a data abort to the relevant handler.
  */
@@ -600,6 +604,10 @@ do_DataAbort(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 	pr_alert("Unhandled fault: %s (0x%03x) at 0x%08lx\n",
 		inf->name, fsr, addr);
 	show_pte(KERN_ALERT, current->mm, addr);
+
+#ifdef CONFIG_AMLOGIC_DEBUG_IOTM
+	dabt_arm_serror(inf->name, regs);
+#endif
 
 	arm_notify_die("", regs, inf->sig, inf->code, (void __user *)addr,
 		       fsr, 0);
