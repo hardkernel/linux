@@ -2428,7 +2428,11 @@ struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
 	/* In case of BPF to BPF calls, verifier did all the prep
 	 * work with regards to JITing, etc.
 	 */
+#if IS_ENABLED(CONFIG_AMLOGIC_ARMV8_AARCH32)
+	bool jit_needed = false;
+#else
 	bool jit_needed = fp->jit_requested;
+#endif
 
 	if (fp->bpf_func)
 		goto finalize;
