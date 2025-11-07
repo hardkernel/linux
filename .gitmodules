@@ -1,9 +1,9 @@
 [submodule "common_drivers"]
 	path = common_drivers
 	url = https://git.odroid.com/yocto/kernel/common_drivers
-	branch = odroids7d-5.15.y
+	branch = odroids7d-5.15.y_yocto-kirkstone-bsp-202508
 
 [submodule "media_modules"]
 	path = media_modules
 	url = https://git.odroid.com/yocto/platform/hardware/amlogic/media_modules
-	branch = odroids7d-5.15.y
+	branch = odroids7d-5.15.y_yocto-kirkstone-bsp-202508
