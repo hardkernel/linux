@@ -35,6 +35,12 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det>;
 	};
+
+	rk3568-gpiomem {
+		compatible = "hardkernel,rk35xx-gpiomem";
+		reg = <0x0 0xfd660000 0x0 0x1000>;
+		status = "okay";
+	};
 };
 
 &gmac0 {
