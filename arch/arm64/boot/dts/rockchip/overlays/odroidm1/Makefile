@@ -11,6 +11,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	mcp2515.dtbo \
 	mcp2515_12mhz.dtbo \
 	mcp2515_16mhz.dtbo \
+	mcp2517fd.dtbo \
 	onewire.dtbo \
 	pcf8563.dtbo \
 	pwm1.dtbo \
