@@ -24,3 +24,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	uart5.dtbo \
 	uart7.dtbo \
 	uart9.dtbo \
+	weather_board_zero.dtbo \
