@@ -82,7 +82,7 @@
 			compatible = "simple-panel-dsi";
 
 			backlight = <&backlight>;
-			power-supply = <&lcd_pwren>;
+			power-supply = <&vcc3v3_lcd0_n>;
 			reset-gpios = <&gpio2 RK_PC6 GPIO_ACTIVE_LOW>;
 
 			prepare-delay-ms = <2>;

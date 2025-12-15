@@ -239,20 +239,23 @@
 		regulator-boot-on;
 	};
 
-	pcie20_3v3: pcie20-3v3-regulator {
+	vcc3v3_pcie: vcc3v3-pcie {
 		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
 		enable-active-high;
 		gpios = <&gpio2 RK_PC2 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pcie20_3v3_en>;
-		regulator-name = "pcie20_3v3";
 		regulator-always-on;
 		regulator-boot-on;
+		vin-supply = <&vcc3v3_sys>;
 	};
 
-	lcd_pwren: lcd-pwren {
+	vcc3v3_lcd0_n: vcc3v3-lcd0-n {
 		compatible = "regulator-fixed";
-		regulator-name = "lcd_pwren";
+		regulator-name = "vcc3v3_lcd0_n";
 		enable-active-high;
 		gpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
@@ -769,7 +772,7 @@
 
 &i2s1_8ch {
 	status = "okay";
-	rockchip,clk-trcm = <1>;
+	rockchip,trcm-sync-tx-only;
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2s1m0_sclktx
 		     &i2s1m0_lrcktx
@@ -1015,7 +1018,7 @@
 
 &pcie2x1 {
 	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&pcie20_3v3>;
+	vpcie3v3-supply = <&vcc3v3_pcie>;
 	pinctrl-0 = <&pcie20m2_pins>;
 	status = "okay";
 };
@@ -1046,8 +1049,9 @@
 
 &vop {
 	status = "okay";
-	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
-	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
+	vop-supply = <&vdd_logic>;
+	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>, <&cru DCLK_VOP2>;
+	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>, <&cru PLL_GPLL>;
 };
 
 &vop_mmu {
@@ -1261,7 +1265,7 @@
 		reg = <0>;
 
 		backlight = <&backlight>;
-		power-supply = <&lcd_pwren>;
+		power-supply = <&vcc3v3_lcd0_n>;
 
 		reset-gpios = <&gpio2 RK_PC6 GPIO_ACTIVE_LOW>;
 
