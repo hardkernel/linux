@@ -317,6 +317,7 @@ int iommu_get_dma_cookie(struct iommu_domain *domain)
 	mutex_init(&domain->iova_cookie->mutex);
 	return 0;
 }
+EXPORT_SYMBOL(iommu_get_dma_cookie);
 
 /**
  * iommu_get_msi_cookie - Acquire just MSI remapping resources
