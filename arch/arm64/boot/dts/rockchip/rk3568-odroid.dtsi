@@ -31,13 +31,6 @@
 		};
 	};
 
-	rk_headset: rk-headset {
-		compatible = "rockchip_headset";
-		headset_gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&hp_det>;
-	};
-
 	rk3568-gpiomem {
 		compatible = "hardkernel,rk35xx-gpiomem";
 		reg = <0x0 0xfd660000 0x0 0x1000>;
@@ -157,6 +150,8 @@
 
 &rk809_sound {
 	hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&hp_det>;
 	status = "okay";
 };
 
