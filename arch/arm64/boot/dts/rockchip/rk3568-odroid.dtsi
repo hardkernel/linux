@@ -65,6 +65,11 @@
 	status = "okay";
 };
 
+&hdmi {
+	avdd-0v9-supply = <&vdda0v9_image>;
+	avdd-1v8-supply = <&vcca1v8_image>;
+};
+
 &hdmi_sound {
 	/delete-property/ rockchip,jack-det;
 	status = "okay";
@@ -130,6 +135,8 @@
 };
 
 &pmu_io_domains {
+	pmuio1-supply = <&vcc3v3_pmu>;
+	vccio2-supply = <&vcc_1v8>;
 	vccio4-supply = <&vcc_1v8>;
 };
 
