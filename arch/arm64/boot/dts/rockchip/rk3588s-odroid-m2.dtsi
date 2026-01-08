@@ -395,6 +395,7 @@
 		reg = <0x22>;
 		interrupt-parent = <&gpio4>;
 		interrupts = <RK_PA5 IRQ_TYPE_LEVEL_LOW>;
+		int-n-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&usbc0_int>;
 		vbus-supply = <&vbus5v0_typec>;
@@ -774,7 +775,6 @@
 	status = "okay";
 	rockchip,typec-vbus-det;
 	rockchip,sel-pipe-phystatus;
-	vbus-supply = <&vbus5v0_typec>;
 };
 
 &u2phy2_host {
@@ -1079,7 +1079,7 @@
 
 &vp0 {
 	assigned-clocks = <&cru DCLK_VOP0>;
-	assigned-clock-parents = <&hdptxphy_hdmi_clk0>;
+	assigned-clock-parents = <&hdptxphy_hdmi0>;
 	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER0 | 1 << ROCKCHIP_VOP2_ESMART0)>;
 	rockchip,primary-plane = <ROCKCHIP_VOP2_ESMART0>;
 };
