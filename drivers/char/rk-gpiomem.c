@@ -54,7 +54,7 @@ struct odroid_gpiomem_priv {
 	struct device *dev;
 	const char *name;
 	unsigned int nr_wins;
-	struct io_windows iowins[4];
+	struct io_windows iowins[MAX_RANGES];
 };
 
 static int odroid_gpiomem_open(struct inode *inode, struct file *file)
@@ -95,35 +95,30 @@ static int odroid_gpiomem_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	int i;
 	struct odroid_gpiomem_priv *priv;
-	unsigned long base;
-	unsigned long len = 0;
-	unsigned long offset;
+	unsigned long req_phys_addr = vma->vm_pgoff << PAGE_SHIFT;
+	unsigned long req_len = vma->vm_end - vma->vm_start;
+	unsigned long pfn;
 
 	priv = file->private_data;
-	/*
-	 * Userspace must provide a virtual address space at least
-	 * the size of the concatenated ranges.
-	 */
+
+	/* Find the requested physical address in the allowed windows */
 	for (i = 0; i < priv->nr_wins; i++)
-		len += priv->iowins[i].len;
-	if (len > vma->vm_end - vma->vm_start + 1)
-		return -EINVAL;
+		if (req_phys_addr >= priv->iowins[i].phys_base &&
+		    (req_phys_addr + req_len) <= (priv->iowins[i].phys_base + priv->iowins[i].len))
+			goto found;
 
+
+	/* If not found, return error */
+	dev_err(priv->dev, "mmap request for invalid address 0x%lx or length 0x%lx\n",
+		req_phys_addr, req_len);
+	return -EINVAL;
+
+found:
 	vma->vm_ops = &odroid_gpiomem_vm_ops;
-	offset = vma->vm_start;
-	for (i = 0; i < priv->nr_wins; i++) {
-		base = priv->iowins[i].phys_base >> PAGE_SHIFT;
-		len = priv->iowins[i].len;
-		vma->vm_page_prot = phys_mem_access_prot(file, base, len,
-							 vma->vm_page_prot);
-		if (remap_pfn_range(vma, offset,
-			    base, len,
-			    vma->vm_page_prot))
-			break;
-		offset += len;
-	}
+	pfn = req_phys_addr >> PAGE_SHIFT;
+	vma->vm_page_prot = phys_mem_access_prot(file, pfn, req_len, vma->vm_page_prot);
 
-	if (i < priv->nr_wins)
+	if (remap_pfn_range(vma, vma->vm_start, pfn, req_len, vma->vm_page_prot))
 		return -EAGAIN;
 
 	return 0;
