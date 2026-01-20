@@ -112,6 +112,24 @@ struct clk {
 	struct hlist_node clks_node;
 };
 
+#ifdef CONFIG_AMLOGIC_BYPASS_CCF_CLK
+bool bypass_clk_disable_unprepare;
+
+static int bypass_clk_disable_unprepare_setup(char *s)
+{
+	if (!s)
+		return -EINVAL;
+
+	if (kstrtobool(s, &bypass_clk_disable_unprepare)) {
+		pr_err("ccf bypass_clk_disable error: %s\n", s);
+		return -EINVAL;
+	}
+
+	return 1;
+}
+__setup("bypass_ccf_clk_disable=", bypass_clk_disable_unprepare_setup);
+#endif
+
 /***           runtime pm          ***/
 static int clk_pm_runtime_get(struct clk_core *core)
 {
@@ -309,6 +327,10 @@ static bool clk_core_is_enabled(struct clk_core *core)
 {
 	bool ret = false;
 
+#ifdef CONFIG_AMLOGIC_BYPASS_CCF_CLK
+	if (bypass_clk_disable_unprepare)
+		return core->enable_count;
+#endif
 	/*
 	 * .is_enabled is only mandatory for clocks that gate
 	 * fall back to software usage counter if .is_enabled is missing
@@ -1076,8 +1098,17 @@ static void clk_core_unprepare(struct clk_core *core)
 
 	trace_clk_unprepare(core);
 
+#ifdef CONFIG_AMLOGIC_BYPASS_CCF_CLK
+	if (core->ops->unprepare) {
+		if (bypass_clk_disable_unprepare)
+			pr_info("bypass CCF %s clock in %s\n", core->name, __func__);
+		else
+			core->ops->unprepare(core->hw);
+	}
+#else
 	if (core->ops->unprepare)
 		core->ops->unprepare(core->hw);
+#endif
 
 	trace_clk_unprepare_complete(core);
 	clk_core_unprepare(core->parent);
@@ -1211,8 +1242,17 @@ static void clk_core_disable(struct clk_core *core)
 
 	trace_clk_disable(core);
 
+#ifdef CONFIG_AMLOGIC_BYPASS_CCF_CLK
+	if (core->ops->disable) {
+		if (bypass_clk_disable_unprepare)
+			pr_info("bypass CCF %s clock in %s\n", core->name, __func__);
+		else
+			core->ops->disable(core->hw);
+	}
+#else
 	if (core->ops->disable)
 		core->ops->disable(core->hw);
+#endif
 
 	trace_clk_disable_complete(core);
 
@@ -1547,6 +1587,13 @@ static int __init clk_disable_unused(void)
 		pr_warn("clk: Not disabling unused clocks\n");
 		return 0;
 	}
+
+#ifdef CONFIG_AMLOGIC_BYPASS_CCF_CLK
+	if (bypass_clk_disable_unprepare) {
+		pr_warn("bypass_clk_disable_unprepare = 1, skip disabling unused clocks\n");
+		return 0;
+	}
+#endif
 
 	pr_info("clk: Disabling unused clocks\n");
 
