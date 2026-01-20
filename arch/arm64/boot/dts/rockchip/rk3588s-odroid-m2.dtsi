@@ -111,6 +111,7 @@
 		status = "okay";
 		compatible = "pwm-fan";
 		#cooling-cells = <2>;
+		fan-supply = <&vcc5v0_sys>;
 		pwms = <&pwm0 0 22222 0>;
 		cooling-levels = <0 192 224 255>;
 		rockchip,temp-trips = <
