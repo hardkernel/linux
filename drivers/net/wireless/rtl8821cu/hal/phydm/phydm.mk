@@ -1,4 +1,4 @@
-EXTRA_CFLAGS += -I$(src)/hal/phydm
+EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm
 
 _PHYDM_FILES := hal/phydm/phydm_debug.o	\
 								hal/phydm/phydm_antdiv.o\
