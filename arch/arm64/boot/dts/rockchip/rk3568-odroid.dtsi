@@ -17,6 +17,7 @@
 	/delete-node/ vcc3v3-lcd1-n;
 	/delete-node/ wireless-bluetooth;
 	/delete-node/ wireless-wlan;
+	/delete-node/ vad-sound;
 
 	leds: leds {
 		/delete-node/ work;
@@ -164,10 +165,20 @@
 };
 
 &rk809_sound {
-	hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&hp_det>;
 	status = "okay";
+	compatible = "simple-audio-card";
+	simple-audio-card,format = "i2s";
+	simple-audio-card,mclk-fs = <256>;
+	simple-audio-card,name = "rockchip,rk809-codec";
+	simple-audio-card,hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
+	simple-audio-card,widgets = "Headphone", "Headphones";
+
+	simple-audio-card,cpu {
+		sound-dai = <&i2s1_8ch>;
+	};
+	simple-audio-card,codec {
+		sound-dai = <&rk809_codec>;
+	};
 };
 
 &pwm3 {
