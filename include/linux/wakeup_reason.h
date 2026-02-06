@@ -20,7 +20,7 @@
 
 #define MAX_SUSPEND_ABORT_LEN 256
 
-#ifdef CONFIG_SUSPEND
+#if defined(CONFIG_SUSPEND) && !defined(CONFIG_AMLOGIC_PREEMPT_RT)
 void log_irq_wakeup_reason(int irq);
 void log_threaded_irq_wakeup_reason(int irq, int parent_irq);
 void log_suspend_abort_reason(const char *fmt, ...);

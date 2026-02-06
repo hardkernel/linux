@@ -21,5 +21,7 @@ obj-$(CONFIG_PM_WAKELOCKS)	+= wakelock.o
 
 obj-$(CONFIG_MAGIC_SYSRQ)	+= poweroff.o
 
+ifneq ($(CONFIG_AMLOGIC_PREEMPT_RT), y)
 obj-$(CONFIG_SUSPEND)		+= wakeup_reason.o
+endif
 obj-$(CONFIG_ENERGY_MODEL)	+= energy_model.o
