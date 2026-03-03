@@ -1636,6 +1636,7 @@ static const struct vop2_video_port_regs rk3538_vop_vp0_regs = {
 	.post_urgency_thh = VOP_REG(RK3568_VP0_COLOR_BAR_CTRL, 0xf, 20),
 
 	.calc_dclk_cnt = VOP_REG(RK3576_VP0_POST_CLK_CNT, 0x7fff, 0),
+	.calc_aclk_cnt = VOP_REG(RK3576_VP0_POST_CLK_CNT, 0xffff, 16),
 	.calc_clk_en = VOP_REG(RK3576_VP0_POST_CLK_CNT, 0x1, 15),
 
 	.dsp_vcnt = VOP_REG(RK3572_VP0_STATUS, 0x1fff, 16),
@@ -2144,6 +2145,7 @@ static const struct vop2_video_port_regs rk3572_vop_vp0_regs = {
 	.post_urgency_thh = VOP_REG(RK3568_VP0_COLOR_BAR_CTRL, 0xf, 20),
 
 	.calc_dclk_cnt = VOP_REG(RK3576_VP0_POST_CLK_CNT, 0x7fff, 0),
+	.calc_aclk_cnt = VOP_REG(RK3576_VP0_POST_CLK_CNT, 0xffff, 16),
 	.calc_clk_en = VOP_REG(RK3576_VP0_POST_CLK_CNT, 0x1, 15),
 
 	.dsp_vcnt = VOP_REG(RK3572_VP0_STATUS, 0x1fff, 16),
@@ -2240,9 +2242,10 @@ static const struct vop2_video_port_regs rk3572_vop_vp1_regs = {
 	.post_urgency_thh = VOP_REG(RK3568_VP1_COLOR_BAR_CTRL, 0xf, 20),
 
 	.calc_dclk_cnt = VOP_REG(RK3576_VP1_POST_CLK_CNT, 0x7fff, 0),
+	.calc_aclk_cnt = VOP_REG(RK3576_VP1_POST_CLK_CNT, 0xffff, 16),
 	.calc_clk_en = VOP_REG(RK3576_VP1_POST_CLK_CNT, 0x1, 15),
 
-	.dsp_vcnt = VOP_REG(RK3572_VP0_STATUS, 0x1fff, 16),
+	.dsp_vcnt = VOP_REG(RK3572_VP1_STATUS, 0x1fff, 16),
 };
 
 /*
@@ -2260,10 +2263,11 @@ static const struct vop2_video_port_data rk3572_vop_video_ports[] = {
 	 .id = 0,
 	 .soc_id = { 0x3572, 0x3572 },
 	 .lut_dma_rid = 0x2,/* lut axi id length is 4 bits */
+	 .metadata_rid = 0x5,
 	 .feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_VIVID_HDR |
 			VOP_FEATURE_POST_ACM | VOP_FEATURE_POST_CSC | VOP_FEATURE_OUTPUT_10BIT |
 			VOP_FEATURE_POST_FRC_V2 | VOP_FEATURE_POST_SHARP | VOP_FEATURE_HW_CURSOR |
-			VOP_FEATURE_CGC,
+			VOP_FEATURE_CGC | VOP_FEATURE_DYNAMIC_METADATA_EMP,
 	 .gamma_lut_len = 1024,
 	 .cubic_lut_len = 729, /* 9x9x9 */
 	 .dclk_max = 600000000,
@@ -2272,7 +2276,7 @@ static const struct vop2_video_port_data rk3572_vop_video_ports[] = {
 	 .sdr2hdr_dly = 18,
 	 .cgc_dly = 18,
 	 .cgc_mix_dly = 2,
-	 .layer_mix_dly = 8,
+	 .layer_mix_dly = 10,
 	 .hdr_mix_dly = 2,
 	 .win_dly = 10,
 	 .cursor_dly = 13, /* win_dly[10] - cursor_win_dly[5] + 4 * mix_dly[2] */
@@ -2288,7 +2292,7 @@ static const struct vop2_video_port_data rk3572_vop_video_ports[] = {
 	 .soc_id = { 0x3572, 0x3572 },
 	 .lut_dma_rid = 0x3,/* lut axi id length is 4 bits */
 	 .feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN |
-			VOP_FEATURE_POST_FRC_V2 | VOP_FEATURE_HW_CURSOR,
+			VOP_FEATURE_HW_CURSOR,
 	 .gamma_lut_len = 1024,
 	 .dclk_max = 300000000,
 	 .max_output = { 2048, 2048 },
@@ -2299,6 +2303,9 @@ static const struct vop2_video_port_data rk3572_vop_video_ports[] = {
 	 .win_dly = 10,
 	 .cursor_dly = 11, /* win_dly[10] - cursor_win_dly[5] + 3 * mix_dly[2] */
 	 .pixel_rate = 1,
+	 .bcsh_r2y_csc_coe_offset = RK3572_VP1_BCSH_R2Y_COE00,
+	 .bcsh_y2r_csc_coe_offset = RK3572_VP1_BCSH_Y2R_COE00,
+	 .csc_coe_bits = 10,
 	 .intr = &rk3572_vp1_intr,
 	 .regs = &rk3572_vop_vp1_regs,
 	 .ovl_regs = &rk3572_vop_vp1_ovl_regs,
@@ -4565,7 +4572,7 @@ static const struct vop2_win_data rk3538_vop_win_data[] = {
 	  .dci_rid_id = 0x2,/* dci axi id length is 4 bits */
 	  .possible_vp_mask = BIT(ROCKCHIP_VOP_VP0),
 	  .max_upscale_factor = 8,
-	  .max_downscale_factor = 8,
+	  .max_downscale_factor = 4,
 	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN |
 			WIN_FEATURE_Y2R_13BIT_DEPTH | WIN_FEATURE_DCI | WIN_FEATURE_CGC,
@@ -4597,7 +4604,7 @@ static const struct vop2_win_data rk3538_vop_win_data[] = {
 	  .axi_uv_id = 0x7,
 	  .possible_vp_mask = BIT(ROCKCHIP_VOP_VP0),
 	  .max_upscale_factor = 8,
-	  .max_downscale_factor = 8,
+	  .max_downscale_factor = 4,
 	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_SUB,
 	},
@@ -5248,7 +5255,7 @@ static const struct vop2_win_data rk3572_vop_win_data[] = {
 	  .dci_rid_id = 0x4,/* dci axi id length is 4 bits */
 	  .possible_vp_mask = BIT(ROCKCHIP_VOP_VP0) | BIT(ROCKCHIP_VOP_VP1),
 	  .max_upscale_factor = 8,
-	  .max_downscale_factor = 8,
+	  .max_downscale_factor = 4,
 	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN |
 			WIN_FEATURE_Y2R_13BIT_DEPTH | WIN_FEATURE_DCI | WIN_FEATURE_CGC,
@@ -5280,7 +5287,7 @@ static const struct vop2_win_data rk3572_vop_win_data[] = {
 	  .axi_uv_id = 0x09,
 	  .possible_vp_mask = BIT(ROCKCHIP_VOP_VP0) | BIT(ROCKCHIP_VOP_VP1),
 	  .max_upscale_factor = 8,
-	  .max_downscale_factor = 8,
+	  .max_downscale_factor = 4,
 	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_SUB,
 	},
@@ -5311,7 +5318,7 @@ static const struct vop2_win_data rk3572_vop_win_data[] = {
 	  .axi_uv_id = 0x0b,
 	  .possible_vp_mask = BIT(ROCKCHIP_VOP_VP0) | BIT(ROCKCHIP_VOP_VP1),/* vp0 or vp1 */
 	  .max_upscale_factor = 8,
-	  .max_downscale_factor = 8,
+	  .max_downscale_factor = 4,
 	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN | WIN_FEATURE_Y2R_13BIT_DEPTH |
 		WIN_FEATURE_CGC,
@@ -5333,7 +5340,7 @@ static const struct vop2_win_data rk3572_vop_win_data[] = {
 	  .hsd_pre_filter_mode = VOP3_PRE_SCALE_DOWN_AVG,/* gt or avg */
 	  .vsd_pre_filter_mode = VOP3_PRE_SCALE_DOWN_AVG,/* gt or avg */
 	  .regs = &rk3572_cluster1_win_data,
-	  .csc_coe_offset = RK3572_CLUSTER1_WIN0_CSC_COE01_00,
+	  .csc_coe_offset = RK3572_CLUSTER1_WIN1_CSC_COE01_00,
 	  .csc_coe_bits = 10,
 	  .max_input = { 2048, 4096 },
 	  .max_output = { 4096, 4096 },
@@ -5343,7 +5350,7 @@ static const struct vop2_win_data rk3572_vop_win_data[] = {
 	  .axi_uv_id = 0x0d,
 	  .possible_vp_mask = BIT(ROCKCHIP_VOP_VP0) | BIT(ROCKCHIP_VOP_VP1),/* vp0 or vp1 */
 	  .max_upscale_factor = 8,
-	  .max_downscale_factor = 8,
+	  .max_downscale_factor = 4,
 	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_SUB,
 	},
@@ -6603,6 +6610,11 @@ static const struct vop_grf_ctrl rk3572_ioc_grf_ctrl = {
 	.grf_dclk_inv = VOP_REG(RK3572_IOC_GRF_GPIO3_IOC_MISC2, 0x1, 1),
 };
 
+static const struct vop_grf_ctrl rk3572_vo0_grf_ctrl = {
+	.grf_emp_mem_len_en = VOP_REG(RK3572_VO_GRF_SOC_CON0, 0x1, 14),
+	.grf_emp_mem_len_bypass = VOP_REG(RK3572_VO_GRF_SOC_CON0, 0x1, 13),
+};
+
 static const struct vop2_ctrl rk3572_vop_ctrl = {
 	.cfg_done_en = VOP_REG(RK3568_REG_CFG_DONE, 0x1, 15),
 	.wb_cfg_done = VOP_REG_MASK(RK3572_WB_CFG_DONE, 0x1, 0),
@@ -6620,6 +6632,14 @@ static const struct vop2_ctrl rk3572_vop_ctrl = {
 	.mmu0_qos_val = VOP_REG_MASK(RK3572_SYS0_AXI0_MMU_CTRL2_IMD, 0x7, 1),
 	.mmu1_qos_en = VOP_REG_MASK(RK3572_SYS1_AXI1_MMU_CTRL2_IMD, 0x1, 0),
 	.mmu1_qos_val = VOP_REG_MASK(RK3572_SYS1_AXI1_MMU_CTRL2_IMD, 0x7, 1),
+	.metadata_lut_en = VOP_REG(RK3576_SYS_CTRL_METADATA_CTRL, 0x1, 0),
+	.metadata_rid = VOP_REG(RK3576_SYS_CTRL_METADATA_CTRL, 0xf, 4),
+	.metadata_size = VOP_REG(RK3576_SYS_CTRL_METADATA_CTRL, 0x7ff, 16),
+	.metadata_mst = VOP_REG(RK3576_SYS_CTRL_METADATA_MST, 0xffffffff, 0),
+	.dma0_timeout_en = VOP_REG(RK3572_SYS0_AXI0_CTRL_IMD, 0x1, 2),
+	.dma0_timeout_cnt = VOP_REG(RK3572_SYS0_AXI0_CTRL_IMD, 0xfffff, 12),
+	.dma1_timeout_en = VOP_REG(RK3572_SYS1_AXI1_CTRL_IMD, 0x1, 2),
+	.dma1_timeout_cnt = VOP_REG(RK3572_SYS1_AXI1_CTRL_IMD, 0xfffff, 12),
 
 	/* MIPI DSI0 */
 	.mipi0_en = VOP_REG(RK3572_MIPI0_IF_CTRL, 0x1, 0),
@@ -7397,6 +7417,7 @@ static const struct vop2_data rk3572_vop = {
 	.max_input = { 4096, 4096 },
 	.max_output = { 4096, 4096 },
 	.ioc_grf = &rk3572_ioc_grf_ctrl,
+	.vo0_grf = &rk3572_vo0_grf_ctrl,
 	.ctrl = &rk3572_vop_ctrl,
 	.axi_intr = rk3572_vop_axi_intr,
 	.nr_axi_intr = ARRAY_SIZE(rk3572_vop_axi_intr),

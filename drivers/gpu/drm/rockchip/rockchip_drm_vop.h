@@ -1220,6 +1220,7 @@ struct vop2_video_port_regs {
 	/* clk calc*/
 	struct vop_reg calc_clk_en;
 	struct vop_reg calc_dclk_cnt;
+	struct vop_reg calc_aclk_cnt;
 
 	/* dsp vcnt */
 	struct vop_reg dsp_vcnt;
@@ -1496,6 +1497,9 @@ struct vop2_video_port_data {
 	const u8 pixel_rate;
 	const u8 cursor_dly;
 	const u8 hdr_cgc_layer_num;
+	const uint8_t csc_coe_bits;
+	const uint32_t bcsh_r2y_csc_coe_offset;
+	const uint32_t bcsh_y2r_csc_coe_offset;
 	const struct vop_intr *intr;
 	const struct vop_urgency *urgency;
 	const struct vop_hdr_table *hdr_table;
@@ -1636,6 +1640,10 @@ struct vop2_ctrl {
 	struct vop_reg version;
 	struct vop_reg standby;
 	struct vop_reg dma_stop;
+	struct vop_reg dma0_timeout_en;
+	struct vop_reg dma0_timeout_cnt;
+	struct vop_reg dma1_timeout_en;
+	struct vop_reg dma1_timeout_cnt;
 	struct vop_reg rkmmu_v2_en;
 	struct vop_reg rkmmu_v2_sel_axi;
 	struct vop_reg rkmmu1_v2_en;
