@@ -678,6 +678,7 @@ struct dovi_regs {
 #define INV_GAMMA_CHANGE_IDX_LENGTH	6
 #define INV_GAMMA_DIFF_SHIFT_LENGTH	69
 #define CGC_S2H_OETF_LENGTH		117
+#define CGC_S2H_COE_LENGTH		7
 #define RK_HDR_CGC_AXI_TAB_LENGTH	(RK_HDRVIVID_TONE_SCA_TAB_LENGTH + CGC_S2H_OETF_LENGTH * 2)
 
 struct cgc_s2h_data {
@@ -1873,8 +1874,6 @@ struct vop2_data {
 	const struct vop_dump_regs *dump_regs;
 	const char * const *crc_sources;
 	uint32_t dump_regs_size;
-	struct vop_rect max_input;
-	struct vop_rect max_output;
 	const struct vop2_vp_plane_mask *plane_mask;
 	uint32_t plane_mask_base;
 
