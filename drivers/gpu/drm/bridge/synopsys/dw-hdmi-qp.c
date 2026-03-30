@@ -197,22 +197,33 @@ static const struct drm_display_mode dw_hdmi_default_modes[] = {
 };
 
 enum quirk_case {
-	VSI_SEND,
-	DELAY,
-	INFO_ORDER,
+	VSI_SEND	= BIT(0),	/* must send Vendor‑Specific Infoframe */
+	DELAY		= BIT(1),	/* extra delay needed (ms) */
+	INFO_ORDER	= BIT(2),	/* change the order of Infoframe sending */
+	RECONNECT	= BIT(3),	/* force reconnect on same-clock mode switch */
+	FORCE_HDCP_1X	= BIT(4),	/* only supports HDCP 1.x despite register report */
 };
 
 static const struct hdmi_quirk {
 	u8 vendor_info[VENDOR_INFO_LEN];
-	u8 quirk_case;
+	u32 quirk_case;
 	u32 delay;
 } hdmi_quirk_list[] = {
 	/* XMD-004A-00000001-46-2019 */
 	{ { 0x61, 0xA4, 0x4A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2E, 0x1D, },
-	  BIT(VSI_SEND), 0, },
+	  VSI_SEND, 0, },
 	/* QA55QN700BJXXZ */
 	{ { 0x4C, 0x2D, 0x22, 0x72, 0x00, 0x0E, 0x00, 0x01, 0x01, 0x20, },
-	  BIT(INFO_ORDER), 0, },
+	  INFO_ORDER, 0, },
+	/* KONKA 638 */
+	{ { 0x2D, 0xE1, 0x30, 0x00, 0x02, 0x00, 0x00, 0x00, 0x2F, 0x19, },
+	  RECONNECT, 50, },
+	/* TCL 848C */
+	{ { 0x50, 0x6C, 0x48, 0x08, 0x11, 0x10, 0x01, 0x00, 0x10, 0x1C, },
+	  BIT(RECONNECT), 50, },
+	/* Haier TV */
+	{ { 0x22, 0x45, 0x30, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2D, 0x1A, },
+	  FORCE_HDCP_1X, 0, },
 };
 
 enum frl_mask {
@@ -1056,7 +1067,7 @@ static int hdmi_bus_fmt_color_depth(unsigned int bus_format)
 	}
 }
 
-static const struct hdmi_quirk *get_hdmi_quirk(u8 *vendor_id)
+static const struct hdmi_quirk *get_hdmi_quirk(const u8 *vendor_id)
 {
 	int i;
 
@@ -1508,31 +1519,25 @@ static bool is_hdmi2_sink(const struct drm_connector *connector)
 		connector->display_info.color_formats & DRM_COLOR_FORMAT_YCBCR420;
 }
 
-static
-bool hdmi_quirk_vsi(const struct drm_connector *connector, u8 *vendor_info)
+static bool hdmi_has_quirk(const u8 *vendor_info, u32 flags)
 {
 	const struct hdmi_quirk *quirk = get_hdmi_quirk(vendor_info);
 
 	if (!quirk)
 		return false;
 
-	if (!(quirk->quirk_case & BIT(VSI_SEND)))
-		return false;
-
-	return true;
+	return quirk->quirk_case & flags;
 }
 
-static bool hdmi_quirk_info_order(const struct drm_connector *connector, u8 *vendor_info)
+static void hdmi_quirk_delay(u8 *vendor_info, u32 flags)
 {
 	const struct hdmi_quirk *quirk = get_hdmi_quirk(vendor_info);
 
 	if (!quirk)
-		return false;
+		return;
 
-	if (!(quirk->quirk_case & BIT(INFO_ORDER)))
-		return false;
-
-	return true;
+	if (quirk->quirk_case & flags)
+		msleep(quirk->delay);
 }
 
 #define HDMI_AVI_V3_PAYLOAD_LEN		HDMI_AVI_INFOFRAME_SIZE
@@ -1640,7 +1645,7 @@ static void hdmi_config_AVI(struct dw_hdmi_qp *hdmi,
 		buff[4] |= ((frame.colorspace & 0x7) << 5);
 		buff[7] = hdmi->vic;
 		hdmi_infoframe_set_checksum(buff, HDMI_AVI_INFO_V3_LEN);
-	} else if (is_hdmi2_sink(connector) && hdmi_quirk_vsi(connector, hdmi->vendor_info)) {
+	} else if (is_hdmi2_sink(connector) && hdmi_has_quirk(hdmi->vendor_info, VSI_SEND)) {
 		buff[7] = hdmi->vic;
 		hdmi_infoframe_set_checksum(buff, HDMI_AVI_INFO_V3_LEN);
 	}
@@ -1729,7 +1734,7 @@ static void hdmi_config_vendor_specific_infoframe(struct dw_hdmi_qp *hdmi,
 			 */
 			return;
 
-		if ((is_hdmi2_sink(connector) && hdmi_quirk_vsi(connector, hdmi->vendor_info)) ||
+		if ((is_hdmi2_sink(connector) && hdmi_has_quirk(hdmi->vendor_info, VSI_SEND)) ||
 		    !frame.vic) {
 			hdmi_modb(hdmi, 0, PKTSCHED_VSI_TX_EN, PKTSCHED_PKT_EN);
 			return;
@@ -2594,7 +2599,8 @@ static void dw_hdmi_qp_hdcp_enable(struct dw_hdmi_qp *hdmi,
 		return;
 
 	/* sink support hdcp2.x */
-	if (is_sink_hdcp2_supported(hdmi)) {
+	if (is_sink_hdcp2_supported(hdmi) &&
+	    !hdmi_has_quirk(hdmi->vendor_info, FORCE_HDCP_1X)) {
 		if (hdmi->plat_data->set_hdcp2_enable)
 			hdmi->plat_data->set_hdcp2_enable(data, true);
 
@@ -2816,7 +2822,7 @@ static int dw_hdmi_qp_setup(struct dw_hdmi_qp *hdmi,
 		hdmi_modb(hdmi, HDCP2_BYPASS, HDCP2_BYPASS, HDCP2LOGIC_CONFIG0);
 		hdmi_modb(hdmi, KEEPOUT_REKEY_ALWAYS, KEEPOUT_REKEY_CFG, FRAME_COMPOSER_CONFIG9);
 
-		if (hdmi_quirk_info_order(connector, hdmi->vendor_info)) {
+		if (hdmi_has_quirk(hdmi->vendor_info, INFO_ORDER)) {
 			/* Change the sending order of infoframe to VSI -> GCP -> AVI -> DRMI */
 			hdmi_writel(hdmi, 0x3020a, PKTSCHED_PRQUEUE0_CONFIG0);
 			hdmi_writel(hdmi, 0x9070b08, PKTSCHED_PRQUEUE1_CONFIG0);
@@ -2839,6 +2845,7 @@ static int dw_hdmi_qp_setup(struct dw_hdmi_qp *hdmi,
 				hdmi_writel(hdmi, 0, SCRAMB_CONFIG0);
 			}
 		}
+		hdmi_quirk_delay(hdmi->vendor_info, RECONNECT);
 		/* HDMI Initialization Step F - Configure AVI InfoFrame */
 		hdmi_config_AVI(hdmi, connector);
 		hdmi_config_vendor_specific_infoframe(hdmi, connector);
@@ -3741,10 +3748,15 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 			if (hdmi->hdmi_changed_status == HDMI_VSIF_CHANGED)
 				return 0;
 
-			hdmi->update = true;
-			hdmi_writel(hdmi, 1, PKTSCHED_PKT_CONTROL0);
-			hdmi_modb(hdmi, PKTSCHED_GCP_TX_EN, PKTSCHED_GCP_TX_EN, PKTSCHED_PKT_EN);
-			mdelay(50);
+			if (hdmi_has_quirk(hdmi->vendor_info, RECONNECT)) {
+				crtc_state->mode_changed = true;
+			} else {
+				hdmi->update = true;
+				hdmi_writel(hdmi, 1, PKTSCHED_PKT_CONTROL0);
+				hdmi_modb(hdmi, PKTSCHED_GCP_TX_EN, PKTSCHED_GCP_TX_EN,
+					  PKTSCHED_PKT_EN);
+				mdelay(50);
+			}
 		} else if (!hdmi->disabled) {
 			hdmi->update = false;
 			crtc_state->mode_changed = true;
