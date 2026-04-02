@@ -715,6 +715,11 @@ struct vop2_video_port {
 	bool dovi_hdr_in;
 
 	/**
+	 * @luma_avg_en: Set when luma avg statistics enabled.
+	 */
+	bool luma_avg_en;
+
+	/**
 	 * -----------------
 	 * |      |       |
 	 * | Left | Right |
@@ -901,6 +906,10 @@ struct vop2_video_port {
 	 * @output_dclk_prop: vp max output dclk prop
 	 */
 	struct drm_property *output_dclk_prop;
+	/**
+	 * @luma_avg_prop: vp luma avg data and control prop
+	 */
+	struct drm_property *luma_avg_prop;
 
 	/**
 	 * @primary_plane_phy_id: vp primary plane phy id, the primary plane
@@ -5421,14 +5430,6 @@ static void vop2_initial(struct drm_crtc *crtc)
 			VOP_CTRL_SET(vop2, lut_use_axi1, 0);
 		}
 
-		/*
-		 * After vop initialization, keep sw_sharp_enable always on.
-		 * Only enable/disable sharp submodule to avoid black screen.
-		 */
-		if (vp_data->feature & VOP_FEATURE_POST_SHARP && !vp->sharp_disabled &&
-		    (vop2->version == VOP_VERSION_RK3576))
-			writel(0x1, vop2->sharp_res.regs);
-
 		/* disable immediately enable bit for dp */
 		VOP_CTRL_SET(vop2, dp0_regdone_imd_en, 0);
 		VOP_CTRL_SET(vop2, dp1_regdone_imd_en, 0);
@@ -5476,6 +5477,15 @@ static void vop2_initial(struct drm_crtc *crtc)
 	}
 
 	vop2_debug_irq_enable(crtc);
+
+	/*
+	 * After vop initialization, keep sw_sharp_enable always on.
+	 * Only enable/disable sharp submodule to avoid black screen.
+	 */
+	if (vp_data->feature & VOP_FEATURE_POST_SHARP && !vp->sharp_disabled &&
+	    (vop2->version == VOP_VERSION_RK3576))
+		writel(0x1, vop2->sharp_res.regs);
+	VOP_MODULE_SET(vop2, vp, post_buf_empty_dsp_vcnt_en, 1);
 
 	vop2->enable_count++;
 
@@ -6146,10 +6156,21 @@ static u32 vop2_get_hdmi_tmds_rate(struct rockchip_crtc_state *vcstate, u32 rate
  * hdmi must use frl mode, and the parent clock of dclk cannot use
  * hdmi phy pll, but must use the cru pll.
  */
-static bool vop2_is_dclk_switch_to_cru_pll(struct rockchip_crtc_state *vcstate,
-						  u32 dclk_rate)
+static bool vop2_is_dclk_switch_to_cru_pll(struct vop2 *vop2, struct rockchip_crtc_state *vcstate,
+					   u32 dclk_rate)
 {
 	if (dclk_rate > VOP2_MAX_DCLK_RATE)
+		return true;
+
+	/*
+	 * On the RK3572, when the HDMI outputs 4K60 YUV420, clock
+	 * frequency provided by HDMI PHY PLL to VOP is only 297 MHz.
+	 * However, the required DCLK frequency for VOP in this scenario
+	 * is 594 MHz, which HDMI PHY PLL cannot meet. Therefore,
+	 * the DCLK clock source must be switched to CRU PLL.
+	 */
+	if (vop2->version == VOP_VERSION_RK3572 &&
+	    vcstate->output_mode == ROCKCHIP_OUT_MODE_YUV420)
 		return true;
 
 	if (vop2_get_hdmi_tmds_rate(vcstate, dclk_rate) <= VOP2_MAX_DCLK_RATE)
@@ -6195,7 +6216,9 @@ static int vop2_extend_clk_init(struct vop2 *vop2)
 
 	INIT_LIST_HEAD(&vop2->extend_clk_list_head);
 
-	if (vop2->version != VOP_VERSION_RK3588 && vop2->version != VOP_VERSION_RK3576)
+	if (vop2->version != VOP_VERSION_RK3588 &&
+	    vop2->version != VOP_VERSION_RK3576 &&
+	    vop2->version != VOP_VERSION_RK3572)
 		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(extend_clk_name); i++) {
@@ -6343,7 +6366,8 @@ static int vop2_clk_set_parent_extend(struct vop2_video_port *vp,
 				return -EBUSY;
 			}
 
-			if (vop2_is_dclk_switch_to_cru_pll(vcstate, adjusted_mode->crtc_clock))
+			if (vop2_is_dclk_switch_to_cru_pll(vop2, vcstate,
+							   adjusted_mode->crtc_clock))
 				vop2_clk_set_parent(vp->dclk, vp->dclk_parent);
 			else
 				vop2_clk_set_parent(vp->dclk, hdmi0_phy_pll->clk);
@@ -6370,7 +6394,8 @@ static int vop2_clk_set_parent_extend(struct vop2_video_port *vp,
 				}
 			}
 
-			if (vop2_is_dclk_switch_to_cru_pll(vcstate, adjusted_mode->crtc_clock))
+			if (vop2_is_dclk_switch_to_cru_pll(vop2, vcstate,
+							   adjusted_mode->crtc_clock))
 				vop2_clk_set_parent(vp->dclk, vp->dclk_parent);
 			else
 				vop2_clk_set_parent(vp->dclk, hdmi0_phy_pll->clk);
@@ -6396,7 +6421,8 @@ static int vop2_clk_set_parent_extend(struct vop2_video_port *vp,
 				}
 			}
 
-			if (vop2_is_dclk_switch_to_cru_pll(vcstate, adjusted_mode->crtc_clock))
+			if (vop2_is_dclk_switch_to_cru_pll(vop2, vcstate,
+							   adjusted_mode->crtc_clock))
 				vop2_clk_set_parent(vp->dclk, vp->dclk_parent);
 			else
 				vop2_clk_set_parent(vp->dclk, hdmi1_phy_pll->clk);
@@ -10156,11 +10182,36 @@ static int vop2_pixel_shift_sysfs_fini(struct device *dev, struct drm_crtc *crtc
 	return 0;
 }
 
+static void vop2_luma_avg_control(struct drm_crtc *crtc, bool enable)
+{
+	struct rockchip_crtc_state *vcstate = to_rockchip_crtc_state(crtc->state);
+	struct vop2_video_port *vp = to_vop2_video_port(crtc);
+	struct vop2 *vop2 = vp->vop2;
+	int i;
+
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (&vop2->vps[i] == vp)
+			vop2->vps[i].luma_avg_en = !!enable;
+		else
+			vop2->vps[i].luma_avg_en = false;
+	}
+
+	if (enable) {
+		VOP_CTRL_SET(vop2, yavg_regdone_imd, 1);
+		VOP_CTRL_SET(vop2, yavg_port_sel, vp->id);
+		VOP_CTRL_SET(vop2, yavg_yuv_mode_en, is_yuv_output(vcstate->bus_format));
+		VOP_CTRL_SET(vop2, yavg_div_width, 0x100000 / crtc->state->mode.hdisplay);
+		VOP_CTRL_SET(vop2, yavg_div_height, 0x100000 / crtc->state->mode.vdisplay);
+		VOP_CTRL_SET(vop2, yavg_en, 1);
+	} else {
+		VOP_CTRL_SET(vop2, yavg_en, 0);
+	}
+}
+
 static ssize_t luma_avg_store(struct device *dev, struct device_attribute *attr,
 			      const char *buf, size_t count)
 {
 	struct drm_crtc *crtc = dev_get_drvdata(dev);
-	struct rockchip_crtc_state *vcstate = to_rockchip_crtc_state(crtc->state);
 	struct vop2_video_port *vp = to_vop2_video_port(crtc);
 	struct vop2 *vop2 = vp->vop2;
 	int enable;
@@ -10177,16 +10228,7 @@ static ssize_t luma_avg_store(struct device *dev, struct device_attribute *attr,
 		return count;
 	}
 
-	if (enable) {
-		VOP_CTRL_SET(vop2, yavg_regdone_imd, 1);
-		VOP_CTRL_SET(vop2, yavg_port_sel, vp->id);
-		VOP_CTRL_SET(vop2, yavg_yuv_mode_en, is_yuv_output(vcstate->bus_format));
-		VOP_CTRL_SET(vop2, yavg_div_width, 0x100000 / crtc->state->mode.hdisplay);
-		VOP_CTRL_SET(vop2, yavg_div_height, 0x100000 / crtc->state->mode.vdisplay);
-		VOP_CTRL_SET(vop2, yavg_en, 1);
-	} else {
-		VOP_CTRL_SET(vop2, yavg_en, 0);
-	}
+	vop2_luma_avg_control(crtc, !!enable);
 
 	return count;
 }
@@ -11011,14 +11053,29 @@ static void vop2_post_config(struct drm_crtc *crtc)
 	}
 
 	/*
-	 * BCSH[R2Y] -> POST Linebuffer[post scale] -> the background R2Y will be deal by post_dsp_out_r2y
+	 * The platform supported ACM:
+	 *   RK3528/RK3576:
+	 *     overlay-> post scale -> CSC_R2Y -> ACM -> CSC_Y2R
 	 *
-	 * POST Linebuffer[post scale] -> ACM[R2Y] -> the background R2Y will be deal by ACM[R2Y]
+	 *   From RK3572/RK3538:
+	 *     overlay-> CSC_R2Y -> post scale -> ACM -> CSC_Y2R
+	 *
+	 * The platform support BCSH:
+	 *   overlay-> CSC_R2Y -> BCSH -> CSC_Y2R -> post sclae
 	 */
-	if (vp_data->feature & VOP_FEATURE_POST_ACM)
-		VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, vcstate->yuv_overlay);
-	else
+	if ((vp_data->feature & VOP_FEATURE_POST_ACM)) {
+		if (vop2->version <= VOP_VERSION_RK3576) {
+			VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, vcstate->yuv_overlay);
+		} else {
+			if (vcstate->post_y2r_en || vcstate->acm_en ||
+			    is_yuv_output(vcstate->bus_format))
+				VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, 1);
+			else
+				VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, 0);
+		}
+	} else {
 		VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, is_yuv_output(vcstate->bus_format));
+	}
 }
 
 /*
@@ -12610,6 +12667,9 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_atomic_sta
 		vop2_cfg_done(crtc);
 		vop2_wait_for_fs_by_done_bit_status(vp);
 	}
+
+	if (vp->luma_avg_en)
+		vop2_luma_avg_control(crtc, true);
 
 	/*
 	 * In RK3588 VOP, HDMI1/eDP1 MUX1 module's reset signal should be released
@@ -16053,10 +16113,10 @@ static void vop2_post_sharp_config(struct drm_crtc *crtc)
 		return;
 
 	/*
-	 * rk3538 must disable sharp when all win is disabled, Otherwise
+	 * rk3538/rk3572 must disable sharp when all win is disabled, Otherwise
 	 * will display unexpected horizontal stripes.
 	 */
-	if ((!vp->enabled_win_mask && (vop2->version == VOP_VERSION_RK3538)) || vp->bypass_mode) {
+	if ((!vp->enabled_win_mask && (vop2->version >= VOP_VERSION_RK3572)) || vp->bypass_mode) {
 		writel(0x0, vop2->sharp_res.regs);
 		vcstate->sharp_en = false;
 
@@ -16156,47 +16216,7 @@ static void vop2_cfg_update(struct drm_crtc *crtc,
 	if (vcstate->splice_mode)
 		vop2_dither_setup(vcstate, &splice_vp->rockchip_crtc.crtc);
 
-	VOP_MODULE_SET(vop2, vp, overlay_mode, vcstate->yuv_overlay);
-	/* From rk3538/rk3572, the WIN CSC will convert the data to YUV full range
-	 * when at yuv overlay mode.
-	 */
-	VOP_MODULE_SET(vop2, vp, yuv_full_range_overlay_mode, 1);
-
-	/*
-	 * userspace specified background.
-	 */
-	if (vcstate->background) {
-		r = (vcstate->background & 0xff0000) >> 16;
-		g = (vcstate->background & 0xff00) >> 8;
-		b = (vcstate->background & 0xff);
-		r <<= 2;
-		g <<= 2;
-		b <<= 2;
-		val = (r << 20) | (g << 10) | b;
-	} else {
-		if (vcstate->yuv_overlay) {
-			/* From rk3538/rk3572, the background should be set to
-			 * full range when at yuv overlay mode.
-			 */
-			if (vp->regs->yuv_full_range_overlay_mode.mask)
-				val = 0x20000200;
-			else
-				val = 0x20010200;
-		} else {
-			val = 0;
-		}
-	}
-
-	VOP_MODULE_SET(vop2, vp, dsp_background, val);
-	if (vcstate->splice_mode) {
-		VOP_MODULE_SET(vop2, splice_vp, overlay_mode, vcstate->yuv_overlay);
-		VOP_MODULE_SET(vop2, splice_vp, dsp_background, val);
-	}
-
 	vop2_tv_config_update(crtc, old_crtc_state);
-
-	if (vp_data->feature & VOP_FEATURE_OVERSCAN)
-		vop2_post_config(crtc);
 
 	if (vp_data->feature & VOP_FEATURE_DOVI)
 		vop2_dovi_enable(crtc);
@@ -16219,6 +16239,52 @@ static void vop2_cfg_update(struct drm_crtc *crtc,
 	if ((vp_data->feature & VOP_FEATURE_POST_ACM) && vp->acm_state_changed)
 		vop3_post_acm_config(crtc, &vp->acm_info);
 
+	if (vp_data->feature & VOP_FEATURE_OVERSCAN)
+		vop2_post_config(crtc);
+
+	/*
+	 * userspace specified background.
+	 */
+	if (vcstate->background) {
+		r = (vcstate->background & 0xff0000) >> 16;
+		g = (vcstate->background & 0xff00) >> 8;
+		b = (vcstate->background & 0xff);
+		r <<= 2;
+		g <<= 2;
+		b <<= 2;
+		val = (r << 20) | (g << 10) | b;
+	} else {
+		if (vop2->version <= VOP_VERSION_RK3576) {
+			if (vcstate->yuv_overlay)
+				val = 0x20010200;/* limit range */
+			else
+				val = 0;
+		} else {
+			if (vp->enabled_win_mask) {/* background connector at bg_mix */
+				if (vcstate->yuv_overlay)
+					val = 0x20000200;/* full range */
+				else
+					val = 0;
+			} else {/* background connector after r2y->post_scale */
+				if (vcstate->post_y2r_en || vcstate->acm_en ||
+				    is_yuv_output(vcstate->bus_format))
+					val = 0x20000200;/* full range */
+				else
+					val = 0;
+			}
+		}
+	}
+
+	VOP_MODULE_SET(vop2, vp, dsp_background, val);
+	VOP_MODULE_SET(vop2, vp, overlay_mode, vcstate->yuv_overlay);
+	if (vcstate->splice_mode) {
+		VOP_MODULE_SET(vop2, splice_vp, dsp_background, val);
+		VOP_MODULE_SET(vop2, splice_vp, overlay_mode, vcstate->yuv_overlay);
+	}
+	/* From rk3538/rk3572, the WIN CSC will convert the data to YUV full range
+	 * when at yuv overlay mode.
+	 */
+	VOP_MODULE_SET(vop2, vp, yuv_full_range_overlay_mode, 1);
 }
 
 static void vop2_sleep_scan_line_time(struct vop2_video_port *vp, int scan_line)
@@ -16739,6 +16805,11 @@ static int vop2_crtc_atomic_get_property(struct drm_crtc *crtc,
 		return 0;
 	}
 
+	if (property == vp->luma_avg_prop) {
+		*val = VOP_CTRL_GET(vop2, yavg_frame_out);
+		return 0;
+	}
+
 	DRM_ERROR("failed to get vop2 crtc property: %s\n", property->name);
 
 	return -EINVAL;
@@ -16760,14 +16831,14 @@ static int vop2_crtc_atomic_set_property(struct drm_crtc *crtc,
 	int ret;
 
 	if (property == mode_config->tv_left_margin_property) {
-		if (vcstate->sharp_en) {
-			DRM_ERROR("sharp is enabled, failed to set %s\n", property->name);
+		if (vcstate->sharp_en && val != 100) {
+			DRM_ERROR("sharp is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 
 		if (vop2_is_left_right_or_odd_even_mode(vcstate) &&
-		    vop2->version == VOP_VERSION_RK3576) {
-			DRM_ERROR("split is enabled, failed to set %s\n", property->name);
+		    vop2->version == VOP_VERSION_RK3576 && val != 100) {
+			DRM_ERROR("split is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 		vcstate->left_margin = val;
@@ -16775,14 +16846,14 @@ static int vop2_crtc_atomic_set_property(struct drm_crtc *crtc,
 	}
 
 	if (property == mode_config->tv_right_margin_property) {
-		if (vcstate->sharp_en) {
-			DRM_ERROR("sharp is enabled, failed to set %s\n", property->name);
+		if (vcstate->sharp_en && val != 100) {
+			DRM_ERROR("sharp is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 
 		if (vop2_is_left_right_or_odd_even_mode(vcstate) &&
-		    vop2->version == VOP_VERSION_RK3576) {
-			DRM_ERROR("split is enabled, failed to set %s\n", property->name);
+		    vop2->version == VOP_VERSION_RK3576 && val != 100) {
+			DRM_ERROR("split is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 		vcstate->right_margin = val;
@@ -16790,14 +16861,14 @@ static int vop2_crtc_atomic_set_property(struct drm_crtc *crtc,
 	}
 
 	if (property == mode_config->tv_top_margin_property) {
-		if (vcstate->sharp_en) {
-			DRM_ERROR("sharp is enabled, failed to set %s\n", property->name);
+		if (vcstate->sharp_en && val != 100) {
+			DRM_ERROR("sharp is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 
 		if (vop2_is_left_right_or_odd_even_mode(vcstate) &&
-		    vop2->version == VOP_VERSION_RK3576) {
-			DRM_ERROR("split is enabled, failed to set %s\n", property->name);
+		    vop2->version == VOP_VERSION_RK3576 && val != 100) {
+			DRM_ERROR("split is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 		vcstate->top_margin = val;
@@ -16805,20 +16876,19 @@ static int vop2_crtc_atomic_set_property(struct drm_crtc *crtc,
 	}
 
 	if (property == mode_config->tv_bottom_margin_property) {
-		if (vcstate->sharp_en) {
-			DRM_ERROR("sharp is enabled, failed to set %s\n", property->name);
+		if (vcstate->sharp_en && val != 100) {
+			DRM_ERROR("sharp is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 
 		if (vop2_is_left_right_or_odd_even_mode(vcstate) &&
-		    vop2->version == VOP_VERSION_RK3576) {
-			DRM_ERROR("split is enabled, failed to set %s\n", property->name);
+		    vop2->version == VOP_VERSION_RK3576 && val != 100) {
+			DRM_ERROR("split is enabled, failed to set %s as %llu\n", property->name, val);
 			return 0;
 		}
 		vcstate->bottom_margin = val;
 		return 0;
 	}
-
 
 	if (property == private->bg_prop) {
 		vcstate->background = val;
@@ -16907,6 +16977,11 @@ static int vop2_crtc_atomic_set_property(struct drm_crtc *crtc,
 								&replaced);
 		vcstate->dimming_changed |= replaced;
 		return ret;
+	}
+
+	if (property == vp->luma_avg_prop) {
+		vop2_luma_avg_control(crtc, !!val);
+		return 0;
 	}
 
 	DRM_ERROR("failed to set vop2 crtc property %s\n", property->name);
@@ -17272,8 +17347,11 @@ static irqreturn_t vop2_isr(int irq, void *data)
 		}
 
 		if (active_irqs & POST_BUF_EMPTY_INTR) {
+			u32 post_buf_empty_line = vop2_read_vcnt(vp);
+
 			vop2_handle_post_buf_empty(crtc);
-			DRM_DEV_ERROR_RATELIMITED(vop2->dev, "POST_BUF_EMPTY irq err at vp%d\n", vp->id);
+			DRM_DEV_ERROR_RATELIMITED(vop2->dev, "POST_BUF_EMPTY irq err at vp%u line %u\n",
+						  vp->id, post_buf_empty_line);
 			active_irqs &= ~POST_BUF_EMPTY_INTR;
 			ret = IRQ_HANDLED;
 		}
@@ -17492,7 +17570,16 @@ static irqreturn_t vop3_vp_isr(int irq, void *data)
 	}
 
 	if (active_irqs & POST_BUF_EMPTY_INTR) {
-		DRM_DEV_ERROR_RATELIMITED(vop2->dev, "POST_BUF_EMPTY_INTR irq err at vp%d\n", vp->id);
+		u32 post_buf_empty_line;
+
+		if (vp->regs->post_buf_empty_dsp_vcnt.mask) {
+			post_buf_empty_line = VOP_MODULE_GET(vop2, vp, post_buf_empty_dsp_vcnt);
+			VOP_MODULE_SET(vop2, vp, post_buf_empty_dsp_vcnt_clr, 1);
+		} else {
+			post_buf_empty_line = vop2_read_vcnt(vp);
+		}
+		DRM_DEV_ERROR_RATELIMITED(vop2->dev, "POST_BUF_EMPTY_INTR irq err at vp%u line %u\n",
+					  vp->id, post_buf_empty_line);
 		active_irqs &= ~POST_BUF_EMPTY_INTR;
 		ret = IRQ_HANDLED;
 	}
@@ -18078,6 +18165,15 @@ static int vop2_crtc_create_feature_property(struct vop2 *vop2, struct drm_crtc 
 	}
 	vp->output_dclk_prop = prop;
 	drm_object_attach_property(&crtc->base, vp->output_dclk_prop, 0);
+
+	prop = drm_property_create_range(vop2->drm_dev, 0, "LUMA_AVG",
+					 0, 255);
+	if (!prop) {
+		DRM_DEV_ERROR(vop2->dev, "create LUMA_AVG prop for vp%d failed\n", vp->id);
+		return -ENOMEM;
+	}
+	vp->luma_avg_prop = prop;
+	drm_object_attach_property(&crtc->base, vp->luma_avg_prop, 0);
 
 	return 0;
 }
