@@ -947,14 +947,11 @@ void gic_v3_dist_init(void)
 			continue;
 		}
 #endif
-		trace_android_vh_gic_v3_affinity_init(i, GICD_IROUTER, &affinity);
 		gic_write_irouter(affinity, base + GICD_IROUTER + i * 8);
 	}
 
-	for (i = 0; i < GIC_ESPI_NR; i++) {
-		trace_android_vh_gic_v3_affinity_init(i, GICD_IROUTERnE, &affinity);
+	for (i = 0; i < GIC_ESPI_NR; i++)
 		gic_write_irouter(affinity, base + GICD_IROUTERnE + i * 8);
-	}
 }
 EXPORT_SYMBOL_GPL(gic_v3_dist_init);
 

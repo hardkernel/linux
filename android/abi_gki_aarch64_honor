@@ -77,6 +77,8 @@
  udp6_lib_lookup
  next_arg
  pm_wakeup_irq
+ __traceiter_android_vh_folio_add_lru
+ __tracepoint_android_vh_folio_add_lru
  __tracepoint_android_vh_dc_send_copy
  __traceiter_android_vh_dc_send_copy
  __tracepoint_android_vh_dc_receive

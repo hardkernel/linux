@@ -1260,15 +1260,11 @@ static int dm_derive_sw_secret_callback(struct dm_target *ti,
 {
 	struct dm_derive_sw_secret_args *args = data;
 
-	if (!args->err)
-		return 0;
-
 	args->err = blk_crypto_derive_sw_secret(dev->bdev,
 						args->eph_key,
 						args->eph_key_size,
 						args->sw_secret);
-	/* Try another device in case this fails. */
-	return 0;
+	return 1; /* No need to continue the iteration. */
 }
 
 /*
@@ -1300,9 +1296,7 @@ static int dm_derive_sw_secret(struct blk_crypto_profile *profile,
 		ti = dm_table_get_target(t, i);
 		if (!ti->type->iterate_devices)
 			continue;
-		ti->type->iterate_devices(ti, dm_derive_sw_secret_callback,
-					  &args);
-		if (!args.err)
+		if (ti->type->iterate_devices(ti, dm_derive_sw_secret_callback, &args) != 0)
 			break;
 	}
 	dm_put_live_table(md, srcu_idx);

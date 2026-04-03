@@ -314,6 +314,7 @@ static int oom_evaluate_task(struct task_struct *task, void *arg)
 {
 	struct oom_control *oc = arg;
 	long points;
+	bool bypass = false;
 
 	if (oom_unkillable_task(task))
 		goto next;
@@ -342,6 +343,10 @@ static int oom_evaluate_task(struct task_struct *task, void *arg)
 		points = LONG_MAX;
 		goto select;
 	}
+
+	trace_android_vh_oom_evaluate_task_bypass(task, oc, &bypass);
+	if (bypass)
+		goto next;
 
 	points = oom_badness(task, oc->totalpages);
 	if (points == LONG_MIN || points < oc->chosen_points)

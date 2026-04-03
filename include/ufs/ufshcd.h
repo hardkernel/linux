@@ -625,6 +625,13 @@ enum ufshcd_quirks {
 	UFSHCD_QUIRK_HIBERN_FASTAUTO			= 1 << 18,
 
 	/*
+	 * This quirk indicates that DME_LINKSTARTUP should not be issued a 2nd
+	 * time (refer link_startup_again) after the 1st time was successful,
+	 * because it causes link startup to become unreliable.
+	 */
+	UFSHCD_QUIRK_PERFORM_LINK_STARTUP_ONCE		= 1 << 19,
+
+	/*
 	 * Some host raises interrupt (per queue) in addition to
 	 * CQES (traditional) when ESI is disabled.
 	 * Enable this quirk will disable CQES and use per queue interrupt.

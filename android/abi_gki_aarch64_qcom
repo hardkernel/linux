@@ -77,10 +77,12 @@
   bio_endio
   bio_end_io_acct_remapped
   bio_free_pages
+  bio_reset
   bio_split
   bio_start_io_acct
   bio_kmalloc
   bitmap_allocate_region
+  __bio_add_page
   __bitmap_and
   __bitmap_andnot
   __bitmap_clear
@@ -1201,6 +1203,7 @@
   fwnode_property_read_u32_array
   fwnode_property_read_u8_array
   gcd
+  generic_block_bmap
   generic_device_group
   generic_file_llseek
   generic_handle_domain_irq
@@ -1517,6 +1520,7 @@
   ieee802154_xmit_complete
   ieee802154_xmit_error
   ieee802154_xmit_hw_error
+  iget_failed
   iio_buffer_init
   iio_buffer_put
   iio_device_attach_buffer
@@ -1536,6 +1540,7 @@
   inet6_ioctl
   __inet6_lookup_established
   inet_csk_get_port
+  inet_dev_addr_type
   inet_frag_destroy
   inet_frag_find
   inet_frag_kill
@@ -1560,6 +1565,7 @@
   init_uts_ns
   init_wait_entry
   __init_waitqueue_head
+  inode_nohighmem
   input_alloc_absinfo
   input_allocate_device
   input_close_device
@@ -1637,6 +1643,7 @@
   ip_send_check
   iput
   __ipv6_addr_type
+  ipv6_chk_addr
   ipv6_dev_find
   ipv6_ext_hdr
   ipv6_skip_exthdr
@@ -1886,6 +1893,7 @@
   __list_del_entry_valid
   list_sort
   llist_add_batch
+  llist_del_first
   llist_reverse_order
   __local_bh_enable_ip
   lock_sock_nested
@@ -1904,7 +1912,9 @@
   lru_gen_caps
   mac_pton
   mas_find
+  match_strdup
   match_string
+  match_uint
   mbox_chan_received_data
   mbox_chan_txdone
   mbox_client_txdone
@@ -2103,6 +2113,17 @@
   net_namespace_list
   net_ns_type_operations
   net_ratelimit
+  nf_log_buf_add
+  nf_log_buf_close
+  nf_log_buf_open
+  nf_log_packet
+  nf_log_register
+  nf_log_set
+  nf_log_unregister
+  nf_log_unset
+  nf_logger_find_get
+  nf_logger_put
+  __nf_ip6_route
   nfc_add_se
   nfc_allocate_device
   nfc_alloc_recv_skb
@@ -2276,6 +2297,7 @@
   open_candev
   out_of_line_wait_on_bit
   out_of_line_wait_on_bit_timeout
+  overflowgid
   overflowuid
   page_endio
   page_ext_get
@@ -2290,6 +2312,7 @@
   page_pool_destroy
   page_pool_put_defragged_page
   page_pool_release_page
+  page_symlink_inode_operations
   __pagevec_release
   panic
   panic_notifier_list
@@ -2301,6 +2324,7 @@
   param_ops_bool
   param_ops_charp
   param_ops_int
+  param_ops_short
   param_ops_string
   param_ops_uint
   param_ops_ullong
@@ -2695,6 +2719,10 @@
   rb_next
   rb_next_postorder
   rb_prev
+  rc_allocate_device
+  rc_free_device
+  rc_register_device
+  rc_unregister_device
   rcu_barrier
   rcu_barrier_tasks
   rcu_barrier_tasks_trace
@@ -3333,8 +3361,10 @@
   synchronize_srcu_expedited
   synth_event_create
   synth_event_delete
+  symbol_put_addr
   syscon_node_to_regmap
   syscon_regmap_lookup_by_phandle
+  sysctl_nf_log_all_netns
   sysctl_sched_features
   sysctl_vals
   sysfs_add_file_to_group
@@ -3410,6 +3440,7 @@
   trace_array_put
   trace_array_set_clr_event
   __trace_bprintk
+  trace_clock_global
   trace_clock_local
   trace_event_buffer_commit
   trace_event_buffer_reserve
@@ -3728,6 +3759,7 @@
   __tracepoint_mmap_lock_start_locking
   tracepoint_probe_register
   tracepoint_probe_register_prio
+  tracepoint_probe_register_prio_may_exist
   tracepoint_probe_unregister
   __tracepoint_sched_overutilized_tp
   __tracepoint_sched_switch
@@ -4229,6 +4261,12 @@
   xsk_tx_peek_desc
   xsk_tx_release
   xsk_uses_need_wakeup
+  xt_register_matches
+  xt_register_targets
+  xt_unregister_matches
+  xt_unregister_targets
+  xxh32
+  xxh64
   zap_vma_ptes
   zlib_deflate
   zlib_deflateEnd
@@ -4251,3 +4289,4 @@
   zs_map_object
   zs_pool_stats
   zs_unmap_object
+  zstd_compress_bound

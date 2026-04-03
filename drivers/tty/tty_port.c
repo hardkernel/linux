@@ -411,6 +411,20 @@ void tty_port_hangup(struct tty_port *port)
 }
 EXPORT_SYMBOL(tty_port_hangup);
 
+void __tty_port_tty_hangup(struct tty_port *port, bool check_clocal, bool async)
+{
+	struct tty_struct *tty = tty_port_tty_get(port);
+
+	if (tty && (!check_clocal || !C_CLOCAL(tty))) {
+		if (async)
+			tty_hangup(tty);
+		else
+			tty_vhangup(tty);
+	}
+	tty_kref_put(tty);
+}
+EXPORT_SYMBOL_GPL(__tty_port_tty_hangup);
+
 /**
  * tty_port_tty_hangup - helper to hang up a tty
  * @port: tty port
@@ -418,11 +432,7 @@ EXPORT_SYMBOL(tty_port_hangup);
  */
 void tty_port_tty_hangup(struct tty_port *port, bool check_clocal)
 {
-	struct tty_struct *tty = tty_port_tty_get(port);
-
-	if (tty && (!check_clocal || !C_CLOCAL(tty)))
-		tty_hangup(tty);
-	tty_kref_put(tty);
+	__tty_port_tty_hangup(port, check_clocal, true);
 }
 EXPORT_SYMBOL_GPL(tty_port_tty_hangup);
 

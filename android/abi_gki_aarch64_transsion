@@ -1,4 +1,8 @@
 [abi_symbol_list]
+# required by tran mm
+  __tracepoint_android_vh_isolate_folio_type
+  __traceiter_android_vh_isolate_folio_type
+
 # required by delayacct
   set_delayacct_enabled
   __traceiter_android_rvh_delayacct_init

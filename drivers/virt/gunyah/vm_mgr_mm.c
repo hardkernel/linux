@@ -54,9 +54,9 @@ static void gh_vm_mem_reclaim_mapping(struct gh_vm *ghvm, struct gh_vm_mem *mapp
 		account_locked_vm(ghvm->mm, mapping->npages, false);
 	}
 
-	kfree(mapping->pages);
+	kvfree(mapping->pages);
 	kfree(mapping->parcel.acl_entries);
-	kfree(mapping->parcel.mem_entries);
+	kvfree(mapping->parcel.mem_entries);
 
 	list_del(&mapping->list);
 }
@@ -148,7 +148,7 @@ int gh_vm_mem_alloc(struct gh_vm *ghvm, struct gh_userspace_memory_region *regio
 	if (ret)
 		goto free_mapping;
 
-	mapping->pages = kcalloc(mapping->npages, sizeof(*mapping->pages), GFP_KERNEL_ACCOUNT);
+	mapping->pages = kvcalloc(mapping->npages, sizeof(*mapping->pages), GFP_KERNEL_ACCOUNT);
 	if (!mapping->pages) {
 		ret = -ENOMEM;
 		mapping->npages = 0; /* update npages for reclaim */
@@ -212,7 +212,7 @@ int gh_vm_mem_alloc(struct gh_vm *ghvm, struct gh_userspace_memory_region *regio
 			parcel->n_mem_entries++;
 	}
 
-	parcel->mem_entries = kcalloc(parcel->n_mem_entries,
+	parcel->mem_entries = kvcalloc(parcel->n_mem_entries,
 					sizeof(parcel->mem_entries[0]),
 					GFP_KERNEL_ACCOUNT);
 	if (!parcel->mem_entries) {
@@ -248,11 +248,11 @@ free_acl:
 unpin_pages:
 	unpin_user_pages(mapping->pages, pinned);
 free_pages:
-	kfree(mapping->pages);
+	kvfree(mapping->pages);
 unlock_pages:
 	account_locked_vm(ghvm->mm, mapping->npages, false);
 free_mapping:
-	kfree(mapping);
+	kvfree(mapping);
 unlock:
 	mutex_unlock(&ghvm->mm_lock);
 	return ret;

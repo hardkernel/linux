@@ -120,6 +120,7 @@
   devm_gpiochip_add_data_with_key
   devm_gpiod_get
   devm_gpiod_get_optional
+  devm_hwspin_lock_request_specific
   devm_ioremap
   devm_ioremap_resource
   devm_ioremap_wc
@@ -301,6 +302,7 @@
   gpiochip_get_data
   gpiochip_remove
   gpiod_get_value_cansleep
+  gpiod_is_active_low
   gpiod_set_consumer_name
   gpiod_set_value
   gpiod_set_value_cansleep
@@ -1957,6 +1959,7 @@
 # required by snd-soc-lpass-va-macro.ko
   clk_hw_get_clk
   dapm_regulator_event
+  devm_clk_hw_get_clk
   regcache_sync_region
 
 # required by snd-soc-qcom-common.ko

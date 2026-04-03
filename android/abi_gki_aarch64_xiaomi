@@ -363,6 +363,10 @@
   __alloc_pages_bulk
   __xa_cmpxchg
   lookup_user_key
+  __traceiter_android_vh_handle_folio_writeback
+  __tracepoint_android_vh_handle_folio_writeback
+  __traceiter_android_vh_reclaim_before_kswapd
+  __tracepoint_android_vh_reclaim_before_kswapd
 
 #required by mi_asap.ko
   __traceiter_android_vh_read_pages
@@ -538,3 +542,7 @@ __traceiter_android_vh_nr_pcp_alloc
 __tracepoint_android_vh_nr_pcp_alloc
 __traceiter_android_vh_pcp_alloc_factor_adjust
 __tracepoint_android_vh_pcp_alloc_factor_adjust
+
+# required by mi cma pool
+cma_mutex
+
