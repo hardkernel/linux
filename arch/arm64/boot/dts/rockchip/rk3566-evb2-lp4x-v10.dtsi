@@ -364,10 +364,6 @@
 	power-supply = <&vcc3v3_lcd0_n>;
 };
 
-&hynitron {
-	power-supply = <&vcc3v3_lcd0_n>;
-};
-
 &mipi_csi2 {
 	status = "okay";
 

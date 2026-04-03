@@ -49,10 +49,6 @@
 	status = "disabled";
 };
 
-&hynitron {
-	status = "disabled";
-};
-
 &i2c0 {
 	status = "okay";
 

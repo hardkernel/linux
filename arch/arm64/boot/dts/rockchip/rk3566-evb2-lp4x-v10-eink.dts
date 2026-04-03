@@ -150,10 +150,6 @@
 	status = "disabled";
 };
 
-&hynitron {
-	status = "disabled";
-};
-
 &hdmi {
 	status = "disabled";
 };

@@ -15,10 +15,6 @@
 	status = "disabled";
 };
 
-&hynitron {
-	status = "disabled";
-};
-
 &i2c2_rk628 {
 		assigned-clocks = <&pmucru CLK_WIFI>;
 		assigned-clock-rates = <24000000>;
