@@ -431,6 +431,20 @@ static int gpio_reset_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#if defined(CONFIG_ARCH_MESON_ODROID_COMMON)
+static void gpio_reset_shutdown(struct platform_device *pdev)
+{
+	struct gpio_reset_priv *priv = platform_get_drvdata(pdev);
+	int i;
+
+	for (i = 0; i < priv->num_lines; i++){
+		gpio_reset_reset(&priv->lines[i]);
+		gpio_reset_free_line(&priv->lines[i]);
+	}
+	return;
+}
+#endif
+
 static const struct of_device_id gpio_reset_dt_ids[] = {
 	{ .compatible = "linux,gpio-reset" },
 	{}
@@ -439,6 +453,9 @@ static const struct of_device_id gpio_reset_dt_ids[] = {
 static struct platform_driver gpio_reset_driver = {
 	.probe		= gpio_reset_probe,
 	.remove		= gpio_reset_remove,
+#if defined(CONFIG_ARCH_MESON_ODROID_COMMON)
+	.shutdown	= gpio_reset_shutdown,
+#endif
 	.driver		= {
 		.name	= "gpio_reset",
 		.owner	= THIS_MODULE,
