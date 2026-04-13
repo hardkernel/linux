@@ -1049,6 +1049,7 @@ void sditf_change_to_online(struct sditf_priv *priv)
 {
 	struct rkcif_device *cif_dev = priv->cif_dev;
 	struct rkcif_stream *cur_stream = NULL;
+	 int stream_cnt, i;
 
 	priv->mode = priv->mode_src;
 	if (priv->mode.rdbk_mode != RKISP_VICAP_ONLINE_UNITE &&
@@ -1058,17 +1059,17 @@ void sditf_change_to_online(struct sditf_priv *priv)
 	if (cif_dev->is_thunderboot) {
 		if (priv->hdr_cfg.hdr_mode == HDR_X2) {
 			cur_stream = &cif_dev->stream[1];
-			cif_dev->stream[0].is_line_wake_up = false;
-			cif_dev->stream[1].is_line_wake_up = false;
+			stream_cnt = 2;
 		} else if (priv->hdr_cfg.hdr_mode == HDR_X3) {
 			cur_stream = &cif_dev->stream[2];
-			cif_dev->stream[0].is_line_wake_up = false;
-			cif_dev->stream[1].is_line_wake_up = false;
-			cif_dev->stream[2].is_line_wake_up = false;
+			stream_cnt = 3;
 		} else {
 			cur_stream = &cif_dev->stream[0];
-			cif_dev->stream[0].is_line_wake_up = false;
+			stream_cnt = 1;
 		}
+
+		priv->is_free_thunderboot_buf = true;
+		priv->free_buf_delay_cnt = SDITF_FREE_BUF_DELAY;
 
 		if (priv->mode.rdbk_mode == RKISP_VICAP_ONLINE_UNITE)
 			cur_stream->is_m_online_fb_res = true;
@@ -1079,6 +1080,11 @@ void sditf_change_to_online(struct sditf_priv *priv)
 
 		if (priv->mode.rdbk_mode == RKISP_VICAP_ONLINE_UNITE)
 			rkcif_reinit_right_half_config(cur_stream);
+
+		for (i = 0; i < stream_cnt; i++) {
+			cur_stream = &cif_dev->stream[i];
+			cur_stream->cur_stream_mode = RKCIF_STREAM_MODE_TOISP;
+		}
 	}
 }
 
@@ -1376,8 +1382,12 @@ static int sditf_s_rx_buffer(struct v4l2_subdev *sd,
 		is_free = true;
 	}
 
-	if (!is_free && (!dbufs->is_switch) && stream->state == RKCIF_STATE_STREAMING &&
+	if (!is_free &&
+	    (!dbufs->is_switch || (dbufs->is_switch && dbufs->type != BUF_SHORT)) &&
+	    stream->state == RKCIF_STATE_STREAMING &&
 	    sditf_check_toolbuf_return(stream, rx_buf)) {
+		v4l2_dbg(3, rkcif_debug, &cif_dev->v4l2_dev, "+%d+ stream[%d] add 0x%x to list %p\n",
+			 __LINE__, stream->id, (u32)rx_buf->dummy.dma_addr, &stream->rx_buf_head);
 		list_add_tail(&rx_buf->list, &buf_stream->rx_buf_head);
 		rkcif_assign_check_buffer_update_toisp(stream);
 		if (cif_dev->resume_mode != RKISP_RTT_MODE_ONE_FRAME &&
@@ -1445,6 +1455,10 @@ static int sditf_s_rx_buffer(struct v4l2_subdev *sd,
 	if (dbufs->runtime_us && cif_dev->early_line == 0) {
 		if (!cif_dev->sensor_linetime)
 			cif_dev->sensor_linetime = rkcif_get_linetime(stream);
+		if (cif_dev->hdr.hdr_mode == HDR_X2 && cif_dev->exp_mode == EXP_HDR2_STA)
+			cif_dev->sensor_linetime *= 2;
+		else if (cif_dev->hdr.hdr_mode == HDR_X3 && cif_dev->exp_mode == EXP_HDR3_STA)
+			cif_dev->sensor_linetime *= 3;
 		cif_dev->isp_runtime_max = dbufs->runtime_us;
 		if (cif_dev->is_thunderboot)
 			diff_time = 200000;

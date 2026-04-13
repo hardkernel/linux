@@ -517,14 +517,14 @@ struct rkcif_sync_cfg {
 	u32 group;
 };
 
-enum rkcif_toisp_buf_update_state {
-	RKCIF_TOISP_BUF_ROTATE,
-	RKCIF_TOISP_BUF_THESAME,
-	RKCIF_TOISP_BUF_LOSS,
+enum rkcif_buf_update_state {
+	RKCIF_BUF_ROTATE,
+	RKCIF_BUF_THESAME,
+	RKCIF_BUF_LOSS,
 };
 
-struct rkcif_toisp_buf_state {
-	enum rkcif_toisp_buf_update_state state;
+struct rkcif_buf_state {
+	enum rkcif_buf_update_state state;
 	int check_cnt;
 	bool is_early_update;
 };
@@ -640,7 +640,7 @@ struct rkcif_stream {
 	atomic_t			buf_cnt;
 	struct completion		stop_complete;
 	struct completion		start_complete;
-	struct rkcif_toisp_buf_state	toisp_buf_state;
+	struct rkcif_buf_state		buf_state;
 	u32				skip_frame;
 	u32				cur_skip_frame;
 	int				thunderboot_skip_interval;
@@ -649,7 +649,6 @@ struct rkcif_stream {
 	struct rkcif_fence_context	fence_ctx;
 	struct rkcif_fence		*rkcif_fence;
 	struct list_head		qbuf_fence_list_head;
-	struct list_head		done_fence_list_head;
 	spinlock_t			fence_lock;
 	u32				rounding_bit;
 	int				frame_loss;
@@ -690,6 +689,7 @@ struct rkcif_stream {
 	bool				is_force_update;
 	bool				is_hold_stream_off;
 	bool				is_single_buf_mode;
+	bool				is_detect_lack_buf;
 };
 
 struct rkcif_lvds_subdev {
@@ -1097,6 +1097,7 @@ struct rkcif_device {
 	struct rkcif_switch_info	switch_info;
 	struct rkmodule_irfpa_info	irfpa_info;
 	int				prev_id;
+	u32				exp_mode;
 };
 
 extern struct platform_driver rkcif_plat_drv;
