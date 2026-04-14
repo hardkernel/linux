@@ -48,13 +48,8 @@
 };
 
 &gmac0 {
-	phy-mode = "rgmii";
+	phy-mode = "rgmii-id";
 	clock_in_out = "output";
-
-	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
-	snps,reset-active-low;
-	/* Reset time is 20ms, 100ms for rtl8211f */
-	snps,reset-delays-us = <0 20000 100000>;
 
 	assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
 	assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>, <&cru CLK_MAC0_2TOP>;
@@ -66,9 +61,6 @@
 		&gmac0_rx_bus2
 		&gmac0_rgmii_clk
 		&gmac0_rgmii_bus>;
-
-	tx_delay = <0x35>;
-	rx_delay = <0x2d>;
 
 	phy-handle = <&rgmii_phy0>;
 	status = "okay";
@@ -107,6 +99,11 @@
 	rgmii_phy0: phy@0 {
 		compatible = "ethernet-phy-ieee802.3-c22";
 		reg = <0x0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&eth_phy_rst>;
+		reset-assert-us = <20000>;
+		reset-deassert-us = <100000>;
+		reset-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -123,6 +120,12 @@
 	/delete-node/ touch;
 	/delete-node/ wifi-enable-h;
 	/delete-node/ wireless-bluetooth;
+
+	ethernet {
+		eth_phy_rst: 7th_phy_rst {
+			rockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 
 	fspi {
 		fspi_pins: fspi-pins {
