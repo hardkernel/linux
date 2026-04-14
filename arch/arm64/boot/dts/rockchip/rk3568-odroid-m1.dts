@@ -9,6 +9,14 @@
 #include "rk3568-odroid.dtsi"
 #include "rk3568-linux.dtsi"
 
+/delete-node/ &backlight1;
+/delete-node/ &dsi1_in_vp0;
+/delete-node/ &dsi1_panel;
+/delete-node/ &dsi1;
+/delete-node/ &route_dsi1;
+/delete-node/ &vp0_out_dsi1;
+/delete-node/ &vp1_out_dsi1;
+
 / {
 	model = "Hardkernel ODROID-M1";
 
@@ -17,6 +25,7 @@
 		serial1 = &uart0;
 		i2c0 = &i2c3;
 		i2c3 = &i2c0;
+		/delete-property/ dsi1;
 	};
 
 	backlight: backlight {
