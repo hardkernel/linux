@@ -345,6 +345,14 @@
 	pinctrl-0 = <&pwm2m1_pins>;
 };
 
+&pwm4 {
+	status = "disabled";
+};
+
+&pwm5 {
+	status = "disabled";
+};
+
 &reserved_memory {
 	pcie3x2@80900000{
 		reg = <0x0 0x80900000 0x0 0x100000>;
