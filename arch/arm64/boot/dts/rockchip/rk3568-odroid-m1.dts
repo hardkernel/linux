@@ -369,7 +369,6 @@
 };
 
 &rk809_sound {
-	rockchip,card-name = "ODROID-M1-FRONT";
 	status = "okay";
 };
 
