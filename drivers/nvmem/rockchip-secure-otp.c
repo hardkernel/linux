@@ -21,8 +21,8 @@
 #include <linux/platform_device.h>
 #include <linux/tee_drv.h>
 #include <linux/uuid.h>
-
-static DEFINE_MUTEX(nvmem_mutex);
+#include "rockchip-otp.h"
+#include "rockchip-secure-otp.h"
 
 struct rockchip_data;
 
@@ -30,6 +30,8 @@ struct rockchip_otp {
 	struct device *dev;
 	struct nvmem_config *config;
 	const struct rockchip_data *data;
+	struct clk_bulk_data *clks;
+	int num_clks;
 };
 
 struct rockchip_data {
@@ -73,7 +75,7 @@ int rockchip_read_oem_non_protected_otp(unsigned int byte_off,
 
 	memset(&sess_arg, 0, sizeof(sess_arg));
 
-	mutex_lock(&nvmem_mutex);
+	rockchip_otp_mutex_lock();
 
 	/* Open context with OP-TEE driver */
 	ctx = tee_client_open_context(NULL, optee_ctx_match, NULL, NULL);
@@ -144,7 +146,7 @@ out_sess:
 out_ctx:
 	tee_client_close_context(ctx);
 out_exit:
-	mutex_unlock(&nvmem_mutex);
+	rockchip_otp_mutex_unlock();
 	return rc;
 }
 EXPORT_SYMBOL_GPL(rockchip_read_oem_non_protected_otp);
@@ -175,7 +177,7 @@ int rockchip_write_oem_non_protected_otp(unsigned int byte_off,
 
 	memset(&sess_arg, 0, sizeof(sess_arg));
 
-	mutex_lock(&nvmem_mutex);
+	rockchip_otp_mutex_lock();
 
 	/* Open context with OP-TEE driver */
 	ctx = tee_client_open_context(NULL, optee_ctx_match, NULL, NULL);
@@ -246,7 +248,7 @@ out_sess:
 out_ctx:
 	tee_client_close_context(ctx);
 out_exit:
-	mutex_unlock(&nvmem_mutex);
+	rockchip_otp_mutex_unlock();
 	return rc;
 }
 EXPORT_SYMBOL_GPL(rockchip_write_oem_non_protected_otp);
@@ -257,8 +259,19 @@ static int rockchip_secure_otp_read(void *context, unsigned int offset,
 	struct rockchip_otp *otp = context;
 	int ret = -EINVAL;
 
-	if (otp->data && otp->data->reg_read)
-		ret = otp->data->reg_read(offset, val, bytes);
+	if (!otp || !otp->data || !otp->data->reg_read)
+		return -EINVAL;
+
+	if (otp->num_clks > 0) {
+		ret = clk_bulk_prepare_enable(otp->num_clks, otp->clks);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = otp->data->reg_read(offset, val, bytes);
+
+	if (otp->num_clks > 0)
+		clk_bulk_disable_unprepare(otp->num_clks, otp->clks);
 
 	return ret;
 }
@@ -269,8 +282,19 @@ static int rockchip_secure_otp_write(void *context, unsigned int offset,
 	struct rockchip_otp *otp = context;
 	int ret = -EINVAL;
 
-	if (otp->data && otp->data->reg_write)
-		ret = otp->data->reg_write(offset, val, bytes);
+	if (!otp || !otp->data || !otp->data->reg_write)
+		return -EINVAL;
+
+	if (otp->num_clks > 0) {
+		ret = clk_bulk_prepare_enable(otp->num_clks, otp->clks);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = otp->data->reg_write(offset, val, bytes);
+
+	if (otp->num_clks > 0)
+		clk_bulk_disable_unprepare(otp->num_clks, otp->clks);
 
 	return ret;
 }
@@ -330,6 +354,10 @@ static int rockchip_secure_otp_probe(struct platform_device *pdev)
 
 	otp->data = data;
 	otp->dev = dev;
+
+	otp->num_clks = devm_clk_bulk_get_all(dev, &otp->clks);
+	if (otp->num_clks < 0)
+		return dev_err_probe(dev, otp->num_clks, "failed to get clocks\n");
 
 	otp->config = &otp_config;
 	otp->config->size = otp_size;
