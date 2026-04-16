@@ -383,14 +383,14 @@
 	touchscreen: touchscreen {
 		status = "disabled";
 
-		pinctrl-names = "default";
-		pinctrl-0 = <&touch_gpio>;
-
 		interrupt-parent = <&gpio1>;
-		interrupts = <RK_PA3 IRQ_TYPE_LEVEL_LOW>;
-
-		irq-gpios = <&gpio1 RK_PA3 IRQ_TYPE_LEVEL_LOW>;
-		reset-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_LOW>;
+		interrupts = <RK_PA3 IRQ_TYPE_EDGE_FALLING>;
+		irq-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+		AVDD28-supply = <&vcc3v3_lcd>;
+		VDDIO-supply = <&vcc3v3_lcd>;
+		pinctrl-0 = <&touch_gpio>;
+		pinctrl-names = "default";
+		reset-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_HIGH>;
 
 		power-supply = <&vcc3v3_lcd>;
 	};
