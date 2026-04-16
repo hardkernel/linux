@@ -1011,7 +1011,7 @@ static void dw_hdmi_qp_dsc_configure(struct rockchip_dw_hdmi_qp *hdmi,
 		dev_err(hdmi->dev, "set vdsc cfg failed\n");
 		return;
 	}
-	dev_info(hdmi->dev, "dsc_enable\n");
+	dev_dbg(hdmi->dev, "dsc_enable\n");
 	s->dsc_enable = 1;
 	s->dsc_sink_cap.version_major = 1;
 	s->dsc_sink_cap.version_minor = 2;
@@ -2608,7 +2608,7 @@ static int dw_hdmi_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
 	 * so we need to check twice.
 	 */
 secondary:
-	drm_mode_copy(&mode, &crtc_state->adjusted_mode);
+	drm_mode_copy(&mode, &crtc_state->mode);
 	if (hdmi->plat_data->split_mode || hdmi->plat_data->dual_connector_split)
 		drm_mode_convert_to_origin_mode(&mode);
 
