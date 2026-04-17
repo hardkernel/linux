@@ -88,7 +88,7 @@
 		target = <&route_hdmi>;
 
 		__overlay__ {
-			status = "okay";
+			status = "disabled";
 			connect = <&vp0_out_hdmi>;
 		};
 	};
@@ -150,10 +150,33 @@
 	};
 
 	fragment@15 {
-		target = <&vop>;
+		target = <&hdmi>;
 
 		__overlay__ {
-			support-multi-area;
+			status = "disabled";
+		};
+	};
+
+	fragment@16 {
+		target = <&hdmi_in_vp0>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@17 {
+		target = <&hdmi_sound>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@18 {
+		target = <&chosen>;
+		__overlay__ {
+			disable-vop2-fixup;
 		};
 	};
 };
