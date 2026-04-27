@@ -160,12 +160,14 @@ static const struct drm_driver ili9341_driver = {
 
 static const struct of_device_id ili9341_of_match[] = {
 	{ .compatible = "adafruit,yx240qv29" },
+	{ .compatible = "hardkernel,hktft32" },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, ili9341_of_match);
 
 static const struct spi_device_id ili9341_id[] = {
 	{ "yx240qv29", 0 },
+	{ "hktft32", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(spi, ili9341_id);
