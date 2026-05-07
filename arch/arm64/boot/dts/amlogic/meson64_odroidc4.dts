@@ -112,7 +112,7 @@
 			compatible = "shared-dma-pool";
 			reusable;
 			/* ion_codec_mm max can alloc size 80M*/
-			size = <0x0 0x13400000>;
+			size = <0x0 0x12000000>;
 			alignment = <0x0 0x400000>;
 			linux,contiguous-region;
 			clear-map;
