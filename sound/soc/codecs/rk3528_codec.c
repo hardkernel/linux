@@ -497,6 +497,15 @@ static struct snd_soc_dai_driver rk3528_dai[] = {
 				    SNDRV_PCM_FMTBIT_S24_LE |
 				    SNDRV_PCM_FMTBIT_S32_LE),
 		},
+		.capture = {
+			.stream_name = "HiFi Capture",
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+				    SNDRV_PCM_FMTBIT_S24_LE |
+				    SNDRV_PCM_FMTBIT_S32_LE),
+		},
 		.ops = &rk3528_dai_ops,
 	},
 };
