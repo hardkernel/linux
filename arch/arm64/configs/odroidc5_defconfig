@@ -3160,7 +3160,42 @@ CONFIG_GPIO_PL061=y
 # CONFIG_GPIO_VIRTUSER is not set
 # end of GPIO Debugging utilities
 
-# CONFIG_W1 is not set
+CONFIG_W1=m
+
+#
+# 1-wire Bus Masters
+#
+# CONFIG_W1_MASTER_AMD_AXI is not set
+# CONFIG_W1_MASTER_MATROX is not set
+# CONFIG_W1_MASTER_DS2490 is not set
+# CONFIG_W1_MASTER_DS2482 is not set
+CONFIG_W1_MASTER_GPIO=m
+# CONFIG_W1_MASTER_SGI is not set
+# CONFIG_W1_MASTER_UART is not set
+# end of 1-wire Bus Masters
+
+#
+# 1-wire Slaves
+#
+CONFIG_W1_SLAVE_THERM=m
+# CONFIG_W1_SLAVE_SMEM is not set
+# CONFIG_W1_SLAVE_DS2405 is not set
+# CONFIG_W1_SLAVE_DS2408 is not set
+# CONFIG_W1_SLAVE_DS2413 is not set
+# CONFIG_W1_SLAVE_DS2406 is not set
+# CONFIG_W1_SLAVE_DS2423 is not set
+# CONFIG_W1_SLAVE_DS2805 is not set
+# CONFIG_W1_SLAVE_DS2430 is not set
+# CONFIG_W1_SLAVE_DS2431 is not set
+# CONFIG_W1_SLAVE_DS2433 is not set
+# CONFIG_W1_SLAVE_DS2438 is not set
+# CONFIG_W1_SLAVE_DS250X is not set
+# CONFIG_W1_SLAVE_DS2780 is not set
+# CONFIG_W1_SLAVE_DS2781 is not set
+# CONFIG_W1_SLAVE_DS28E04 is not set
+# CONFIG_W1_SLAVE_DS28E17 is not set
+# end of 1-wire Slaves
+
 CONFIG_POWER_RESET=y
 # CONFIG_POWER_RESET_GPIO is not set
 # CONFIG_POWER_RESET_GPIO_RESTART is not set
@@ -6234,7 +6269,7 @@ CONFIG_IIO_CONSUMERS_PER_TRIGGER=2
 # Humidity sensors
 #
 # CONFIG_AM2315 is not set
-# CONFIG_DHT11 is not set
+CONFIG_DHT11=m
 # CONFIG_ENS210 is not set
 # CONFIG_HDC100X is not set
 # CONFIG_HDC2010 is not set
