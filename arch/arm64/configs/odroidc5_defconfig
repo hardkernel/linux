@@ -2398,8 +2398,8 @@ CONFIG_CAN_SLCAN=m
 # CAN SPI interfaces
 #
 # CONFIG_CAN_HI311X is not set
-# CONFIG_CAN_MCP251X is not set
-# CONFIG_CAN_MCP251XFD is not set
+CONFIG_CAN_MCP251X=m
+CONFIG_CAN_MCP251XFD=m
 # end of CAN SPI interfaces
 
 #
