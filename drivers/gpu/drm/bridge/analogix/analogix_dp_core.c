@@ -394,6 +394,16 @@ static int analogix_dp_link_start(struct analogix_dp_device *dp)
 
 	/* Set link rate and count as you want to establish */
 	analogix_dp_set_link_bandwidth(dp, dp->link_train.link_rate);
+	retval = analogix_dp_wait_pll_locked(dp);
+	if (retval) {
+		DRM_DEV_ERROR(dp->dev, "Wait for pll lock failed %d\n", retval);
+		return retval;
+	}
+	/*
+	 * MACRO_RST must be applied after the PLL_LOCK to avoid
+	 * the DP inter pair skew issue for at least 10 us
+	 */
+	analogix_dp_reset_macro(dp);
 	analogix_dp_set_lane_count(dp, dp->link_train.lane_count);
 
 	if (dp->nr_link_rate_table) {
@@ -594,41 +604,37 @@ static int analogix_dp_process_clock_recovery(struct analogix_dp_device *dp)
 		dp->link_train.lt_state = EQUALIZER_TRAINING;
 
 		return 0;
-	} else {
-		retval = drm_dp_dpcd_read(&dp->aux, DP_ADJUST_REQUEST_LANE0_1,
-					  adjust_request, 2);
-		if (retval < 0)
-			return retval;
+	}
 
-		for (lane = 0; lane < lane_count; lane++) {
-			training_lane = analogix_dp_get_lane_link_training(
-							dp, lane);
-			voltage_swing = analogix_dp_get_adjust_request_voltage(
-							adjust_request, lane);
-			pre_emphasis = analogix_dp_get_adjust_request_pre_emphasis(
-							adjust_request, lane);
+	retval = drm_dp_dpcd_read(&dp->aux, DP_ADJUST_REQUEST_LANE0_1,
+				  adjust_request, 2);
+	if (retval < 0)
+		return retval;
 
-			if (DPCD_VOLTAGE_SWING_GET(training_lane) ==
-					voltage_swing &&
-			    DPCD_PRE_EMPHASIS_GET(training_lane) ==
-					pre_emphasis)
-				dp->link_train.cr_loop[lane]++;
+	for (lane = 0; lane < lane_count; lane++) {
+		training_lane = analogix_dp_get_lane_link_training(dp, lane);
+		voltage_swing = analogix_dp_get_adjust_request_voltage(adjust_request, lane);
+		pre_emphasis = analogix_dp_get_adjust_request_pre_emphasis(adjust_request, lane);
 
-			/*
-			 *  In DP spec 1.3, Condition of CR fail are
-			 *  outlined in section 3.5.1.2.2.1, figure 3-20:
-			 *
-			 *  1. Maximum Voltage Swing reached
-			 *  2. Same Voltage five times
-			 */
-			if (dp->link_train.cr_loop[lane] == MAX_CR_LOOP ||
-			    DPCD_VOLTAGE_SWING_GET(training_lane) == VOLTAGE_LEVEL_3) {
-				dev_err(dp->dev, "CR Max reached (%d,%d,%d)\n",
-					dp->link_train.cr_loop[lane],
-					voltage_swing, pre_emphasis);
-				analogix_dp_reduce_link_rate(dp);
-				return -EIO;
-			}
+		if (DPCD_VOLTAGE_SWING_GET(training_lane) == voltage_swing &&
+		    DPCD_PRE_EMPHASIS_GET(training_lane) == pre_emphasis)
+			dp->link_train.cr_loop[lane]++;
+
+		/*
+		 *  In DP spec 1.3, Condition of CR fail are
+		 *  outlined in section 3.5.1.2.2.1, figure 3-20:
+		 *
+		 *  1. Maximum Voltage Swing reached
+		 *  2. Same Voltage five times
+		 */
+		if (dp->link_train.cr_loop[lane] == MAX_CR_LOOP ||
+		    voltage_swing == VOLTAGE_LEVEL_3 ||
+		    pre_emphasis == PRE_EMPHASIS_LEVEL_3) {
+			dev_err(dp->dev, "CR Max reached (%d,%d,%d)\n",
+				dp->link_train.cr_loop[lane],
+				voltage_swing, pre_emphasis);
+			analogix_dp_reduce_link_rate(dp);
+			return -EIO;
 		}
 	}
 
@@ -907,12 +913,6 @@ static int analogix_dp_full_link_train(struct analogix_dp_device *dp,
 	bool training_finished = false;
 	u8 dpcd;
 
-	/*
-	 * MACRO_RST must be applied after the PLL_LOCK to avoid
-	 * the DP inter pair skew issue for at least 10 us
-	 */
-	analogix_dp_reset_macro(dp);
-
 	/* Setup TX lane count */
 	dp->link_train.lane_count = min_t(u32, dp->link_train.max_lane_count, max_lanes);
 
@@ -973,9 +973,18 @@ static int analogix_dp_fast_link_train(struct analogix_dp_device *dp)
 	int ret;
 	u8 link_align, link_status[2];
 
-	analogix_dp_reset_macro(dp);
-
 	analogix_dp_set_link_bandwidth(dp, dp->link_train.link_rate);
+	ret = analogix_dp_wait_pll_locked(dp);
+	if (ret) {
+		DRM_DEV_ERROR(dp->dev, "Wait for pll lock failed %d\n", ret);
+		return ret;
+	}
+
+	/*
+	 * MACRO_RST must be applied after the PLL_LOCK to avoid
+	 * the DP inter pair skew issue for at least 10 us
+	 */
+	analogix_dp_reset_macro(dp);
 	analogix_dp_set_lane_count(dp, dp->link_train.lane_count);
 	analogix_dp_set_lane_link_training(dp);
 	analogix_dp_enable_assr_mode(dp, dp->link_train.assr);
@@ -1048,11 +1057,6 @@ static int analogix_dp_config_video(struct analogix_dp_device *dp)
 	analogix_dp_config_video_slave_mode(dp);
 
 	analogix_dp_set_video_color_format(dp);
-
-	if (analogix_dp_get_pll_lock_status(dp) == PLL_UNLOCKED) {
-		dev_err(dp->dev, "PLL is not locked yet.\n");
-		return -EINVAL;
-	}
 
 	for (;;) {
 		timeout_loop++;
@@ -1225,6 +1229,11 @@ static void analogix_dp_process_phy_request(struct analogix_dp_device *dp)
 	}
 
 	analogix_dp_set_link_bandwidth(dp, dp->link_train.link_rate);
+	ret = analogix_dp_wait_pll_locked(dp);
+	if (ret) {
+		dev_err(dp->dev, "Wait for pll lock failed %d\n", ret);
+		return;
+	}
 	analogix_dp_set_lane_count(dp, dp->link_train.lane_count);
 	analogix_dp_get_adjust_training_lane(dp, adjust_request);
 	analogix_dp_set_lane_link_training(dp);
@@ -1958,8 +1967,8 @@ static int analogix_dp_set_bridge(struct analogix_dp_device *dp)
 {
 	int ret;
 
-	if (dp->plat_data->power_on_start)
-		dp->plat_data->power_on_start(dp->plat_data);
+	if (dp->plat_data->power_on)
+		dp->plat_data->power_on(dp->plat_data);
 
 	ret = analogix_dp_phy_power_on(dp);
 	if (ret)
@@ -1988,9 +1997,6 @@ static int analogix_dp_set_bridge(struct analogix_dp_device *dp)
 
 	if (dp->plat_data->panel)
 		drm_panel_enable(dp->plat_data->panel);
-
-	if (dp->plat_data->power_on_end)
-		dp->plat_data->power_on_end(dp->plat_data);
 
 	return 0;
 
@@ -2613,7 +2619,6 @@ analogix_dp_probe(struct device *dev, struct analogix_dp_plat_data *plat_data)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct analogix_dp_device *dp;
-	struct resource *res;
 	int ret;
 
 	if (!plat_data) {
@@ -2667,9 +2672,7 @@ analogix_dp_probe(struct device *dev, struct analogix_dp_plat_data *plat_data)
 
 	dp->nr_clks = ret;
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-
-	dp->reg_base = devm_ioremap_resource(&pdev->dev, res);
+	dp->reg_base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(dp->reg_base))
 		return ERR_CAST(dp->reg_base);
 
@@ -2735,66 +2738,6 @@ analogix_dp_probe(struct device *dev, struct analogix_dp_plat_data *plat_data)
 }
 EXPORT_SYMBOL_GPL(analogix_dp_probe);
 
-int analogix_dp_bind(struct analogix_dp_device *dp, struct drm_device *drm_dev)
-{
-	int ret;
-
-	dp->drm_dev = drm_dev;
-	dp->encoder = dp->plat_data->encoder;
-
-	dp->aux.name = "DP-AUX";
-	dp->aux.transfer = analogix_dpaux_transfer;
-	dp->aux.dev = dp->dev;
-	dp->aux.drm_dev = drm_dev;
-
-	ret = drm_dp_aux_register(&dp->aux);
-	if (ret)
-		return ret;
-
-	pm_runtime_use_autosuspend(dp->dev);
-	pm_runtime_set_autosuspend_delay(dp->dev, 100);
-	pm_runtime_enable(dp->dev);
-	pm_runtime_get_sync(dp->dev);
-	analogix_dp_init(dp);
-
-	ret = analogix_dp_bridge_init(dp);
-	if (ret) {
-		DRM_ERROR("failed to init bridge (%d)\n", ret);
-		goto err_disable_pm_runtime;
-	}
-
-	enable_irq(dp->irq);
-
-	return 0;
-
-err_disable_pm_runtime:
-	pm_runtime_put(dp->dev);
-	pm_runtime_dont_use_autosuspend(dp->dev);
-	pm_runtime_disable(dp->dev);
-	drm_dp_aux_unregister(&dp->aux);
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(analogix_dp_bind);
-
-void analogix_dp_unbind(struct analogix_dp_device *dp)
-{
-	disable_irq(dp->irq);
-	if (dp->connector.funcs->destroy)
-		dp->connector.funcs->destroy(&dp->connector);
-	drm_dp_aux_unregister(&dp->aux);
-	pm_runtime_put(dp->dev);
-	pm_runtime_dont_use_autosuspend(dp->dev);
-	pm_runtime_disable(dp->dev);
-}
-EXPORT_SYMBOL_GPL(analogix_dp_unbind);
-
-void analogix_dp_remove(struct analogix_dp_device *dp)
-{
-	cancel_work_sync(&dp->modeset_retry_work);
-}
-EXPORT_SYMBOL_GPL(analogix_dp_remove);
-
 int analogix_dp_suspend(struct analogix_dp_device *dp)
 {
 	pm_runtime_force_suspend(dp->dev);
@@ -2825,6 +2768,67 @@ int analogix_dp_runtime_resume(struct analogix_dp_device *dp)
 	return clk_bulk_prepare_enable(dp->nr_clks, dp->clks);
 }
 EXPORT_SYMBOL_GPL(analogix_dp_runtime_resume);
+
+int analogix_dp_bind(struct analogix_dp_device *dp, struct drm_device *drm_dev)
+{
+	int ret;
+
+	dp->drm_dev = drm_dev;
+	dp->encoder = dp->plat_data->encoder;
+
+	pm_runtime_use_autosuspend(dp->dev);
+	pm_runtime_set_autosuspend_delay(dp->dev, 100);
+	pm_runtime_enable(dp->dev);
+	pm_runtime_get_sync(dp->dev);
+	analogix_dp_init(dp);
+
+	dp->aux.name = "DP-AUX";
+	dp->aux.transfer = analogix_dpaux_transfer;
+	dp->aux.dev = dp->dev;
+	dp->aux.drm_dev = drm_dev;
+
+	ret = drm_dp_aux_register(&dp->aux);
+	if (ret)
+		goto err_disable_pm_runtime;
+
+	ret = analogix_dp_bridge_init(dp);
+	if (ret) {
+		DRM_ERROR("failed to init bridge (%d)\n", ret);
+		goto err_unregister_aux;
+	}
+
+	enable_irq(dp->irq);
+
+	return 0;
+
+err_unregister_aux:
+	drm_dp_aux_unregister(&dp->aux);
+err_disable_pm_runtime:
+	pm_runtime_put(dp->dev);
+	pm_runtime_dont_use_autosuspend(dp->dev);
+	pm_runtime_disable(dp->dev);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(analogix_dp_bind);
+
+void analogix_dp_unbind(struct analogix_dp_device *dp)
+{
+	disable_irq(dp->irq);
+	if (dp->connector.funcs->destroy)
+		dp->connector.funcs->destroy(&dp->connector);
+	drm_dp_aux_unregister(&dp->aux);
+	pm_runtime_put(dp->dev);
+	pm_runtime_dont_use_autosuspend(dp->dev);
+	pm_runtime_disable(dp->dev);
+}
+EXPORT_SYMBOL_GPL(analogix_dp_unbind);
+
+void analogix_dp_remove(struct analogix_dp_device *dp)
+{
+	cancel_work_sync(&dp->modeset_retry_work);
+}
+EXPORT_SYMBOL_GPL(analogix_dp_remove);
 
 int analogix_dp_start_crc(struct drm_connector *connector)
 {
