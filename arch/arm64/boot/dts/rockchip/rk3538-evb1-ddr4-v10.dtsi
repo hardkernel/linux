@@ -172,7 +172,7 @@
 		pinctrl-1 = <&uart2m0_gpios>;
 		BT,reset_gpio    = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;
 		BT,wake_gpio     = <&gpio3 RK_PC3 GPIO_ACTIVE_HIGH>;
-		BT,wake_host_irq = <&gpio0 RK_PD3 GPIO_ACTIVE_HIGH>;
+		BT,wake_host_irq = <&gpio0 RK_PD3 GPIO_ACTIVE_LOW>;
 		status = "okay";
 	};
 
@@ -289,6 +289,20 @@
 	rockchip,t1l-ns = <300>;
 	rockchip,t1h-ns = <900>;
 	rockchip,pol-pattern = <0>;
+};
+
+&rockchip_suspend {
+	status = "okay";
+	rockchip,sleep-mode-config = <
+		(0
+		| RKPM_SLP_NORMAL_MODE
+		| RKPM_SLP_PMIC_LP
+		| RKPM_SLP_HW_PLLS_OFF
+		| RKPM_SLP_PMUALIVE_32K
+		| RKPM_SLP_OSC_DIS
+		| RKPM_SLP_32K_EXT
+		)
+	>;
 };
 
 &sai1 {
