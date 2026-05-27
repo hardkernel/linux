@@ -88,7 +88,6 @@ struct analogix_dp_device *
 analogix_dp_probe(struct device *dev, struct analogix_dp_plat_data *plat_data);
 int analogix_dp_bind(struct analogix_dp_device *dp, struct drm_device *drm_dev);
 void analogix_dp_unbind(struct analogix_dp_device *dp);
-void analogix_dp_remove(struct analogix_dp_device *dp);
 
 int analogix_dp_start_crc(struct drm_connector *connector);
 int analogix_dp_stop_crc(struct drm_connector *connector);
@@ -100,8 +99,7 @@ void analogix_dp_audio_shutdown(struct analogix_dp_device *dp);
 int analogix_dp_audio_startup(struct analogix_dp_device *dp);
 int analogix_dp_audio_get_eld(struct analogix_dp_device *dp,
 			      u8 *buf, size_t len);
-int analogix_dp_loader_protect(struct analogix_dp_device *dp);
-void analogix_dp_disable(struct analogix_dp_device *dp);
+int analogix_dp_loader_protect(struct analogix_dp_device *dp, bool on);
 const struct analogix_dp_output_format *analogix_dp_get_output_format(u32 bus_format);
 
 #endif /* _ANALOGIX_DP_H_ */

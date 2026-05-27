@@ -12,6 +12,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/of_device.h>
 #include <linux/of_graph.h>
+#include <linux/pm_runtime.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/clk.h>
@@ -57,6 +58,7 @@ struct rockchip_grf_reg_field {
  * @edp_mode: grf register field of edp_mode
  * @mem_clk_auto_gating: grf register field of mem_clk_auto_gating
  * @chip_type: specific chip type
+ * @max_dclk_khz: the maximum supported dclk rate
  * @ssc: check if SSC is supported by source
  * @audio: check if audio is supported by source
  * @split_mode: check if split mode is supported
@@ -71,6 +73,7 @@ struct rockchip_dp_chip_data {
 	const struct rockchip_grf_reg_field edp_mode;
 	const struct rockchip_grf_reg_field mem_clk_auto_gating;
 	u32	chip_type;
+	u32	max_dclk_khz;
 	bool	ssc;
 	bool	audio;
 	bool	split_mode;
@@ -136,38 +139,67 @@ static int rockchip_dp_audio_hw_params(struct device *dev, void *data,
 				       struct hdmi_codec_params *params)
 {
 	struct rockchip_dp_device *dp = dev_get_drvdata(dev);
+	int ret;
+
+	pm_runtime_get_sync(dp->dev);
 
 	rockchip_grf_field_write(dp->grf, &dp->data->spdif_sel,
 				 daifmt->fmt == HDMI_SPDIF);
 	rockchip_grf_field_write(dp->grf, &dp->data->i2s_sel,
 				 daifmt->fmt == HDMI_I2S);
 
-	return analogix_dp_audio_hw_params(dp->adp, daifmt, params);
+	ret = analogix_dp_audio_hw_params(dp->adp, daifmt, params);
+
+	pm_runtime_mark_last_busy(dp->dev);
+	pm_runtime_put_autosuspend(dp->dev);
+
+	return ret;
 }
 
 static void rockchip_dp_audio_shutdown(struct device *dev, void *data)
 {
 	struct rockchip_dp_device *dp = dev_get_drvdata(dev);
 
+	pm_runtime_get_sync(dp->dev);
+
 	analogix_dp_audio_shutdown(dp->adp);
 
 	rockchip_grf_field_write(dp->grf, &dp->data->spdif_sel, 0);
 	rockchip_grf_field_write(dp->grf, &dp->data->i2s_sel, 0);
+
+	pm_runtime_mark_last_busy(dp->dev);
+	pm_runtime_put_autosuspend(dp->dev);
 }
 
 static int rockchip_dp_audio_startup(struct device *dev, void *data)
 {
 	struct rockchip_dp_device *dp = dev_get_drvdata(dev);
+	int ret;
 
-	return analogix_dp_audio_startup(dp->adp);
+	pm_runtime_get_sync(dp->dev);
+
+	ret = analogix_dp_audio_startup(dp->adp);
+
+	pm_runtime_mark_last_busy(dp->dev);
+	pm_runtime_put_autosuspend(dp->dev);
+
+	return ret;
 }
 
 static int rockchip_dp_audio_get_eld(struct device *dev, void *data,
 				     u8 *buf, size_t len)
 {
 	struct rockchip_dp_device *dp = dev_get_drvdata(dev);
+	int ret;
 
-	return analogix_dp_audio_get_eld(dp->adp, buf, len);
+	pm_runtime_get_sync(dp->dev);
+
+	ret = analogix_dp_audio_get_eld(dp->adp, buf, len);
+
+	pm_runtime_mark_last_busy(dp->dev);
+	pm_runtime_put_autosuspend(dp->dev);
+
+	return ret;
 }
 
 static const struct hdmi_codec_ops rockchip_dp_audio_codec_ops = {
@@ -188,13 +220,16 @@ static int rockchip_dp_match_by_id(struct device *dev, const void *data)
 static struct rockchip_dp_device *
 rockchip_dp_find_by_id(struct device_driver *drv, unsigned int id)
 {
+	struct rockchip_dp_device *dp = NULL;
 	struct device *dev;
 
 	dev = driver_find_device(drv, NULL, &id, rockchip_dp_match_by_id);
-	if (!dev)
-		return NULL;
+	if (dev) {
+		dp = dev_get_drvdata(dev);
+		put_device(dev);
+	}
 
-	return dev_get_drvdata(dev);
+	return dp;
 }
 
 static int rockchip_dp_pre_init(struct rockchip_dp_device *dp)
@@ -264,16 +299,13 @@ static int rockchip_dp_loader_protect(struct rockchip_drm_sub_dev *sub_dev, bool
 			return ret;
 	}
 
-	if (!on)
-		return 0;
-
 	if (plat_data->panel)
 		rockchip_drm_panel_loader_protect(plat_data->panel, on);
 
-	ret = analogix_dp_loader_protect(dp->adp);
+	ret = analogix_dp_loader_protect(dp->adp, on);
 	if (ret) {
 		if (secondary)
-			analogix_dp_disable(secondary->adp);
+			analogix_dp_loader_protect(secondary->adp, false);
 		return ret;
 	}
 
@@ -345,6 +377,17 @@ rockchip_dp_drm_encoder_mode_valid(struct drm_encoder *encoder,
 		return MODE_BAD;
 	}
 
+	if (mode->clock > dp->data->max_dclk_khz) {
+		dev_err(dp->dev, "clock[%dkHz] exceeds limit[%dkHz]\n",
+			mode->clock, dp->data->max_dclk_khz);
+		return MODE_CLOCK_HIGH;
+	}
+
+	if (mode->vtotal > 4095) {
+		dev_err(dp->dev, "vtotal[%d] exceeds limit[4095]\n", mode->vtotal);
+		return MODE_BAD_VVALUE;
+	}
+
 	return MODE_OK;
 }
 
@@ -384,13 +427,15 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
 	if (old_crtc_state && old_crtc_state->self_refresh_active)
 		return;
 
+	pm_runtime_get_sync(dp->dev);
+
 	ret = rockchip_grf_field_write(dp->grf, &dp->data->mem_clk_auto_gating, 1);
 	if (ret != 0)
 		DRM_DEV_ERROR(dp->dev, "Could not write to GRF reg mem_clk_auto_gating: %d\n", ret);
 
 	ret = drm_of_encoder_active_endpoint(dp->dev->of_node, encoder, &endpoint);
 	if (ret < 0)
-		return;
+		goto out_pm_put;
 
 	remote_port_parent = of_graph_get_remote_port_parent(endpoint.local_node);
 	if (remote_port_parent) {
@@ -407,6 +452,10 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
 	ret = rockchip_grf_field_write(dp->grf, &dp->data->lcdc_sel, endpoint.id);
 	if (ret != 0)
 		DRM_DEV_ERROR(dp->dev, "Could not write to GRF reg lcdc_sel: %d\n", ret);
+
+out_pm_put:
+	pm_runtime_mark_last_busy(dp->dev);
+	pm_runtime_put_autosuspend(dp->dev);
 }
 
 static void rockchip_dp_drm_encoder_disable(struct drm_encoder *encoder,
@@ -786,10 +835,8 @@ static int rockchip_dp_probe(struct platform_device *pdev)
 	     device_property_read_bool(dev, "rockchip,dual-channel"))) {
 		struct rockchip_dp_device *secondary =
 				rockchip_dp_find_by_id(dev->driver, !dp->id);
-		if (!secondary) {
-			ret = -EPROBE_DEFER;
-			goto err_dp_remove;
-		}
+		if (!secondary)
+			return -EPROBE_DEFER;
 
 		dp->plat_data.right = secondary->adp;
 		dp->plat_data.split_mode = true;
@@ -814,21 +861,14 @@ static int rockchip_dp_probe(struct platform_device *pdev)
 
 	ret = component_add(dev, &rockchip_dp_component_ops);
 	if (ret)
-		goto err_dp_remove;
+		return ret;
 
 	return 0;
-
-err_dp_remove:
-	analogix_dp_remove(dp->adp);
-	return ret;
 }
 
 static int rockchip_dp_remove(struct platform_device *pdev)
 {
-	struct rockchip_dp_device *dp = platform_get_drvdata(pdev);
-
 	component_del(&pdev->dev, &rockchip_dp_component_ops);
-	analogix_dp_remove(dp->adp);
 
 	return 0;
 }
@@ -884,6 +924,7 @@ static const struct rockchip_dp_chip_data rk3399_edp[] = {
 		.chip_type = RK3399_EDP,
 		.lcdc_sel = GRF_REG_FIELD(0x6250, 5, 5),
 		.ssc = true,
+		.max_dclk_khz = 350000,
 	},
 	{ /* sentinel */ }
 };
@@ -893,6 +934,7 @@ static const struct rockchip_dp_chip_data rk3288_dp[] = {
 		.chip_type = RK3288_DP,
 		.lcdc_sel = GRF_REG_FIELD(0x025c, 5, 5),
 		.ssc = true,
+		.max_dclk_khz = 350000,
 	},
 	{ /* sentinel */ }
 };
@@ -902,6 +944,7 @@ static const struct rockchip_dp_chip_data rk3568_edp[] = {
 		.chip_type = RK3568_EDP,
 		.ssc = true,
 		.audio = true,
+		.max_dclk_khz = 350000,
 	},
 	{ /* sentinel */ }
 };
@@ -918,6 +961,7 @@ static const struct rockchip_dp_chip_data rk3576_edp[] = {
 		.format_yuv = true,
 		.support_dp_mode = true,
 		.max_bpc = 10,
+		.max_dclk_khz = 600000,
 	},
 	{ /* sentinel */ }
 };
@@ -934,6 +978,7 @@ static const struct rockchip_dp_chip_data rk3588_edp[] = {
 		.format_yuv = true,
 		.support_dp_mode = true,
 		.max_bpc = 10,
+		.max_dclk_khz = 600000,
 	},
 	{
 		.chip_type = RK3588_EDP,
@@ -946,6 +991,7 @@ static const struct rockchip_dp_chip_data rk3588_edp[] = {
 		.format_yuv = true,
 		.support_dp_mode = true,
 		.max_bpc = 10,
+		.max_dclk_khz = 600000,
 	},
 	{ /* sentinel */ }
 };
