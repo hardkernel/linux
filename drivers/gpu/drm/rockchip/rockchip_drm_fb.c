@@ -25,7 +25,13 @@
 
 static bool is_rockchip_logo_fb(struct drm_framebuffer *fb)
 {
-	return fb->flags & ROCKCHIP_DRM_MODE_LOGO_FB ? true : false;
+	struct rockchip_gem_object *rk_obj;
+
+	if (!fb->obj[0])
+		return false;
+
+	rk_obj = to_rockchip_obj(fb->obj[0]);
+	return rk_obj->buf_type == ROCKCHIP_GEM_BUF_TYPE_LOGO;
 }
 
 static void __rockchip_drm_fb_destroy(struct drm_framebuffer *fb)
@@ -37,10 +43,7 @@ static void __rockchip_drm_fb_destroy(struct drm_framebuffer *fb)
 	if (is_rockchip_logo_fb(fb)) {
 		struct rockchip_drm_logo_fb *rockchip_logo_fb = to_rockchip_logo_fb(fb);
 
-#ifndef MODULE
-		rockchip_free_loader_memory(fb->dev);
-#endif
-		drm_gem_object_release(rockchip_logo_fb->fb.obj[0]);
+		drm_gem_object_put(rockchip_logo_fb->fb.obj[0]);
 		kfree(rockchip_logo_fb);
 	} else {
 		for (i = 0; i < 4; i++) {
@@ -73,19 +76,9 @@ static void rockchip_drm_fb_destroy(struct drm_framebuffer *fb)
 	}
 }
 
-static int rockchip_drm_gem_fb_create_handle(struct drm_framebuffer *fb,
-					     struct drm_file *file,
-					     unsigned int *handle)
-{
-	if (is_rockchip_logo_fb(fb))
-		return -EOPNOTSUPP;
-
-	return drm_gem_fb_create_handle(fb, file, handle);
-}
-
 static const struct drm_framebuffer_funcs rockchip_drm_fb_funcs = {
 	.destroy       = rockchip_drm_fb_destroy,
-	.create_handle = rockchip_drm_gem_fb_create_handle,
+	.create_handle = drm_gem_fb_create_handle,
 };
 
 struct drm_framebuffer *
@@ -121,15 +114,22 @@ struct drm_framebuffer *
 rockchip_drm_logo_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cmd,
 			   struct rockchip_logo *logo)
 {
-	int ret = 0;
 	struct rockchip_drm_logo_fb *rockchip_logo_fb;
 	struct drm_framebuffer *fb;
+	int ret;
 
 	rockchip_logo_fb = kzalloc(sizeof(*rockchip_logo_fb), GFP_KERNEL);
 	if (!rockchip_logo_fb)
 		return ERR_PTR(-ENOMEM);
-	fb = &rockchip_logo_fb->fb;
 
+	rockchip_logo_fb->rk_obj = rockchip_gem_alloc_object(dev, logo->size, 0);
+	if (IS_ERR(rockchip_logo_fb->rk_obj)) {
+		ret = PTR_ERR(rockchip_logo_fb->rk_obj);
+		kfree(rockchip_logo_fb);
+		return ERR_PTR(ret);
+	}
+
+	fb = &rockchip_logo_fb->fb;
 	drm_helper_mode_fill_fb_struct(dev, fb, mode_cmd);
 
 	ret = drm_framebuffer_init(dev, fb, &rockchip_drm_fb_funcs);
@@ -137,17 +137,16 @@ rockchip_drm_logo_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2
 		DRM_DEV_ERROR(dev->dev,
 			      "Failed to initialize rockchip logo fb: %d\n",
 			      ret);
+		rockchip_gem_release_object(rockchip_logo_fb->rk_obj);
 		kfree(rockchip_logo_fb);
 		return ERR_PTR(ret);
 	}
 
-	fb->flags |= ROCKCHIP_DRM_MODE_LOGO_FB;
+	fb->obj[0] = &rockchip_logo_fb->rk_obj->base;
 	rockchip_logo_fb->logo = logo;
-	rockchip_logo_fb->fb.obj[0] = &rockchip_logo_fb->rk_obj.base;
-	rockchip_logo_fb->fb.obj[0]->funcs = &rockchip_gem_object_funcs;
-	drm_gem_object_init(dev, rockchip_logo_fb->fb.obj[0], PAGE_ALIGN(logo->size));
-	rockchip_logo_fb->rk_obj.dma_addr = logo->dma_addr;
-	rockchip_logo_fb->rk_obj.kvaddr = logo->kvaddr;
+	rockchip_logo_fb->rk_obj->dma_addr = logo->dma_addr;
+	rockchip_logo_fb->rk_obj->kvaddr = logo->kvaddr;
+	rockchip_logo_fb->rk_obj->buf_type = ROCKCHIP_GEM_BUF_TYPE_LOGO;
 	logo->count++;
 	INIT_DELAYED_WORK(&rockchip_logo_fb->destroy_work, rockchip_drm_fb_destroy_work);
 	return &rockchip_logo_fb->fb;

@@ -61,6 +61,8 @@
 #define SIP_PVTPLL_CFG			0x82000029
 #define SIP_GPIO_CFG			0x8200002c
 #define SIP_CPU_PM_CFG			0x8200002d
+#define SIP_CCI_CFG			0x8200002e
+#define SIP_ACCESS_CPU_REG		0x8200002f
 
 #define TRUSTED_OS_HDCPKEY_INIT		0xB7000003
 
@@ -268,6 +270,25 @@ enum {
 	CPU_PM_CLUST_AUTO_PD_EN = 0,
 };
 
+/* SIP_CCI_CFG child configs */
+enum {
+	CCI_SLV_SNOOP_ENABLE = 0,
+	CCI_SLV_DVM_ENABLE = 1,
+	CCI_SLV_AR_QOS_CFG = 2,
+	CCI_SLV_AW_QOS_CFG = 3,
+};
+
+/* SIP_ACCESS_CPU_REG child configs */
+enum {
+	RK_CPU_REG_READ = 0,
+	RK_CPU_REG_WRITE = 1,
+};
+
+enum {
+	CPU_REG_A72_CPUACTLR_EL1 = 0,
+	CPU_REG_A72_ECTLR_EL1 = 1,
+};
+
 struct pt_regs;
 typedef void (*sip_fiq_debugger_uart_irq_tf_cb_t)(struct pt_regs *_pt_regs, unsigned long cpu);
 
@@ -308,6 +329,9 @@ struct arm_smccc_res sip_hdcp_config(u32 arg0, u32 arg1, u32 arg2);
 struct arm_smccc_res sip_smc_gpio_config(u32 sub_func_id, u32 arg1, u32 arg2,
 					 u32 arg3);
 int sip_smc_cpu_pm_config(u32 func, u32 id, u32 cfg);
+int sip_smc_cci_config(u32 func, u32 id, u32 cfg);
+int sip_smc_access_cpu_reg(u32 func, u32 id, unsigned long *val);
+
 ulong sip_cpu_logical_map_mpidr(u32 cpu);
 /***************************fiq debugger **************************************/
 void sip_fiq_debugger_enable_fiq(bool enable, uint32_t tgt_cpu);
@@ -460,6 +484,16 @@ static inline struct arm_smccc_res sip_smc_gpio_config(u32 sub_func_id, u32 arg1
 }
 
 static inline int sip_smc_cpu_pm_config(u32 func, u32 id, u32 cfg)
+{
+	return SIP_RET_NOT_SUPPORTED;
+}
+
+static inline int sip_smc_cci_config(u32 func, u32 id, u32 cfg)
+{
+	return SIP_RET_NOT_SUPPORTED;
+}
+
+static inline int sip_smc_access_cpu_reg(u32 func, u32 id, unsigned long *val)
 {
 	return SIP_RET_NOT_SUPPORTED;
 }

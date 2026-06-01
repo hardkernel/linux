@@ -19,6 +19,7 @@
 
 #include "rockchip_drm_drv.h"
 #include "rockchip_drm_gem.h"
+#include "rockchip_drm_logo.h"
 
 static u32 bank_bit_first = 12;
 static u32 bank_bit_mask = 0x7;
@@ -606,13 +607,13 @@ static int rockchip_drm_gem_object_mmap(struct drm_gem_object *obj,
 	return ret;
 }
 
-static void rockchip_gem_release_object(struct rockchip_gem_object *rk_obj)
+void rockchip_gem_release_object(struct rockchip_gem_object *rk_obj)
 {
 	drm_gem_object_release(&rk_obj->base);
 	kfree(rk_obj);
 }
 
-const struct drm_gem_object_funcs rockchip_gem_object_funcs = {
+static const struct drm_gem_object_funcs rockchip_gem_object_funcs = {
 	.free = rockchip_gem_free_object,
 	.export = rockchip_drm_gem_prime_export,
 	.get_sg_table = rockchip_gem_prime_get_sg_table,
@@ -622,7 +623,7 @@ const struct drm_gem_object_funcs rockchip_gem_object_funcs = {
 	.vm_ops = &drm_gem_dma_vm_ops,
 };
 
-static struct rockchip_gem_object *
+struct rockchip_gem_object *
 rockchip_gem_alloc_object(struct drm_device *drm, unsigned int size,
 			  unsigned int flags)
 {
@@ -736,6 +737,10 @@ void rockchip_gem_free_object(struct drm_gem_object *obj)
 		}
 		drm_free_large(rk_obj->pages);
 		rockchip_gem_destroy(obj, rk_obj->sgt);
+	} else if (rk_obj->buf_type == ROCKCHIP_GEM_BUF_TYPE_LOGO) {
+#ifndef MODULE
+		rockchip_free_loader_memory(obj->dev);
+#endif
 	} else {
 		rockchip_gem_free_buf(rk_obj);
 	}
