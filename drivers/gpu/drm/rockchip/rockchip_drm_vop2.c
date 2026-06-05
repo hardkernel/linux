@@ -13029,6 +13029,10 @@ static void vop3_setup_hdr_data(struct vop2_video_port *vp, uint8_t win_phys_id,
 	uint8_t adapt_mode = 0;
 
 	if (vop2->version < VOP_VERSION_RK3572) {
+		vp->hdr_en = false;
+		vp->hdr_in = false;
+		vp->hdr_out = false;
+		vp->sdr2hdr_en = false;
 		vpstate->hdr_in = false;
 		vpstate->hdr2sdr_en = false;
 
@@ -13270,8 +13274,9 @@ static void vop3_setup_dynamic_hdr(struct vop2_video_port *vp, uint8_t win_phys_
 	case HDR_HDR10:
 	case HDR_HLGSTATIC:
 	case HDR_HDRVIVID:
+	case HDR_HDR10PLUS:
 		/*
-		 * hdr module support hdr10, hlg, vividhdr
+		 * hdr module support hdr10, hdr10+, hlg, vividhdr
 		 * sdr2hdr module support hdrnone for sdr2hdr
 		 */
 		vop3_setup_hdr_data(vp, win_phys_id, 0);
