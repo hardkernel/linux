@@ -87,12 +87,12 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define DRIVER_MAJOR_VERISON		1
+#define DRIVER_MAJOR_VERSION		1
 #define DRIVER_MINOR_VERSION		3
-#define DRIVER_REVISION_VERSION		11
+#define DRIVER_REVISION_VERSION		13
 #define DRIVER_PATCH_VERSION
 
-#define DRIVER_VERSION (STR(DRIVER_MAJOR_VERISON) "." STR(DRIVER_MINOR_VERSION) \
+#define DRIVER_VERSION (STR(DRIVER_MAJOR_VERSION) "." STR(DRIVER_MINOR_VERSION) \
 			"." STR(DRIVER_REVISION_VERSION) STR(DRIVER_PATCH_VERSION))
 
 /* time limit */
@@ -202,6 +202,11 @@ struct rga_virt_addr {
 	/* The offset of the first page of the virtual address */
 	size_t offset;
 
+	/* Shadow page list for cache-safe DMA */
+	struct list_head shadow_list;
+	bool shadow_head;
+	bool shadow_tail;
+
 	int result;
 };
 
@@ -277,6 +282,14 @@ struct rga_job_buffer {
 	int page_count;
 };
 
+struct rga_job_task_buffers {
+	struct rga_job_buffer src_buffer;
+	struct rga_job_buffer src1_buffer;
+	struct rga_job_buffer dst_buffer;
+	/* used by rga2 */
+	struct rga_job_buffer els_buffer;
+};
+
 struct rga_job_timestamp {
 	ktime_t init;
 	ktime_t insert;
@@ -294,17 +307,16 @@ struct rga_job {
 	struct rga_scheduler_t *scheduler;
 	struct rga_session *session;
 
-	struct rga_req rga_command_base;
-	struct rga_dma_buffer *cmd_buf;
 	struct rga_full_csc full_csc;
 	struct rga_csc_clip full_csc_clip;
 	struct rga_pre_intr_info pre_intr_info;
 
-	struct rga_job_buffer src_buffer;
-	struct rga_job_buffer src1_buffer;
-	struct rga_job_buffer dst_buffer;
-	/* used by rga2 */
-	struct rga_job_buffer els_buffer;
+	/* multi-task management */
+	struct rga_dma_buffer *cmd_buf;
+	struct rga_req *task_list;
+	struct rga_job_task_buffers *task_buffers;
+	size_t task_count;
+	size_t finished_count;
 
 	/* for rga2 virtual_address */
 	struct mm_struct *mm;
@@ -318,13 +330,13 @@ struct rga_job {
 	int core;
 	int ret;
 	pid_t pid;
-	bool use_batch_mode;
 
 	struct kref refcount;
 	unsigned long state;
 	uint32_t intr_status;
 	uint32_t hw_status;
 	uint32_t cmd_status;
+	uint32_t intr_status2;
 
 	uint32_t work_cycle;
 };
@@ -381,7 +393,6 @@ struct rga_request {
 	uint32_t finished_task_count;
 	uint32_t failed_task_count;
 
-	bool use_batch_mode;
 	bool is_running;
 	bool is_done;
 	int ret;
