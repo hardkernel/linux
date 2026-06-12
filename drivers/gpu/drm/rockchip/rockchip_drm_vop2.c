@@ -1217,6 +1217,7 @@ static void vop2_wait_for_fs_by_done_bit_status(struct vop2_video_port *vp);
 static int vop2_clk_reset(struct reset_control *rstc);
 static inline bool vop2_cluster_window(struct vop2_win *win);
 static inline bool vop2_cluster_sub_window(struct vop2_win *win);
+static inline bool vop2_multi_area_window(struct vop2_win *win);
 static inline bool vop2_multi_area_sub_window(struct vop2_win *win);
 static void vop2_wait_for_scan_timing_max_to_assigned_line(struct vop2_video_port *vp,
 							   u32 current_line,
@@ -2191,7 +2192,8 @@ static inline void rk3588_vop2_cfg_done(struct drm_crtc *crtc)
 
 	if (vp->reserved_plane_phy_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
 		if (vop2->version < VOP_VERSION_RK3572)
-			VOP_CTRL_SET(vop2, win_cfg_done, vp->win_cfg_done_bits);
+			vop2_writel(vop2, RK3588_SYS_WIN_REG_CFG_DONE,
+				    vp->win_cfg_done_bits | (vp->win_cfg_done_bits << 16));
 		val = RK3568_VOP2_GLB_CFG_DONE_EN | RK3568_VOP2_WB_CFG_DONE |
 		      (RK3568_VOP2_WB_CFG_DONE << 16) | BIT(vp_data->reg_done_bit) |
 		      (BIT(vp_data->reg_done_bit) << 16);
@@ -3083,6 +3085,11 @@ static bool rockchip_vop2_mod_supported(struct drm_plane *plane, u32 format, u64
 	return vop2_convert_afbc_format(format) >= 0 ||
 	       vop2_convert_tiled_format(format) >= 0 ||
 	       vop3_convert_tiled_format(format, 0) >= 0;
+}
+
+static inline bool vop2_multi_area_window(struct vop2_win *win)
+{
+	return (win->feature & WIN_FEATURE_MULTI_AREA);
 }
 
 static inline bool vop2_multi_area_sub_window(struct vop2_win *win)
@@ -8434,7 +8441,7 @@ static void vop2_win_atomic_update(struct vop2_win *win, struct drm_rect *src, s
 		rk3588_vop2_win_cfg_axi(win);
 
 	if (is_vop3(vop2)) {
-		if (!win->parent && !vop2_cluster_window(win))
+		if (!win->parent && vop2_multi_area_window(win))
 			VOP_WIN_SET(vop2, win, scale_engine_num, win->scale_engine_num);
 
 		/* Only esmart win0 and cluster win0 need to enter config vp id and win dly num */
@@ -15711,7 +15718,12 @@ static void vop2_tv_config_update(struct drm_crtc *crtc,
 					 vcstate->tv_state->brightness);
 	contrast = interpolate(0, 0, 100, 511, vcstate->tv_state->contrast);
 	saturation = interpolate(0, 0, 100, 511, vcstate->tv_state->saturation);
-	hue = interpolate(0, -30, 100, 30, vcstate->tv_state->hue);
+	/*
+	 * BCSH uses clockwise as positive hue angle while CSC uses
+	 * counter-clockwise. Unify to counter-clockwise as positive
+	 * direction: invert the configured hue parameter for BCSH.
+	 */
+	hue = interpolate(0, 30, 100, -30, vcstate->tv_state->hue);
 
 	/*
 	 *  a:[-30~0]:
@@ -17808,21 +17820,55 @@ static int rk3576_shared_mode_esmart_scale_engine(int phy_id)
 	}
 }
 
+static int vop3_get_esmart_scale_engine_by_lb_mode(struct vop2 *vop2, int phy_id)
+{
+	const struct vop2_scale_engine *scale_engine = vop2->data->scale_engine;
+	int i;
+
+	/* Find the scale engine configurations according to the esmart lb mode */
+	scale_engine += vop2->esmart_lb_mode * VOP2_MAX_MULTI_AREA_WIN;
+
+	for (i = 0; i < VOP2_MAX_MULTI_AREA_WIN; i++) {
+		if (scale_engine[i].plane_phy_id == phy_id)
+			return scale_engine[i].scale_engine_num;
+	}
+
+	return 0;
+}
+
+/**
+ * RK3528/RK3562/RK3576 platforms require configuring the scale engine number
+ * for each esmart window during driver initialization. The configuration
+ * follows these rules:
+ *
+ * 1. The scale engine number must be unique for each esmart window.
+ * 2. Valid scale engine numbers are determined by the esmart lb mode:
+ *    - VOP3_ESMART_8K_MODE supports 0
+ *    - VOP3_ESMART_4K_4K_MODE supports 0, 1
+ *    - VOP3_ESMART_4K_2K_2K_MODE supports 0, 1, 2
+ *    - VOP3_ESMART_2K_2K_2K_2K_MODE supports 0, 1, 2, 3
+ *    - VOP3_ESMART_4K_4K_4K_MODE supports 0, 1, 2
+ *    - VOP3_ESMART_4K_4K_2K_2K_MODE supports 0, 1, 2, 3
+ * 3. Scale engine number is static and fixed at init time, cannot be changed
+ *    dynamically.
+ */
 static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
 {
-	u8 scale_engine_num = 0;
 	struct drm_plane *plane = NULL;
+
+	if (!vop2->data->scale_engine)
+		return;
 
 	drm_for_each_plane(plane, vop2->drm_dev) {
 		struct vop2_win *win = to_vop2_win(plane);
 
-		if (win->parent || vop2_cluster_window(win))
+		if (win->parent || !vop2_multi_area_window(win))
 			continue;
 
 		if (vop2->shared_mode_res.shared_mode)
 			win->scale_engine_num = rk3576_shared_mode_esmart_scale_engine(win->phys_id);
 		else
-			win->scale_engine_num = scale_engine_num++;
+			win->scale_engine_num = vop3_get_esmart_scale_engine_by_lb_mode(vop2, win->phys_id);
 	}
 }
 
@@ -19529,7 +19575,7 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
 	 * };
 	 */
 	ret = of_property_read_u8(dev->of_node, "esmart_lb_mode", &vop2->esmart_lb_mode);
-	if (ret < 0)
+	if (ret < 0 || vop2->esmart_lb_mode >= VOP3_ESMART_LB_MODE_MAX)
 		vop2->esmart_lb_mode = vop2->data->esmart_lb_mode;
 
 	ret = vop2_win_init(vop2);
