@@ -2651,6 +2651,27 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 	struct rockchip_drm_private *private = connector->dev->dev_private;
 	int ret;
 
+	/*
+	 * Default the HDMI output to RGB.
+	 *
+	 * The Rockchip BSP auto-selects YCbCr444 whenever the sink EDID
+	 * advertises YCbCr444 support. For PC monitors (e.g. HP E27u G4)
+	 * this makes VOP2 enable RGB->YCbCr conversion (r2y_en=1,
+	 * bus_format=YUV8_1X24) while the HDMI link/monitor still expects
+	 * RGB, producing a green-tinted screen. Mainline (and the dw-hdmi
+	 * core, i915, etc.) default to RGB; only fall back to YCbCr for
+	 * bandwidth reasons. Map the auto-selected YCbCr444 formats back to
+	 * the equivalent RGB format here (preserving color depth).
+	 *
+	 * High-bandwidth modes (e.g. 4K@60 on a TV) still fall back to
+	 * YCbCr420 in dw_hdmi_rockchip_select_output(), and userspace can
+	 * force a format via the 'color_format' connector property.
+	 */
+	if (color == MEDIA_BUS_FMT_YUV8_1X24)
+		color = MEDIA_BUS_FMT_RGB888_1X24;
+	else if (color == MEDIA_BUS_FMT_YUV10_1X30)
+		color = MEDIA_BUS_FMT_RGB101010_1X30;
+
 	switch (color) {
 	case MEDIA_BUS_FMT_RGB101010_1X30:
 		hdmi->hdmi_output = RK_IF_FORMAT_RGB;
