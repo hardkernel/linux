@@ -794,7 +794,7 @@ enum rk_pq_csc_swap_type {
 };
 
 struct post_csc_convert_mode {
-	enum drm_color_encoding intput_color_encoding;
+	enum drm_color_encoding input_color_encoding;
 	enum drm_color_encoding output_color_encoding;
 	bool is_input_yuv;
 	bool is_output_yuv;
@@ -1036,7 +1036,7 @@ struct vop2_video_port_regs {
 	struct vop_reg out_mode;
 	struct vop_reg standby;
 	struct vop_reg dsp_interlace;
-	struct vop_reg dsp_filed_pol;
+	struct vop_reg dsp_field_pol;
 	struct vop_reg dsp_data_swap;
 	struct vop_reg dsp_x_mir_en;
 	struct vop_reg post_dsp_out_r2y;
@@ -1650,6 +1650,7 @@ struct vop2_ctrl {
 	struct vop_reg dma0_timeout_cnt;
 	struct vop_reg dma1_timeout_en;
 	struct vop_reg dma1_timeout_cnt;
+	struct vop_reg fbc_timeout_en;
 	struct vop_reg rkmmu_v2_en;
 	struct vop_reg rkmmu_v2_sel_axi;
 	struct vop_reg rkmmu1_v2_en;
@@ -1707,8 +1708,8 @@ struct vop2_ctrl {
 	struct vop_reg dp2_pin_pol;
 
 	/* This will be reference by win_phy_id */
-	struct vop_reg win_vp_id[16];
-	struct vop_reg win_dly[16];
+	struct vop_reg win_vp_id[ROCKCHIP_MAX_LAYER];
+	struct vop_reg win_dly[ROCKCHIP_MAX_LAYER];
 
 	/* connector mux */
 	struct vop_reg rgb_mux;
@@ -2113,11 +2114,23 @@ enum vop_fbc_compress_mode {
 
 static inline uint16_t scl_cal_scale(int src, int dst, int shift)
 {
+	/*
+	 * A workaround to avoid zero div.
+	 */
+	if (dst < 2)
+		dst = 2;
+
 	return ((src * 2 - 3) << (shift - 1)) / (dst - 1);
 }
 
 static inline uint16_t scl_cal_scale2(int src, int dst)
 {
+	/*
+	 * A workaround to avoid zero div.
+	 */
+	if (dst < 2)
+		dst = 2;
+
 	return ((src - 1) << 12) / (dst - 1);
 }
 

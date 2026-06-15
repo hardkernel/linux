@@ -1062,6 +1062,17 @@ struct vop2 {
 	bool iommu_fault_in_progress;
 
 	/**
+	 * @cluster_once_enabled:
+	 * RK3572 Cluster0 and Cluster1 share one AFBC decoder.
+	 * Cluster1 with AFBC must not be enabled before Cluster0's first enable.
+	 * This flag tracks whether Cluster0 has ever been enabled since VOP power-on,
+	 * so the restriction can be relaxed after the first enable sequence.
+	 *
+	 * Reset on VOP disable for correctness across suspend/resume.
+	 */
+	bool cluster_once_enabled;
+
+	/**
 	 * @sync_vp_mask: Bitmask of video ports with the display synchronization function;
 	 *
 	 * If the VP0 and VP1 are synchronized via DT configs:
@@ -1072,6 +1083,9 @@ struct vop2 {
 	 * The value of it should be the same with above DT property: 0x3.
 	 */
 	uint8_t sync_vp_mask;
+
+	/* Mask to disable AFBC support per window */
+	u32 disable_afbc_mask;
 
 	unsigned long aclk_current_freq;
 	enum rockchip_drm_vop_aclk_mode aclk_mode;
@@ -3871,7 +3885,7 @@ static bool vop3_csc_is_r2r_y2y_mode(struct post_csc_convert_mode convert_mode,
 	if (convert_mode.is_input_full_range != convert_mode.is_output_full_range)
 		return true;
 
-	if (convert_mode.intput_color_encoding != convert_mode.output_color_encoding)
+	if (convert_mode.input_color_encoding != convert_mode.output_color_encoding)
 		return true;
 
 	return false;
@@ -3916,13 +3930,13 @@ static void vop2_plane_setup_csc_mode(struct vop2_video_port *vp,
 	struct drm_plane_state *pstate = &vpstate->base;
 	struct rockchip_crtc_state *vcstate = to_rockchip_crtc_state(vp->rockchip_crtc.crtc.state);
 	struct vop2 *vop2 = vp->vop2;
-	int is_input_yuv = pstate->fb->format->is_yuv;
-	int is_output_yuv = vcstate->yuv_overlay;
 	struct vop2_win *win = to_vop2_win(pstate->plane);
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_win_data *win_data = &vop2_data->win[win->win_id];
 	int csc_y2r_bit_depth = CSC_10BIT_DEPTH;
 	int input_color_range = pstate->color_range;
+	bool is_input_yuv = pstate->fb->format->is_yuv;
+	bool is_output_yuv = vcstate->yuv_overlay;
 
 	if (win->feature & WIN_FEATURE_Y2R_13BIT_DEPTH)
 		csc_y2r_bit_depth = CSC_13BIT_DEPTH;
@@ -4002,9 +4016,10 @@ static void vop2_plane_setup_csc_mode(struct vop2_video_port *vp,
 
 	if (win->csc_coe_offset) {
 		struct post_csc_convert_mode convert_mode = {};
+		bool dci_color_swap = false;
 
 		convert_mode.is_input_yuv = is_input_yuv;
-		convert_mode.intput_color_encoding = pstate->color_encoding;
+		convert_mode.input_color_encoding = pstate->color_encoding;
 		convert_mode.is_input_full_range = pstate->color_range;
 		convert_mode.pixel_depth = 10;
 		convert_mode.coef_precision = win_data->csc_coe_bits;
@@ -4013,7 +4028,7 @@ static void vop2_plane_setup_csc_mode(struct vop2_video_port *vp,
 
 		convert_mode.is_output_yuv = is_output_yuv;
 		/* apart from bt2020, vop process recommends using bt709. */
-		if (convert_mode.intput_color_encoding != DRM_COLOR_YCBCR_BT2020)
+		if (convert_mode.input_color_encoding != DRM_COLOR_YCBCR_BT2020)
 			convert_mode.output_color_encoding = DRM_COLOR_YCBCR_BT709;
 		else
 			convert_mode.output_color_encoding = DRM_COLOR_YCBCR_BT2020;
@@ -4026,7 +4041,16 @@ static void vop2_plane_setup_csc_mode(struct vop2_video_port *vp,
 		else if (!is_input_yuv && is_output_yuv)
 			vpstate->r2y_en = 1;
 
-		if (vop3_csc_is_r2r_y2y_mode(convert_mode, NULL)) {
+		/*
+		 * When DCI is enabled, if DCI CSC performs an R2Y conversion
+		 * and it is YUV overlay, the plane CSC needs to perform a
+		 * YUV to VYU swap.
+		 */
+		if (vop2->version >= VOP_VERSION_RK3572 && vpstate->dci_en &&
+		    !pstate->fb->format->is_yuv && vcstate->yuv_overlay)
+			dci_color_swap = true;
+
+		if (vop3_csc_is_r2r_y2y_mode(convert_mode, NULL) || dci_color_swap) {
 			if (!convert_mode.is_input_yuv) {
 				convert_mode.swap_channels = RK_PQ_CSC_V2_R2Y_R2R;
 				vpstate->r2y_en = 1;
@@ -5406,6 +5430,14 @@ static void vop2_initial(struct drm_crtc *crtc)
 		VOP_CTRL_SET(vop2, auto_cs_mode, 1);
 
 		/*
+		 * On RK3538/RK3572, the bit width of fbc_timeout_cnt is insufficient,
+		 * resulting in poor latency tolerance, Otherwise, POST_BUF_EMPTY error
+		 * may occur at poor system bandwidth conditions.
+		 */
+		if (vop2->version == VOP_VERSION_RK3538 || vop2->version == VOP_VERSION_RK3572)
+			VOP_CTRL_SET(vop2, fbc_timeout_en, 0);
+
+		/*
 		 * This is unused and error init value for rk3528/rk3562 vp1, if less of this config,
 		 * vp1 can't display normally.
 		 */
@@ -5499,6 +5531,16 @@ static void vop2_initial(struct drm_crtc *crtc)
 	    (vop2->version == VOP_VERSION_RK3576))
 		writel(0x1, vop2->sharp_res.regs);
 	VOP_MODULE_SET(vop2, vp, post_buf_empty_dsp_vcnt_en, 1);
+	if (vop2->data->vp[vp->id].urgency) {
+		u8 urgen_thl = vop2->data->vp[vp->id].urgency->urgen_thl;
+		u8 urgen_thh = vop2->data->vp[vp->id].urgency->urgen_thh;
+
+		VOP_MODULE_SET(vop2, vp, axi0_port_urgency_en, 1);
+		VOP_MODULE_SET(vop2, vp, axi1_port_urgency_en, 1);
+		VOP_MODULE_SET(vop2, vp, post_urgency_en, 1);
+		VOP_MODULE_SET(vop2, vp, post_urgency_thl, urgen_thl);
+		VOP_MODULE_SET(vop2, vp, post_urgency_thh, urgen_thh);
+	}
 
 	vop2->enable_count++;
 
@@ -6117,6 +6159,8 @@ static void vop2_disable(struct drm_crtc *crtc)
 	}
 	if (vop2->version == VOP_VERSION_RK3588 || vop2->version == VOP_VERSION_RK3576)
 		vop2_power_off_all_pd(vop2);
+	else if (vop2->version == VOP_VERSION_RK3572)
+		vop2->cluster_once_enabled = false;
 
 	/*
 	 * Reset AXI to get a clean state, which is conducive to recovering
@@ -7296,49 +7340,12 @@ static int vop3_msmart_grid_linear_yuv_format_check(struct drm_plane *plane,
 
 /*
  * For RK3572 MSMART0/1, the min actual width limit as follow:
- * XR30/AR30/XB30/AB30, XR24/AR24/XB24/AB24: actual_w > 4
- * RG24/BG24: actual_w > 5
- * RG16/BG16, AR15/AB15/XR15/XB15: actual_w > 8
- * NV12/NV21, NV16/NV61, NV24/NV42: actual_w > 16
- * NV15, NV20, NV30: actual_w > 12
+ * NV12/NV21, NV16/NV61, NV24/NV42: actual_w >= 17
+ * Others: actual_w >= 16
  */
 static int vop3_msmart_min_width_check(struct drm_plane *plane, uint32_t format, uint32_t actual_w)
 {
 	switch (format) {
-	case DRM_FORMAT_XRGB2101010:
-	case DRM_FORMAT_ARGB2101010:
-	case DRM_FORMAT_XBGR2101010:
-	case DRM_FORMAT_ABGR2101010:
-	case DRM_FORMAT_XRGB8888:
-	case DRM_FORMAT_ARGB8888:
-	case DRM_FORMAT_XBGR8888:
-	case DRM_FORMAT_ABGR8888:
-		if (actual_w <= 4) {
-			drm_err(plane->dev, "%s %p4cc actual width %d <= 4\n", plane->name,
-				&format, actual_w);
-			return -EINVAL;
-		}
-		break;
-	case DRM_FORMAT_RGB888:
-	case DRM_FORMAT_BGR888:
-		if (actual_w <= 5) {
-			drm_err(plane->dev, "%s %p4cc actual width %d <= 5\n", plane->name,
-				&format, actual_w);
-			return -EINVAL;
-		}
-		break;
-	case DRM_FORMAT_RGB565:
-	case DRM_FORMAT_BGR565:
-	case DRM_FORMAT_ARGB1555:
-	case DRM_FORMAT_ABGR1555:
-	case DRM_FORMAT_XRGB1555:
-	case DRM_FORMAT_XBGR1555:
-		if (actual_w <= 8) {
-			drm_err(plane->dev, "%s %p4cc actual width %d <= 8\n", plane->name,
-				&format, actual_w);
-			return -EINVAL;
-		}
-		break;
 	case DRM_FORMAT_NV12:
 	case DRM_FORMAT_NV21:
 	case DRM_FORMAT_NV16:
@@ -7351,16 +7358,12 @@ static int vop3_msmart_min_width_check(struct drm_plane *plane, uint32_t format,
 			return -EINVAL;
 		}
 		break;
-	case DRM_FORMAT_NV15:
-	case DRM_FORMAT_NV20:
-	case DRM_FORMAT_NV30:
-		if (actual_w <= 12) {
-			drm_err(plane->dev, "%s %p4cc actual width %d <= 12\n", plane->name,
+	default:
+		if (actual_w <= 15) {
+			drm_err(plane->dev, "%s %p4cc actual width %d <= 15\n", plane->name,
 				&format, actual_w);
 			return -EINVAL;
 		}
-		break;
-	default:
 		break;
 	};
 
@@ -7857,12 +7860,10 @@ static void vop2_plane_atomic_disable(struct drm_plane *plane, struct drm_atomic
  * The background value is 10 bit, convert from 8 bit to 10 bit here,
  * and the bit[31] is bg_en control bit.
  */
-static void vop2_plane_setup_background(struct drm_plane *plane)
+static void vop2_plane_setup_background(struct vop2 *vop2, struct vop2_win *win,
+					struct drm_plane_state *pstate)
 {
-	struct drm_plane_state *pstate = plane->state;
 	struct vop2_plane_state *vpstate = to_vop2_plane_state(pstate);
-	struct vop2_win *win = to_vop2_win(plane);
-	struct vop2 *vop2 = win->vop2;
 	uint32_t r, g, b, bg_val;
 
 	if (win->regs->background.mask == 0)
@@ -7897,36 +7898,19 @@ static void vop2_plane_setup_background(struct drm_plane *plane)
  * The color key is 10 bit, so all format should
  * convert to 10 bit here.
  */
-static void vop2_plane_setup_color_key(struct drm_plane *plane)
+static void vop2_plane_setup_color_key(struct vop2 *vop2, struct vop2_win *win,
+				       struct drm_plane_state *pstate)
 {
-	struct drm_plane_state *pstate;
-	struct vop2_plane_state *vpstate;
-	struct drm_framebuffer *fb;
-	struct vop2_win *win = to_vop2_win(plane);
-	struct vop2_win *left_win = NULL;
-	struct vop2 *vop2 = win->vop2;
+	struct vop2_plane_state *vpstate = to_vop2_plane_state(pstate);
+	struct drm_framebuffer *fb = pstate->fb;
 	uint32_t color_key_en = 0;
 	uint32_t color_key;
 	uint32_t r = 0;
 	uint32_t g = 0;
 	uint32_t b = 0;
 
-	if (win->splice_mode_right) {
-		pstate = win->left_win->base.state;
-		left_win = win->left_win;
-	} else {
-		pstate = plane->state;
-	}
-
-	vpstate = to_vop2_plane_state(pstate);
-	if (!vpstate)
-		return;
-	fb = pstate->fb;
-
 	if (!(vpstate->color_key & VOP_COLOR_KEY_MASK) || fb->format->is_yuv) {
 		VOP_WIN_SET(vop2, win, color_key_en, 0);
-		if (left_win)
-			VOP_WIN_SET(vop2, left_win, color_key_en, 0);
 		return;
 	}
 
@@ -7960,10 +7944,6 @@ static void vop2_plane_setup_color_key(struct drm_plane *plane)
 	color_key = (r << 20) | (g << 10) | b;
 	VOP_WIN_SET(vop2, win, color_key_en, color_key_en);
 	VOP_WIN_SET(vop2, win, color_key, color_key);
-	if (left_win) {
-		VOP_WIN_SET(vop2, left_win, color_key_en, color_key_en);
-		VOP_WIN_SET(vop2, left_win, color_key, color_key);
-	}
 }
 
 static void vop2_calc_drm_rect_for_splice(struct vop2_plane_state *vpstate,
@@ -8150,8 +8130,8 @@ static void vop3_dci_config(struct vop2_win *win, struct vop2_plane_state *vpsta
 		convert_mode.is_input_full_range =
 			pstate->color_range == DRM_COLOR_YCBCR_FULL_RANGE ? true : false;
 		convert_mode.is_output_full_range = true;
-		convert_mode.intput_color_encoding = pstate->color_encoding;
-		convert_mode.output_color_encoding = convert_mode.intput_color_encoding;
+		convert_mode.input_color_encoding = pstate->color_encoding;
+		convert_mode.output_color_encoding = convert_mode.input_color_encoding;
 		convert_mode.is_input_yuv = pstate->fb->format->is_yuv;
 		convert_mode.is_output_yuv = true;
 		convert_mode.pixel_depth = 10;
@@ -8421,9 +8401,15 @@ static void vop2_win_atomic_update(struct vop2_win *win, struct drm_rect *src, s
 			format = vop2_convert_format(fb->format->format);
 	}
 
-	vop2_plane_setup_csc_mode(vp, vpstate);
+	/*
+	 * The plane CSC mode setting depends on the value of
+	 * vpstate->dci_en (set by vop3_dci_config). Therefore,
+	 * vop2_plane_setup_csc_mode must be kept after vop3_dci_config.
+	 */
 	if (win->feature & WIN_FEATURE_DCI)
 		vop3_dci_config(win, vpstate);
+
+	vop2_plane_setup_csc_mode(vp, vpstate);
 
 	afbc_half_block_en = vop2_afbc_half_block_enable(vop2, vpstate);
 
@@ -8629,8 +8615,8 @@ static void vop2_win_atomic_update(struct vop2_win *win, struct drm_rect *src, s
 		VOP_WIN_SET(vop2, win, yrgb_vir, stride);
 
 	vop2_setup_scale(vop2, win, actual_w, actual_h, dsp_w, dsp_h, pstate);
-	vop2_plane_setup_background(&win->base);
-	vop2_plane_setup_color_key(&win->base);
+	vop2_plane_setup_background(vop2, win, pstate);
+	vop2_plane_setup_color_key(vop2, win, pstate);
 	VOP_WIN_SET(vop2, win, act_info, act_info);
 	VOP_WIN_SET(vop2, win, dsp_info, dsp_info);
 	VOP_WIN_SET(vop2, win, dsp_st, dsp_st);
@@ -8711,6 +8697,22 @@ static void vop2_plane_atomic_update(struct drm_plane *plane, struct drm_atomic_
 	if (!pstate->visible) {
 		vop2_plane_atomic_disable(plane, state);
 		return;
+	}
+
+	/*
+	 * RK3572 Cluster0 and Cluster1 share a single AFBC decoder.
+	 * Cluster1 with afbc format should not be enabled before Cluster0.
+	 */
+	if (vop2->version == VOP_VERSION_RK3572 && !vop2->disable_afbc_mask) {
+		struct vop2_win *cluster0_win = vop2_find_win_by_phys_id(vop2, ROCKCHIP_VOP2_CLUSTER0);
+
+		if ((win->phys_id == ROCKCHIP_VOP2_CLUSTER1 && vpstate->afbc_en) &&
+		    (cluster0_win && !VOP_WIN_GET(vop2, cluster0_win, enable)) &&
+		    !(vp->win_mask & BIT(ROCKCHIP_VOP2_CLUSTER0)) && vop2->cluster_once_enabled == false)
+			DRM_WARN("Cluster1 should not be enabled before Cluster0\n");
+
+		if (win->phys_id == ROCKCHIP_VOP2_CLUSTER0 && vpstate->afbc_en)
+			vop2->cluster_once_enabled = true;
 	}
 
 	/*
@@ -9569,7 +9571,18 @@ static int vop2_crtc_loader_protect(struct drm_crtc *crtc, bool on, void *data)
 		}
 		drm_crtc_vblank_on(crtc);
 		if (is_vop3(vop2)) {
-			if (vp_data->feature & (VOP_FEATURE_POST_ACM))
+			/*
+			 * According to IC design, ACM and MCU display interfaces are
+			 * mutually exclusive. When the MCU display interface is enabled,
+			 * the ACM configuration must not be initialized during the loader
+			 * protect.
+			 *
+			 * Otherwise, once ACM is enabled, the output of the MCU sync and
+			 * data pins will be stuck high, which will cause the MCU panel
+			 * to fail to initialize and display properly.
+			 */
+			if ((vp_data->feature & VOP_FEATURE_POST_ACM) &&
+			    !vp->mcu_timing.mcu_pix_total)
 				vop2_crtc_get_inital_acm_info(crtc);
 			if (data && (vp_data->feature & VOP_FEATURE_POST_CSC))
 				memcpy(&vp->csc_info, data, sizeof(struct post_csc));
@@ -9806,10 +9819,13 @@ static int vop2_crtc_debugfs_dump(struct drm_crtc *crtc, struct seq_file *s)
 	struct vop2 *vop2 = vp->vop2;
 	struct drm_crtc_state *crtc_state = crtc->state;
 	struct drm_display_mode *mode = &crtc->state->adjusted_mode;
+	struct drm_display_mode tmp;
 	struct rockchip_crtc_state *state = to_rockchip_crtc_state(crtc->state);
 	bool interlaced = !!(mode->flags & DRM_MODE_FLAG_INTERLACE);
 	struct drm_plane *plane;
 	unsigned long aclk_rate;
+	u64 dividend, dclk_rate_kHz;
+	u32 actual_fps_x100;
 
 	DEBUG_PRINT("Video Port%d: %s\n", vp->id, crtc_state->active ? "ACTIVE" : "DISABLED");
 
@@ -9825,6 +9841,15 @@ static int vop2_crtc_debugfs_dump(struct drm_crtc *crtc, struct seq_file *s)
 	else
 		aclk_rate = clk_get_rate(vop2->aclk);
 
+	/* Calculate refresh rate multiplied by 100 to keep two decimal precision */
+	drm_mode_copy(&tmp, mode);
+	tmp.clock *= 100;
+	dclk_rate_kHz = clk_get_rate(vp->dclk) / 1000;
+	/* The expected crtc_clock and actual hardware dclk may have integer multiple relation */
+	dclk_rate_kHz *= DIV64_U64_ROUND_CLOSEST((u64)mode->crtc_clock, dclk_rate_kHz);
+	dividend = mul_u32_u32(drm_mode_vrefresh(&tmp), dclk_rate_kHz);
+	actual_fps_x100 = div64_u64(dividend, (u64)mode->crtc_clock);
+
 	vop2_dump_connector_on_crtc(crtc, s);
 	DEBUG_PRINT("\tbus_format[%x]: %s\n", state->bus_format,
 		    drm_get_bus_format_name(state->bus_format));
@@ -9838,11 +9863,11 @@ static int vop2_crtc_debugfs_dump(struct drm_crtc *crtc, struct seq_file *s)
 		    state->post_r2y_en ? csc_mode_to_string(vop2, state->post_csc_mode) : "off",
 		    state->sharp_en, state->acm_en, state->post_y2r_en ?
 		    csc_mode_to_string(vop2, state->post_csc_y2r_mode) : "off");
-	DEBUG_PRINT("    Display mode: %dx%d%s%d\n",
+	DEBUG_PRINT("    Display mode: %dx%d%s%u.%02u\n",
 		    mode->hdisplay, mode->vdisplay, interlaced ? "i" : "p",
-		    drm_mode_vrefresh(mode));
-	DEBUG_PRINT("\tdclk[%d kHz] real_dclk[%d kHz] aclk[%ld kHz] type[%x] flag[%x]\n",
-		    mode->clock, mode->crtc_clock, aclk_rate / 1000,
+		    actual_fps_x100 / 100, actual_fps_x100 % 100);
+	DEBUG_PRINT("\tdclk[%d kHz] crtc_dclk[%d kHz] real_dclk[%lu kHz] aclk[%ld kHz] type[%x] flag[%x]\n",
+		    mode->clock, mode->crtc_clock, clk_get_rate(vp->dclk) / 1000, aclk_rate / 1000,
 		    mode->type, mode->flags);
 	DEBUG_PRINT("\tH: %d %d %d %d\n", mode->hdisplay, mode->hsync_start,
 		    mode->hsync_end, mode->htotal);
@@ -11082,7 +11107,7 @@ static void vop2_post_config(struct drm_crtc *crtc)
 	 * The platform support BCSH:
 	 *   overlay-> CSC_R2Y -> BCSH -> CSC_Y2R -> post sclae
 	 */
-	if ((vp_data->feature & VOP_FEATURE_POST_ACM)) {
+	if ((vp_data->feature & VOP_FEATURE_POST_ACM) && !vp->mcu_timing.mcu_pix_total) {
 		if (vop2->version <= VOP_VERSION_RK3576) {
 			VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, vcstate->yuv_overlay);
 		} else {
@@ -12543,13 +12568,13 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_atomic_sta
 		val = vtotal << 16 | (vtotal + vsync_len);
 		VOP_MODULE_SET(vop2, vp, vs_st_end_f1, val);
 		VOP_MODULE_SET(vop2, vp, dsp_interlace, 1);
-		VOP_MODULE_SET(vop2, vp, dsp_filed_pol, 1);
+		VOP_MODULE_SET(vop2, vp, dsp_field_pol, 1);
 		VOP_MODULE_SET(vop2, vp, p2i_en, 1);
 		vtotal += vtotal + 1;
 		act_end = vact_end_f1;
 	} else {
 		VOP_MODULE_SET(vop2, vp, dsp_interlace, 0);
-		VOP_MODULE_SET(vop2, vp, dsp_filed_pol, 0);
+		VOP_MODULE_SET(vop2, vp, dsp_field_pol, 0);
 		VOP_MODULE_SET(vop2, vp, p2i_en, 0);
 		act_end = vact_end;
 	}
@@ -12609,16 +12634,7 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_atomic_sta
 
 	VOP_MODULE_SET(vop2, vp, almost_full_or_en, 1);
 	VOP_MODULE_SET(vop2, vp, line_flag_or_en, 1);
-	if (vop2->data->vp[vp->id].urgency) {
-		u8 urgen_thl = vop2->data->vp[vp->id].urgency->urgen_thl;
-		u8 urgen_thh = vop2->data->vp[vp->id].urgency->urgen_thh;
 
-		VOP_MODULE_SET(vop2, vp, axi0_port_urgency_en, 1);
-		VOP_MODULE_SET(vop2, vp, axi1_port_urgency_en, 1);
-		VOP_MODULE_SET(vop2, vp, post_urgency_en, 1);
-		VOP_MODULE_SET(vop2, vp, post_urgency_thl, urgen_thl);
-		VOP_MODULE_SET(vop2, vp, post_urgency_thh, urgen_thh);
-	}
 	if (vcstate->dsc_enable) {
 		if (vcstate->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
 			vop2_crtc_enable_dsc(crtc, old_cstate, 0);
@@ -12642,7 +12658,7 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_atomic_sta
 	 * When enable ACM[bypass = 0] will lead to timing error,
 	 * so enable ACM by default.
 	 */
-	if (vp_data->feature & VOP_FEATURE_POST_ACM) {
+	if ((vp_data->feature & VOP_FEATURE_POST_ACM) && !vp->mcu_timing.mcu_pix_total) {
 		writel(0, vop2->acm_res.regs + RK3528_ACM_CTRL);
 		VOP_MODULE_SET(vop2, vp, acm_bypass_en, 0);
 	}
@@ -15629,9 +15645,9 @@ static void vop2_tv_config_update(struct drm_crtc *crtc,
 				r2y_convert_mode.is_output_full_range = vcstate->color_range;
 
 			if (has_bt2020_plane)
-				r2y_convert_mode.intput_color_encoding = DRM_COLOR_YCBCR_BT2020;
+				r2y_convert_mode.input_color_encoding = DRM_COLOR_YCBCR_BT2020;
 			else
-				r2y_convert_mode.intput_color_encoding = DRM_COLOR_YCBCR_BT709;
+				r2y_convert_mode.input_color_encoding = DRM_COLOR_YCBCR_BT709;
 
 			r2y_convert_mode.output_color_encoding = vcstate->color_encoding;
 
@@ -15672,13 +15688,13 @@ static void vop2_tv_config_update(struct drm_crtc *crtc,
 
 			if (!vcstate->post_r2y_en) {
 				if (has_bt2020_plane)
-					y2r_convert_mode.intput_color_encoding =
+					y2r_convert_mode.input_color_encoding =
 						DRM_COLOR_YCBCR_BT2020;
 				else
-					y2r_convert_mode.intput_color_encoding =
+					y2r_convert_mode.input_color_encoding =
 						DRM_COLOR_YCBCR_BT709;
 			} else {
-				y2r_convert_mode.intput_color_encoding =
+				y2r_convert_mode.input_color_encoding =
 					r2y_convert_mode.output_color_encoding;
 			}
 
@@ -15707,7 +15723,8 @@ static void vop2_tv_config_update(struct drm_crtc *crtc,
 		 * So use DRM_COLOR_YCBCR_LIMITED_RANGE here.
 		 */
 		vcstate->post_csc_mode = vop2_convert_csc_mode(vcstate->color_encoding,
-							       DRM_COLOR_YCBCR_LIMITED_RANGE, CSC_10BIT_DEPTH);
+							       DRM_COLOR_YCBCR_LIMITED_RANGE,
+							       CSC_10BIT_DEPTH);
 	}
 
 	if (vp_data->feature & VOP_FEATURE_OUTPUT_10BIT)
@@ -15890,11 +15907,11 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 		 * In all other scenarios, the csc of the layer is output in bt709 colorspace.
 		 */
 		if (cgc_enabled)
-			r2y_convert_mode.intput_color_encoding = vcstate->color_encoding;
+			r2y_convert_mode.input_color_encoding = vcstate->color_encoding;
 		else if (has_bt2020_plane)
-			r2y_convert_mode.intput_color_encoding = DRM_COLOR_YCBCR_BT2020;
+			r2y_convert_mode.input_color_encoding = DRM_COLOR_YCBCR_BT2020;
 		else
-			r2y_convert_mode.intput_color_encoding = DRM_COLOR_YCBCR_BT709;
+			r2y_convert_mode.input_color_encoding = DRM_COLOR_YCBCR_BT709;
 
 		if (post_r2y_en)
 			r2y_convert_mode.is_output_yuv = true;
@@ -15917,7 +15934,7 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 			r2y_convert_mode.output_color_encoding = vcstate->color_encoding;
 		else
 			r2y_convert_mode.output_color_encoding =
-				r2y_convert_mode.intput_color_encoding;
+				r2y_convert_mode.input_color_encoding;
 
 		r2y_convert_mode.pixel_depth = 10;
 		r2y_convert_mode.coef_precision = 10;
@@ -15978,8 +15995,10 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 	} else if (!vcstate->yuv_overlay) {
 		/* if there are yuv planes, choose max plane's range */
 		if (max_yuv_pstate) {
-			/* Todo RGB limit range plane */
-			convert_mode.is_input_full_range = true;
+			if (post_r2y_en && !vop2_is_full_range_csc_mode(vcstate->post_csc_mode))
+				convert_mode.is_input_full_range = false;
+			else
+				convert_mode.is_input_full_range = true;
 		} else {
 			if (rgb_limited_plane)
 				convert_mode.is_input_full_range = false;
@@ -15997,17 +16016,17 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 	 * When all layers are rgb, the value of input_color_encoding
 	 * has no actual utility, however, the plane csc only supports
 	 * limited range under bt709. Therefore, in this scene, the colorspace
-	 * of plane csc is selected as bt601. The intput_color_encoding
+	 * of plane csc is selected as bt601. The input_color_encoding
 	 * is consistent with colorspace of plane csc, which is DRM_COLOR_YCBCR_BT601.
 	 * If there are any yuv planes, value of post-csc input_color_encoding
 	 * selects the value of the yuv plane with the largest area.
 	 */
 	if (r2y_csc_supported)
-		convert_mode.intput_color_encoding = r2y_convert_mode.output_color_encoding;
+		convert_mode.input_color_encoding = r2y_convert_mode.output_color_encoding;
 	else if (!max_yuv_pstate)
-		convert_mode.intput_color_encoding = DRM_COLOR_YCBCR_BT601;
+		convert_mode.input_color_encoding = DRM_COLOR_YCBCR_BT601;
 	else
-		convert_mode.intput_color_encoding = max_yuv_plane_color_encoding;
+		convert_mode.input_color_encoding = max_yuv_plane_color_encoding;
 
 	convert_mode.pixel_depth = 10;
 	convert_mode.coef_precision = 10;
@@ -16271,7 +16290,8 @@ static void vop2_cfg_update(struct drm_crtc *crtc,
 		}
 	}
 
-	if ((vp_data->feature & VOP_FEATURE_POST_ACM) && vp->acm_state_changed)
+	if ((vp_data->feature & VOP_FEATURE_POST_ACM) && vp->acm_state_changed &&
+	    !vp->mcu_timing.mcu_pix_total)
 		vop3_post_acm_config(crtc, &vp->acm_info);
 
 	if (vp_data->feature & VOP_FEATURE_OVERSCAN)
@@ -16308,6 +16328,16 @@ static void vop2_cfg_update(struct drm_crtc *crtc,
 					val = 0;
 			}
 		}
+	}
+
+	/*
+	 * When RK3588 dolby core is enabled and no layer is enabled, it is
+	 * necessary to ensure that a normal black screen image is displayed
+	 * by enabling DSP_BG_DISPLAY_EN.
+	 */
+	if (vop2->version == VOP_VERSION_RK3588) {
+		if (vop2_is_dovi_mode(vp) && !vp->enabled_win_mask)
+			val |= RK3588_VP0_DSP_BG_DISPLAY_EN;
 	}
 
 	VOP_MODULE_SET(vop2, vp, dsp_background, val);
@@ -17878,6 +17908,7 @@ static int vop2_plane_init(struct vop2 *vop2, struct vop2_win *win, unsigned lon
 	unsigned int blend_caps = BIT(DRM_MODE_BLEND_PIXEL_NONE) | BIT(DRM_MODE_BLEND_PREMULTI) |
 				  BIT(DRM_MODE_BLEND_COVERAGE);
 	unsigned int max_width, max_height;
+	const uint64_t *format_modifiers;
 	int ret;
 
 	/*
@@ -17900,9 +17931,15 @@ static int vop2_plane_init(struct vop2 *vop2, struct vop2_win *win, unsigned lon
 	if (vop3_ignore_plane(vop2, win))
 		return -EACCES;
 
+	if (vop2->disable_afbc_mask & BIT(win->phys_id)) {
+		format_modifiers = NULL;
+		win->feature &= ~WIN_FEATURE_AFBDC;
+	} else {
+		format_modifiers = win->format_modifiers;
+	}
 	ret = drm_universal_plane_init(vop2->drm_dev, &win->base, possible_crtcs,
 				       &vop2_plane_funcs, win->formats, win->nformats,
-				       win->format_modifiers, win->type, win->name);
+				       format_modifiers, win->type, win->name);
 	if (ret) {
 		DRM_DEV_ERROR(vop2->dev, "failed to initialize plane %d\n", ret);
 		return ret;
@@ -18623,7 +18660,7 @@ static int vop2_create_crtc(struct vop2 *vop2, uint8_t enabled_vp_mask)
 
 		if (vp_data->feature & (VOP_FEATURE_VIVID_HDR | VOP_FEATURE_DOVI))
 			vop2_crtc_create_hdr_property(vop2, crtc);
-		if (vp_data->feature & VOP_FEATURE_POST_ACM)
+		if ((vp_data->feature & VOP_FEATURE_POST_ACM) && !vp->mcu_timing.mcu_pix_total)
 			vop2_crtc_create_post_acm_property(vop2, crtc);
 		if (vp_data->feature & VOP_FEATURE_POST_CSC)
 			vop2_crtc_create_post_csc_property(vop2, crtc);
@@ -19506,7 +19543,7 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
 	struct device_node *vop_out_node;
 	struct device_node *mcu_timing_node;
 	u8 enabled_vp_mask = 0;
-	char *plane_mask_string;
+	char *plane_mask_string, *disable_afbc_plane_string;
 
 	vop2_data = of_device_get_match_data(dev);
 	if (!vop2_data)
@@ -19577,6 +19614,25 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
 	ret = of_property_read_u8(dev->of_node, "esmart_lb_mode", &vop2->esmart_lb_mode);
 	if (ret < 0 || vop2->esmart_lb_mode >= VOP3_ESMART_LB_MODE_MAX)
 		vop2->esmart_lb_mode = vop2->data->esmart_lb_mode;
+
+	/*
+	 * Disable AFBC support for specific windows via DTS.
+	 * This avoids the Cluster0/Cluster1 enable order constraint on RK3572.
+	 *
+	 * example:
+	 * &vop {
+	 *     rockchip,disable-afbc-mask = <(1 << ROCKCHIP_VOP2_CLUSTER1)>;
+	 * };
+	 */
+	of_property_read_u32(dev->of_node, "rockchip,disable-afbc-mask", &vop2->disable_afbc_mask);
+	if (vop2->disable_afbc_mask) {
+		disable_afbc_plane_string = vop2_plane_mask_to_string(vop2->disable_afbc_mask);
+		if (disable_afbc_plane_string) {
+			DRM_DEV_INFO(dev, "AFBC disabled for windows: %s[0x%x]\n",
+				     disable_afbc_plane_string, vop2->disable_afbc_mask);
+			kfree(disable_afbc_plane_string);
+		}
+	}
 
 	ret = vop2_win_init(vop2);
 	if (ret)
