@@ -440,7 +440,7 @@ export KCONFIG_EXT_PREFIX ?= ${COMMON_DRIVERS_DIR}/
 export KCONFIG_PROJECT_PREFIX ?= ${COMMON_DRIVERS_DIR}/
 export dtstree ?= $(COMMON_DRIVERS_DIR)/arch/$(SRCARCH)/boot/dts/
 export DTC_INCLUDE ?= $(srctree)/$(COMMON_DRIVERS_DIR)/include
-ifneq ($(wildcard media_modules),)
+ifneq ($(wildcard -d $(srctree)/media_modules),)
 export MEDIA_DRIVERS_DIR := media_modules
 endif
 # endif
