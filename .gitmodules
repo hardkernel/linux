@@ -1,0 +1,9 @@
+[submodule "common_drivers"]
+	path = common_drivers
+	url = https://github.com/hardkernel/kernel_common_drivers.git
+	branch = odroids7d-6.12.y
+
+[submodule "media_modules"]
+	path = media_modules
+	url = https://github.com/hardkernel/yocto-platform-hardware-amlogic-media_modules.git
+	branch = odroids7d-6.12.y
