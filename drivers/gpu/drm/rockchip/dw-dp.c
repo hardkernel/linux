@@ -2318,13 +2318,14 @@ static int dw_dp_link_clock_recovery(struct dw_dp *dp)
 	struct dw_dp_link *link = &dp->link;
 	u8 status[DP_LINK_STATUS_SIZE];
 	unsigned int tries = 0;
-	int ret;
+	unsigned int max_retries = 50;
+	int ret, i;
 
 	ret = dw_dp_link_train_set_pattern(dp, DP_TRAINING_PATTERN_1);
 	if (ret)
 		return ret;
 
-	for (;;) {
+	for (i = 0; i < max_retries; i++) {
 		ret = dw_dp_link_train_update_vs_emph(dp);
 		if (ret)
 			return ret;
@@ -3467,6 +3468,15 @@ static int dw_dp_aux_read_data(struct dw_dp *dp, u8 *buffer, size_t size)
 	return size;
 }
 
+static void dw_dp_aux_reset(struct dw_dp *dp)
+{
+	regmap_update_bits(dp->regmap, DPTX_SOFT_RESET_CTRL, AUX_RESET,
+			   FIELD_PREP(AUX_RESET, 1));
+	udelay(10);
+	regmap_update_bits(dp->regmap, DPTX_SOFT_RESET_CTRL, AUX_RESET,
+			   FIELD_PREP(AUX_RESET, 0));
+}
+
 static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
 				  struct drm_dp_aux_msg *msg)
 {
@@ -3503,17 +3513,20 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
 		value = FIELD_PREP(I2C_ADDR_ONLY, 1);
 	value |= FIELD_PREP(AUX_CMD_TYPE, msg->request);
 	value |= FIELD_PREP(AUX_ADDR, msg->address);
+	reinit_completion(&dp->complete);
 	regmap_write(dp->regmap, DPTX_AUX_CMD, value);
 
 	status = wait_for_completion_timeout(&dp->complete, timeout);
 	if (!status) {
 		dw_dp_dbg(dp, "timeout waiting for AUX reply\n");
+		dw_dp_aux_reset(dp);
 		ret = -ETIMEDOUT;
 		goto out;
 	}
 
 	regmap_read(dp->regmap, DPTX_AUX_STATUS, &value);
 	if (value & AUX_TIMEOUT) {
+		dw_dp_aux_reset(dp);
 		ret = -ETIMEDOUT;
 		goto out;
 	}

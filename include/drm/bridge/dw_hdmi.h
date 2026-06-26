@@ -172,6 +172,9 @@ struct dw_hdmi_phy_ops {
 	int (*init)(struct dw_hdmi *hdmi, void *data,
 		    const struct drm_display_info *display,
 		    const struct drm_display_mode *mode);
+	int (*enable)(struct dw_hdmi *hdmi, void *data,
+		      const struct drm_display_info *display,
+		      const struct drm_display_mode *mode);
 	void (*disable)(struct dw_hdmi *hdmi, void *data);
 	enum drm_connector_status (*read_hpd)(struct dw_hdmi *hdmi, void *data);
 	void (*update_hpd)(struct dw_hdmi *hdmi, void *data,
@@ -180,8 +183,9 @@ struct dw_hdmi_phy_ops {
 };
 
 struct dw_hdmi_qp_phy_ops {
-	int (*init)(struct dw_hdmi_qp *hdmi, void *data,
-		    struct drm_display_mode *mode);
+	int (*init)(void *data);
+	int (*enable)(struct dw_hdmi_qp *hdmi, void *data,
+		      struct drm_display_mode *mode);
 	void (*disable)(struct dw_hdmi_qp *hdmi, void *data);
 	enum drm_connector_status (*read_hpd)(struct dw_hdmi_qp *hdmi,
 					      void *data);
@@ -377,6 +381,8 @@ void dw_hdmi_set_output_type(struct dw_hdmi *hdmi, u64 val);
 bool dw_hdmi_get_output_whether_hdmi(struct dw_hdmi *hdmi);
 int dw_hdmi_get_output_type_cap(struct dw_hdmi *hdmi);
 void dw_hdmi_set_cec_adap(struct dw_hdmi *hdmi, struct cec_adapter *adap);
+void dw_hdmi_register_debugfs(struct dw_hdmi *hdmi);
+void dw_hdmi_phy_init(struct dw_hdmi *hdmi);
 void dw_hdmi_qp_set_allm_enable(struct dw_hdmi_qp *hdmi_qp, struct drm_connector *conn,
 				bool enable);
 void dw_hdmi_qp_handle_hpd(struct dw_hdmi_qp *hdmi, bool enable);
@@ -418,5 +424,7 @@ void dw_hdmi_cec_wake_ops_register(struct dw_hdmi *hdmi,
 int dw_hdmi_qp_register_audio(struct dw_hdmi_qp *hdmi);
 int dw_hdmi_qp_register_cec(struct dw_hdmi_qp *hdmi);
 int dw_hdmi_qp_register_hdcp(struct dw_hdmi_qp *hdmi);
+void dw_hdmi_qp_register_debugfs(struct dw_hdmi_qp *hdmi);
+void dw_hdmi_qp_phy_init(struct dw_hdmi_qp *hdmi);
 
 #endif /* __IMX_HDMI_H__ */

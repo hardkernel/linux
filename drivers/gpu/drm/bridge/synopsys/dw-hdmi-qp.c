@@ -26,6 +26,7 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
 #include <drm/drm_encoder_slave.h>
+#include <drm/drm_file.h>
 #include <drm/drm_of.h>
 #include <drm/drm_panel.h>
 #include <drm/drm_print.h>
@@ -369,7 +370,6 @@ struct dw_hdmi_qp {
 	void (*enable_audio)(struct dw_hdmi_qp *hdmi);
 	void (*disable_audio)(struct dw_hdmi_qp *hdmi);
 
-	struct dentry *debugfs_dir;
 	bool scramble_low_rates;
 
 	struct extcon_dev *extcon;
@@ -1424,8 +1424,7 @@ int dw_hdmi_qp_set_earc(struct dw_hdmi_qp *hdmi)
 	hdmi->phy.ops->set_mode(hdmi, hdmi->phy.data, HDMI_PHY_EARC_MASK,
 				true);
 
-	ret = hdmi->phy.ops->init(hdmi, hdmi->phy.data,
-				  &hdmi->previous_mode);
+	ret = hdmi->phy.ops->enable(hdmi, hdmi->phy.data, &hdmi->previous_mode);
 	if (ret)
 		return ret;
 
@@ -2350,7 +2349,7 @@ static int dw_hdmi_qp_flt_lts4(struct dw_hdmi_qp *hdmi, u8 *rate)
 		hdmi->plat_data->link_clk_set(data, 0, true);
 
 	/* enable phy */
-	hdmi->phy.ops->init(hdmi, hdmi->phy.data, &hdmi->previous_mode);
+	hdmi->phy.ops->enable(hdmi, hdmi->phy.data, &hdmi->previous_mode);
 
 	*rate = actual_rate;
 	/* set new rate */
@@ -2491,7 +2490,7 @@ static int hdmi_set_op_mode(struct dw_hdmi_qp *hdmi,
 		hdmi_modb(hdmi, 0, OPMODE_FRL, LINK_CONFIG0);
 		hdmi_modb(hdmi, 0, OPMODE_FRL_4LANES, LINK_CONFIG0);
 		if (!hdmi->update) {
-			ret = hdmi->phy.ops->init(hdmi, hdmi->phy.data, &hdmi->previous_mode);
+			ret = hdmi->phy.ops->enable(hdmi, hdmi->phy.data, &hdmi->previous_mode);
 			if (!ret)
 				hdmi->disabled = false;
 		}
@@ -2510,7 +2509,7 @@ static int hdmi_set_op_mode(struct dw_hdmi_qp *hdmi,
 
 	hdmi_modb(hdmi, 1, OPMODE_FRL, LINK_CONFIG0);
 
-	ret = hdmi->phy.ops->init(hdmi, hdmi->phy.data, &hdmi->previous_mode);
+	ret = hdmi->phy.ops->enable(hdmi, hdmi->phy.data, &hdmi->previous_mode);
 	if (!ret) {
 		hdmi->disabled = false;
 		/* wait phy output stable then start flt */
@@ -2861,7 +2860,7 @@ static int dw_hdmi_qp_setup(struct dw_hdmi_qp *hdmi,
 		hdmi_modb(hdmi, OPMODE_DVI, OPMODE_DVI, LINK_CONFIG0);
 		hdmi_writel(hdmi, 2, PKTSCHED_PKT_CONTROL0);
 		hdmi_modb(hdmi, PKTSCHED_GCP_TX_EN, PKTSCHED_GCP_TX_EN, PKTSCHED_PKT_EN);
-		hdmi->phy.ops->init(hdmi, hdmi->phy.data, &hdmi->previous_mode);
+		hdmi->phy.ops->enable(hdmi, hdmi->phy.data, &hdmi->previous_mode);
 		dev_info(hdmi->dev, "%s DVI mode\n", __func__);
 	}
 
@@ -3220,7 +3219,7 @@ void dw_hdmi_qp_handle_hpd(struct dw_hdmi_qp *hdmi, bool enable)
 			hdmi_writel(hdmi, 0, SCRAMB_CONFIG0);
 		}
 
-		hdmi->phy.ops->init(hdmi, hdmi->phy.data, &hdmi->previous_mode);
+		hdmi->phy.ops->enable(hdmi, hdmi->phy.data, &hdmi->previous_mode);
 		hdmi->disabled = false;
 		msleep(50);
 		hdmi_writel(hdmi, 2, PKTSCHED_PKT_CONTROL0);
@@ -4764,22 +4763,25 @@ static const struct file_operations dw_hdmi_status_fops = {
 	.release = single_release,
 };
 
-static void dw_hdmi_register_debugfs(struct device *dev, struct dw_hdmi_qp *hdmi)
+void dw_hdmi_qp_register_debugfs(struct dw_hdmi_qp *hdmi)
 {
 	u8 buf[11];
+	struct dentry *debugfs_dir;
 
-	snprintf(buf, sizeof(buf), "dw-hdmi%d", hdmi->plat_data->id);
-	hdmi->debugfs_dir = debugfs_create_dir(buf, NULL);
-	if (IS_ERR(hdmi->debugfs_dir)) {
-		dev_err(dev, "failed to create debugfs dir!\n");
-		return;
-	}
+	snprintf(buf, sizeof(buf), "hdmi%d", hdmi->plat_data->id);
+	debugfs_dir = debugfs_create_dir(buf, hdmi->bridge.dev->primary->debugfs_root);
 
-	debugfs_create_file("status", 0400, hdmi->debugfs_dir,
-			    hdmi, &dw_hdmi_status_fops);
-	debugfs_create_file("ctrl", 0600, hdmi->debugfs_dir,
-			    hdmi, &dw_hdmi_ctrl_fops);
+	debugfs_create_file("status", 0400, debugfs_dir, hdmi, &dw_hdmi_status_fops);
+	debugfs_create_file("ctrl", 0600, debugfs_dir, hdmi, &dw_hdmi_ctrl_fops);
 }
+EXPORT_SYMBOL_GPL(dw_hdmi_qp_register_debugfs);
+
+void dw_hdmi_qp_phy_init(struct dw_hdmi_qp *hdmi)
+{
+	if (hdmi->phy.ops->init)
+		hdmi->phy.ops->init(hdmi->phy.data);
+}
+EXPORT_SYMBOL_GPL(dw_hdmi_qp_phy_init);
 
 static void dw_hdmi_qp_hdcp14_get_mem(struct dw_hdmi_qp *hdmi, u8 *data, u32 len)
 {
@@ -5207,8 +5209,6 @@ static struct dw_hdmi_qp *dw_hdmi_qp_probe(struct platform_device *pdev,
 	if (ret)
 		goto err_ddc;
 
-	dw_hdmi_register_debugfs(dev, hdmi);
-
 	if ((hdmi_readl(hdmi, CONFIG_REG) & CONFIG_HDCP14) &&
 	    (hdmi->plat_data->dw_hdmi_qp_version == DW_HDMI_QP_V1)) {
 		iores = platform_get_resource(pdev, IORESOURCE_MEM, 1);
@@ -5257,8 +5257,6 @@ static void dw_hdmi_qp_remove(struct dw_hdmi_qp *hdmi)
 
 	if (hdmi->earc_irq)
 		disable_irq(hdmi->earc_irq);
-
-	debugfs_remove_recursive(hdmi->debugfs_dir);
 
 	if (!hdmi->plat_data->first_screen) {
 		dw_hdmi_destroy_properties(hdmi);
