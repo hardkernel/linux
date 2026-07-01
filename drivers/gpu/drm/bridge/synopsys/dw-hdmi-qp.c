@@ -1659,11 +1659,12 @@ static void hdmi_config_AVI(struct dw_hdmi_qp *hdmi,
 	hdmi_writel(hdmi, val, PKT_AVI_CONTENTS0);
 
 	for (i = 0; i < 4; i++) {
+		val = 0;
+
 		for (j = 0; j < 4; j++) {
-			if (i * 4 + j >= 14)
+			if (i * 4 + j > frame.length)
 				break;
-			if (!j)
-				val = buff[i * 4 + j + 3];
+
 			val |= buff[i * 4 + j + 3] << (8 * j);
 		}
 
@@ -2621,6 +2622,13 @@ static void dw_hdmi_set_hdcp_bypass(struct dw_hdmi_qp *hdmi, u8 enable)
 	hdmi_writel(hdmi, enable, HDCP2LOGIC_CONFIG0);
 }
 
+static void dw_hdmi_set_hdcp14(struct dw_hdmi_qp *hdmi)
+{
+	hdmi_writel(hdmi, 0, HDCP2LOGIC_ESM_GPIO_IN);
+	if (hdmi->hdcp && hdmi->hdcp->hdcp_start)
+		hdmi->hdcp->hdcp_start(hdmi->hdcp);
+}
+
 static
 int dw_hdmi_hdcp2_notifier_callback(struct notifier_block *nb, unsigned long event, void *data)
 {
@@ -2650,6 +2658,9 @@ int dw_hdmi_hdcp2_notifier_callback(struct notifier_block *nb, unsigned long eve
 		break;
 	case DW_HDCP_GET_HDMI_BYPASS_EVENT:
 		hdcp_event->bypass = hdmi_readl(hdmi, HDCP2LOGIC_CONFIG0);
+		break;
+	case DW_HDCP_SET_HDMI_HDCP14_EVENT:
+		dw_hdmi_set_hdcp14(hdmi);
 		break;
 	default:
 		dev_err(hdmi->dev, "hdcp2 notifier: unknown event %lu\n", event);
@@ -4338,7 +4349,6 @@ static irqreturn_t dw_hdmi_qp_avp_irq(int irq, void *dev_id)
 			if (conn_state->content_protection !=
 			    DRM_MODE_CONTENT_PROTECTION_UNDESIRED)
 				val = DRM_MODE_CONTENT_PROTECTION_DESIRED;
-			hdmi_modb(hdmi, HDCP2_BYPASS, HDCP2_BYPASS, HDCP2LOGIC_CONFIG0);
 			dev_err(hdmi->dev, "HDCP2 authentication failed\n");
 		}
 		conn_state->content_protection = val;

@@ -1636,6 +1636,33 @@ static struct vop2_win *vop2_find_win_by_phys_id(struct vop2 *vop2, uint8_t phys
 	return NULL;
 }
 
+/*
+ * Check whether any active plane attached to the video port has an
+ * SDR eotf, which indicates that sdr2hdr conversion is needed.
+ */
+static inline bool vop2_vp_has_sdr_layer(struct vop2 *vop2, unsigned long win_mask)
+{
+	struct vop2_win *win;
+	struct drm_plane_state *pstate;
+	struct vop2_plane_state *vpstate;
+	int phys_id;
+
+	for_each_set_bit(phys_id, &win_mask, ROCKCHIP_MAX_LAYER) {
+		win = vop2_find_win_by_phys_id(vop2, phys_id);
+		pstate = win->base.state;
+		vpstate = to_vop2_plane_state(pstate);
+
+		if (!vop2_plane_active(pstate))
+			continue;
+
+		if (vpstate->eotf != HDMI_EOTF_SMPTE_ST2084 &&
+		    vpstate->eotf != HDMI_EOTF_BT_2100_HLG)
+			return true;
+	}
+
+	return false;
+}
+
 static struct vop2_power_domain *vop2_find_pd_by_id(struct vop2 *vop2, uint16_t id)
 {
 	struct vop2_power_domain *pd, *n;
@@ -13083,7 +13110,6 @@ static void vop3_setup_hdr_data(struct vop2_video_port *vp, uint8_t win_phys_id,
 	struct drm_crtc_state *cstate = vp->rockchip_crtc.crtc.state;
 	struct rockchip_crtc_state *vcstate = to_rockchip_crtc_state(cstate);
 	unsigned long win_mask = vp->win_mask;
-	int phys_id;
 	/* hdr data used by platforms prior to rk3572 */
 	struct hdrvivid_regs *hdrvivid_data = NULL;
 	struct hdr_extend *hdr_extend = NULL;
@@ -13093,7 +13119,7 @@ static void vop3_setup_hdr_data(struct vop2_video_port *vp, uint8_t win_phys_id,
 	/* emp metadata */
 	uint32_t *hdrvivid_dynamic_metadata = NULL;
 	struct rockchip_gem_object *lut_gem_obj;
-	bool have_sdr_layer = false;
+	bool has_sdr_layer = false;
 	uint32_t hdr_mode;
 	int i;
 	u32 *tone_lut_kvaddr;
@@ -13180,32 +13206,14 @@ static void vop3_setup_hdr_data(struct vop2_video_port *vp, uint8_t win_phys_id,
 		vp->sdr2hdr_en = true;
 	}
 
-	/*
-	 * To confirm whether need to enable sdr2hdr.
-	 */
-	for_each_set_bit(phys_id, &win_mask, ROCKCHIP_MAX_LAYER) {
-		win = vop2_find_win_by_phys_id(vop2, phys_id);
-		plane = &win->base;
-		pstate = plane->state;
-		vpstate = to_vop2_plane_state(pstate);
-
-		/* skip inactive plane */
-		if (!vop2_plane_active(pstate))
-			continue;
-
-		if (vpstate->eotf != HDMI_EOTF_SMPTE_ST2084 &&
-		    vpstate->eotf != HDMI_EOTF_BT_2100_HLG) {
-			have_sdr_layer = true;
-			break;
-		}
-	}
+	has_sdr_layer = vop2_vp_has_sdr_layer(vop2, win_mask);
 
 	if (hdr_mode == PQHDR2SDR_WITH_DYNAMIC || hdr_mode == HLG2SDR_WITH_DYNAMIC ||
 	    hdr_mode == HLG2SDR_WITHOUT_DYNAMIC || hdr_mode == HDR102SDR) {
 		vpstate->hdr2sdr_en = true;
 	} else {
 		vp->hdr_out = true;
-		if (have_sdr_layer)
+		if (has_sdr_layer)
 			vp->sdr2hdr_en = true;
 	}
 
@@ -15936,8 +15944,10 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 		if (!vcstate->yuv_overlay) {
 			r2y_convert_mode.is_input_yuv = false;
 			if (!post_r2y_en) {
-				/* do rgb full/limited range convert in r2y */
-				if (vcstate->color_range != DRM_COLOR_YCBCR_FULL_RANGE)
+				/* do rgb range and colorspace convert in r2y */
+				if (vcstate->color_range != DRM_COLOR_YCBCR_FULL_RANGE ||
+				    (vcstate->color_encoding != DRM_COLOR_YCBCR_BT709 &&
+				     !has_bt2020_plane))
 					post_r2r_en = true;
 			}
 		} else {
@@ -15980,8 +15990,8 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 			r2y_convert_mode.is_output_full_range =
 				r2y_convert_mode.is_input_full_range;
 
-		/* r2y csc do r2r, colorspace will not be changed */
-		if (post_r2y_en)
+		/* r2y csc do r2y and r2r range convert */
+		if (post_r2y_en || post_r2r_en)
 			r2y_convert_mode.output_color_encoding = vcstate->color_encoding;
 		else
 			r2y_convert_mode.output_color_encoding =
