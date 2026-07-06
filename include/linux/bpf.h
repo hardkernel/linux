@@ -1847,6 +1847,7 @@ int bpf_link_prime(struct bpf_link *link, struct bpf_link_primer *primer);
 int bpf_link_settle(struct bpf_link_primer *primer);
 void bpf_link_cleanup(struct bpf_link_primer *primer);
 void bpf_link_inc(struct bpf_link *link);
+struct bpf_link *bpf_link_inc_not_zero(struct bpf_link *link);
 void bpf_link_put(struct bpf_link *link);
 int bpf_link_new_fd(struct bpf_link *link);
 struct file *bpf_link_new_file(struct bpf_link *link, int *reserved_fd);
@@ -2192,6 +2193,11 @@ static inline void bpf_link_cleanup(struct bpf_link_primer *primer)
 
 static inline void bpf_link_inc(struct bpf_link *link)
 {
+}
+
+static inline struct bpf_link *bpf_link_inc_not_zero(struct bpf_link *link)
+{
+	return NULL;
 }
 
 static inline void bpf_link_put(struct bpf_link *link)

@@ -187,3 +187,12 @@ type 'struct wiphy' changed
   member 'u64 android_kabi_reserved1' was removed
   member 'union { struct { u16 hw_timestamp_max_peers; u16 android_kabi_reserve1; }; struct { u64 android_kabi_reserved1; }; union { }; }' was added
 
+type 'struct tcpm_port' changed
+  member 'struct pd_revision_info pd_rev' was added
+
+type 'enum pd_msg_request' changed
+  enumerator 'PD_MSG_DATA_REV' (6) was added
+
+type 'enum tcpm_ams' changed
+  enumerator 'REVISION_INFORMATION' (34) was added
+

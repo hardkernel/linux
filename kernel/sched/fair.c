@@ -7661,6 +7661,7 @@ static void task_dead_fair(struct task_struct *p)
 static int
 balance_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
+	trace_android_rvh_balance_fair(rq, prev, rf);
 	if (rq->nr_running)
 		return 1;
 
@@ -7950,8 +7951,11 @@ again:
 		cfs_rq = group_cfs_rq(se);
 	} while (cfs_rq);
 
-	p = task_of(se);
-	trace_android_rvh_replace_next_task_fair(rq, &p, &se, &repick, false, prev);
+	trace_android_rvh_before_pick_task_fair(rq, &p, prev, rf);
+	if (!p) {
+		p = task_of(se);
+		trace_android_rvh_replace_next_task_fair(rq, &p, &se, &repick, false, prev);
+	}
 	/*
 	 * Since we haven't yet done put_prev_entity and if the selected task
 	 * is a different task than we started out with, try and touch the
@@ -8029,12 +8033,6 @@ idle:
 		if (new_tasks > 0)
 			goto again;
 	}
-
-	/*
-	 * rq is about to be idle, check if we need to update the
-	 * lost_idle_time of clock_pelt
-	 */
-	update_idle_rq_clock_pelt(rq);
 
 	return NULL;
 }

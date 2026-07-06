@@ -342,6 +342,8 @@
   __traceiter_android_vh_madvise_pageout_swap_entry
   __traceiter_android_vh_madvise_swapin_walk_pmd_entry
   __traceiter_android_vh_meminfo_cache_adjust
+  __traceiter_android_vh_mm_free
+  __traceiter_android_vh_mm_init
   __traceiter_android_vh_mutex_wait_finish
   __traceiter_android_vh_mutex_wait_start
   __traceiter_android_vh_process_madvise_end
@@ -357,6 +359,7 @@
   __traceiter_android_vh_si_mem_available_adjust
   __traceiter_android_vh_si_meminfo_adjust
   __traceiter_android_vh_smaps_pte_entry
+  __traceiter_android_vh_task_mem
   __traceiter_android_vh_try_to_freeze_todo
   __traceiter_android_vh_try_to_freeze_todo_unfrozen
   __traceiter_android_vh_watchdog_timer_softlockup
@@ -369,6 +372,7 @@
   __traceiter_irq_handler_entry
   __traceiter_irq_handler_exit
   __traceiter_kfree_skb
+  __traceiter_rss_stat
   __traceiter_sched_switch
   __traceiter_workqueue_execute_start
   __tracepoint_android_rvh_arm64_serror_panic
@@ -385,6 +389,8 @@
   __tracepoint_android_vh_madvise_pageout_swap_entry
   __tracepoint_android_vh_madvise_swapin_walk_pmd_entry
   __tracepoint_android_vh_meminfo_cache_adjust
+  __tracepoint_android_vh_mm_free
+  __tracepoint_android_vh_mm_init
   __tracepoint_android_vh_mutex_wait_finish
   __tracepoint_android_vh_mutex_wait_start
   __tracepoint_android_vh_process_madvise_end
@@ -400,6 +406,7 @@
   __tracepoint_android_vh_si_mem_available_adjust
   __tracepoint_android_vh_si_meminfo_adjust
   __tracepoint_android_vh_smaps_pte_entry
+  __tracepoint_android_vh_task_mem
   __tracepoint_android_vh_try_to_freeze_todo
   __tracepoint_android_vh_try_to_freeze_todo_unfrozen
   __tracepoint_android_vh_watchdog_timer_softlockup
@@ -414,6 +421,7 @@
   __tracepoint_kfree_skb
   tracepoint_probe_register
   tracepoint_probe_unregister
+  __tracepoint_rss_stat
   __tracepoint_sched_switch
   __tracepoint_workqueue_execute_start
   unregister_console

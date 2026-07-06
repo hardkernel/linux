@@ -94,6 +94,9 @@ struct iommu_sva *iommu_sva_bind_device(struct device *dev, struct mm_struct *mm
 	ioasid_t max_pasids;
 	int ret;
 
+	if (IS_ENABLED(CONFIG_X86))
+		return ERR_PTR(-EOPNOTSUPP);
+
 	max_pasids = dev->iommu->max_pasids;
 	if (!max_pasids)
 		return ERR_PTR(-EOPNOTSUPP);

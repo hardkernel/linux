@@ -167,6 +167,7 @@ l2tp_session_get
 l2tp_session_get_by_ifname
 l2tp_session_get_nth
 l2tp_session_inc_refcount
+l2tp_session_put
 l2tp_session_register
 l2tp_session_set_header_len
 l2tp_sk_to_tunnel
@@ -177,6 +178,7 @@ l2tp_tunnel_get
 l2tp_tunnel_get_nth
 l2tp_tunnel_get_session
 l2tp_tunnel_inc_refcount
+l2tp_tunnel_put
 l2tp_tunnel_register
 l2tp_udp_encap_recv
 l2tp_xmit_skb
@@ -209,6 +211,7 @@ nfc_get_local_general_bytes
 nfc_proto_register
 nfc_proto_unregister
 nfc_register_device
+nfc_remove_device
 nfc_remove_se
 nfc_se_connectivity
 nfc_se_transaction
@@ -220,6 +223,7 @@ nfc_tm_activated
 nfc_tm_data_received
 nfc_tm_deactivated
 nfc_unregister_device
+nfc_unregister_rfkill
 nfc_vendor_cmd_reply
 of_can_transceiver
 open_candev

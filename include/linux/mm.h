@@ -3904,4 +3904,7 @@ madvise_set_anon_name(struct mm_struct *mm, unsigned long start,
 }
 #endif
 
+void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags,
+							unsigned int alloc_flags);
+
 #endif /* _LINUX_MM_H */

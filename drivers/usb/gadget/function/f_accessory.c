@@ -1250,6 +1250,9 @@ static int acc_hid_init(struct acc_hid_dev *hdev)
 {
 	struct hid_device *hid;
 	int ret;
+	int i;
+	struct hid_report *report;
+	struct hid_report_enum *report_enum;
 
 	hid = hid_allocate_device();
 	if (IS_ERR(hid))
@@ -1267,6 +1270,30 @@ static int acc_hid_init(struct acc_hid_dev *hdev)
 		pr_err("can't add hid device: %d\n", ret);
 		hid_destroy_device(hid);
 		return ret;
+	}
+
+	for (i = 0; i < HID_REPORT_TYPES; i++) {
+		report_enum = &hid->report_enum[i];
+		list_for_each_entry(report, &report_enum->report_list, list) {
+			unsigned int expected_size = DIV_ROUND_UP(report->size, 8);
+
+			/*
+			 * hid_report_len() is not used here because it relies on
+			 * report->id > 0 to determine if an extra byte is needed.
+			 * However, hid_report_raw_event() uses report_enum->numbered.
+			 * If a descriptor has some reports with IDs and some without,
+			 * hid_report_len() will underestimate the size of the ID-less
+			 * report by 1 byte, leading to a 1-byte OOB write.
+			 */
+			if (report_enum->numbered)
+				expected_size++;
+
+			if (expected_size > USB_COMP_EP0_BUFSIZ) {
+				pr_err("AOA hid report size %u is too large\n", expected_size);
+				hid_destroy_device(hid);
+				return -EINVAL;
+			}
+		}
 	}
 
 	hdev->hid = hid;

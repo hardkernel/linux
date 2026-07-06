@@ -10,6 +10,7 @@
   __bh_read_batch
   bio_add_page
   bio_alloc_bioset
+  bio_alloc_clone
   bio_put
   __bitmap_weight
   bit_waitqueue

@@ -471,6 +471,8 @@
   __traceiter_android_vh_uprobes_replace_page
   __traceiter_android_vh_watchdog_timer_softlockup
   __traceiter_android_rvh_create_worker
+  __traceiter_android_rvh_balance_fair
+  __traceiter_android_rvh_before_pick_task_fair
   __traceiter_binder_transaction_received
   __traceiter_block_rq_insert
   __traceiter_clock_set_rate
@@ -682,6 +684,8 @@
   __tracepoint_android_vh_uprobes_replace_page
   __tracepoint_android_vh_watchdog_timer_softlockup
   __tracepoint_android_rvh_create_worker
+  __tracepoint_android_rvh_balance_fair
+  __tracepoint_android_rvh_before_pick_task_fair
   __tracepoint_binder_transaction_received
   __tracepoint_block_rq_insert
   __tracepoint_clock_set_rate

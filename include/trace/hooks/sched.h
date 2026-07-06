@@ -285,6 +285,14 @@ DECLARE_HOOK(android_vh_free_task,
 	TP_PROTO(struct task_struct *p),
 	TP_ARGS(p));
 
+DECLARE_HOOK(android_vh_mmap_lock_init,
+	TP_PROTO(struct rw_semaphore *sem),
+	TP_ARGS(sem));
+
+DECLARE_HOOK(android_vh_mmap_lock_free,
+	TP_PROTO(struct rw_semaphore *sem),
+	TP_ARGS(sem));
+
 DECLARE_HOOK(android_vh_copy_process,
 	TP_PROTO(struct task_struct *p, int nr_threads, int current_signal_nr_threads),
 	TP_ARGS(p, nr_threads, current_signal_nr_threads));
@@ -469,6 +477,15 @@ DECLARE_HOOK(android_vh_set_task_comm,
 DECLARE_HOOK(android_vh_reweight_entity,
 	TP_PROTO(struct sched_entity *se),
 	TP_ARGS(se));
+
+DECLARE_RESTRICTED_HOOK(android_rvh_before_pick_task_fair,
+	TP_PROTO(struct rq *rq, struct task_struct **p,
+		 struct task_struct *prev, struct rq_flags *rf),
+	TP_ARGS(rq, p, prev, rf), 1);
+
+DECLARE_RESTRICTED_HOOK(android_rvh_balance_fair,
+	TP_PROTO(struct rq *rq, struct task_struct *prev, struct rq_flags *rf),
+	TP_ARGS(rq, prev, rf), 1);
 
 struct cgroup_subsys_state;
 DECLARE_HOOK(android_vh_sched_move_task,

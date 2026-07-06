@@ -28,6 +28,9 @@
 #include <linux/delayacct.h>
 #include "swap.h"
 
+#undef CREATE_TRACE_POINTS
+#include <trace/hooks/mm.h>
+
 static void end_swap_bio_write(struct bio *bio)
 {
 	struct page *page = bio_first_page_all(bio);
@@ -182,6 +185,7 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 {
 	struct folio *folio = page_folio(page);
 	int ret = 0;
+	unsigned long swap_writepage_start;
 
 	if (folio_free_swap(folio)) {
 		folio_unlock(folio);
@@ -203,7 +207,10 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 		folio_end_writeback(folio);
 		goto out;
 	}
+	trace_android_vh_swap_writepage_start(&swap_writepage_start);
 	ret = __swap_writepage(&folio->page, wbc);
+	trace_android_vh_swap_writepage_end(&folio->page, wbc,
+		swap_writepage_start, ret);
 out:
 	return ret;
 }
@@ -454,10 +461,12 @@ int swap_readpage(struct page *page, bool synchronous,
 	bool workingset = PageWorkingset(page);
 	unsigned long pflags;
 	bool in_thrashing;
+	unsigned long swapin_start;
 
 	VM_BUG_ON_PAGE(!PageSwapCache(page) && !synchronous, page);
 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 	VM_BUG_ON_PAGE(PageUptodate(page), page);
+	trace_android_vh_swapin_start(&swapin_start);
 
 	/*
 	 * Count submission time as memory stall and delay. When the device
@@ -521,6 +530,7 @@ out:
 		psi_memstall_leave(&pflags);
 	}
 	delayacct_swapin_end();
+	trace_android_vh_swapin_end(page_folio(page), swapin_start, ret);
 	return ret;
 }
 

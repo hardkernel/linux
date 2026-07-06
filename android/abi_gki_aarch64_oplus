@@ -10,6 +10,7 @@
   blk_start_plug
   cgroup_add_dfl_cftypes
   cgroup_add_legacy_cftypes
+  cgroup_add_dfl_cftypes
   cpu_cgrp_subsys
   css_task_iter_end
   css_task_iter_next

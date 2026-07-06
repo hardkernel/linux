@@ -743,6 +743,7 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
 
 	if ((flags & CLOSE_RANGE_UNSHARE) && atomic_read(&cur_fds->count) > 1) {
 		struct fd_range range = {fd, max_fd}, *punch_hole = &range;
+		struct task_dma_buf_info *dmabuf_info;
 
 		/*
 		 * If the caller requested all fds to be made cloexec we always
@@ -762,8 +763,11 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
 		 * the accounting info from the task. Leave the cur_fds->dmabuf_info so any existing
 		 * accounting can be unaccounted properly.
 		 */
-		put_dmabuf_info(current->dmabuf_info);
+		task_lock(current);
+		dmabuf_info = current->dmabuf_info;
 		current->dmabuf_info = NULL;
+		task_unlock(current);
+		put_dmabuf_info(dmabuf_info);
 		/*
 		 * We used to share our file descriptor table, and have now
 		 * created a private one, make sure we're using it below.
@@ -1109,6 +1113,27 @@ __releases(&files->file_lock)
 	struct file *tofree;
 	struct fdtable *fdt;
 
+	get_file(file);
+
+	/*
+	 * Must be done before the dup and the file_lock is dropped at the end of the function to
+	 * avoid a race with close(fd) from another thread, but we can't allocate while atomic, so
+	 * account up-front and rollback upon error.
+	 */
+	if (is_dma_buf_file(file)) {
+		int err;
+
+		spin_unlock(&files->file_lock);
+		err = dma_buf_account_task(file->private_data, files->dmabuf_info);
+		if (err) {
+			pr_err("dmabuf accounting failed during %s operation, err %d\n", __func__,
+			       err);
+			fput(file);
+			return err;
+		}
+		spin_lock(&files->file_lock);
+	}
+
 	/*
 	 * We need to detect attempts to do dup2() over allocated but still
 	 * not finished descriptor.  NB: OpenBSD avoids that at the price of
@@ -1128,7 +1153,6 @@ __releases(&files->file_lock)
 	tofree = rcu_dereference_raw(fdt->fd[fd]);
 	if (!tofree && fd_is_open(fd, fdt))
 		goto Ebusy;
-	get_file(file);
 	rcu_assign_pointer(fdt->fd[fd], file);
 	__set_open_fd(fd, fdt);
 	if (flags & O_CLOEXEC)
@@ -1147,6 +1171,9 @@ __releases(&files->file_lock)
 
 Ebusy:
 	spin_unlock(&files->file_lock);
+	if (is_dma_buf_file(file))
+		dma_buf_unaccount_task(file->private_data, files->dmabuf_info);
+	fput(file);
 	return -EBUSY;
 }
 

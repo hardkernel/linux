@@ -1419,6 +1419,37 @@ void kernfs_show(struct kernfs_node *kn, bool show)
 	up_write(&root->kernfs_rwsem);
 }
 
+/*
+ * This function enables VFS to send fsnotify events for deletions.
+ * There is gap in this implementation for certain file removals due their
+ * unique nature in kernfs. Directory removals that trigger file removals occur
+ * through vfs_rmdir, which shrinks the dcache and emits fsnotify events after
+ * the rmdir operation; there is no issue here. However kernfs writes to
+ * particular files (e.g. cgroup.subtree_control) can also cause file removal,
+ * but vfs_write does not attempt to emit fsnotify events after the write
+ * operation, even if i_nlink counts are 0. As a usecase for monitoring this
+ * category of file removals is not known, they are left without having
+ * IN_DELETE or IN_DELETE_SELF events generated.
+ * Fanotify recursive monitoring also does not work for kernfs nodes that do not
+ * have inodes attached, as they are created on-demand in kernfs.
+ */
+static void kernfs_clear_inode_nlink(struct kernfs_node *kn)
+{
+	struct kernfs_root *root = kernfs_root(kn);
+	struct kernfs_super_info *info;
+
+	lockdep_assert_held(&root->kernfs_rwsem);
+
+	list_for_each_entry(info, &root->supers, node) {
+		struct inode *inode = ilookup(info->sb, kernfs_ino(kn));
+
+		if (inode) {
+			clear_nlink(inode);
+			iput(inode);
+		}
+	}
+}
+
 static void __kernfs_remove(struct kernfs_node *kn)
 {
 	struct kernfs_node *pos;
@@ -1467,6 +1498,8 @@ static void __kernfs_remove(struct kernfs_node *kn)
 		if (!pos->parent || kernfs_unlink_sibling(pos)) {
 			struct kernfs_iattrs *ps_iattr =
 				pos->parent ? pos->parent->iattr : NULL;
+
+			kernfs_clear_inode_nlink(pos);
 
 			/* update timestamps on the parent */
 			if (ps_iattr) {

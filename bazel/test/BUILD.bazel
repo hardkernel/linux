@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-2.0 OR Apache-2.0
+# Copyright (C) 2026 The Android Open Source Project
+
+load(":kleaf_test.bzl", "ddk_headers_build_test")
+
+ddk_headers_build_test(
+    name = "ddk_headers_build_test",
+)
+
+test_suite(
+    name = "test",
+    tests = [
+        ":ddk_headers_build_test",
+    ],
+)

@@ -12,6 +12,7 @@ load(
     "kernel_abi",
     "kernel_build",
     "kernel_images",
+    "kernel_module_group",
     "kernel_modules_install",
     "merged_kernel_uapi_headers",
 )
@@ -130,6 +131,7 @@ filegroup(
         "android/abi_gki_aarch64_unisoc",
         "android/abi_gki_aarch64_virtual_device",
         "android/abi_gki_aarch64_vivo",
+        "android/abi_gki_aarch64_wonder",
         "android/abi_gki_aarch64_xiaomi",
         "android/abi_gki_aarch64_zebra",
     ],
@@ -310,6 +312,51 @@ copy_to_dist_dir(
         ":kernel_x86_64_crashdump",
     ],
     dist_dir = "out/kernel_x86_64_crashdump/dist",
+    flat = True,
+    log = "info",
+)
+
+kernel_build(
+    name = "wonder_aarch64",
+    outs = [],
+    base_kernel = ":kernel_aarch64",
+    build_config = "build.config.wonder",
+    collect_unstripped_modules = True,
+    kmi_symbol_list = "android/abi_gki_aarch64_wonder",
+    make_goals = ["modules"],
+    module_outs = [
+        "net/mac80211/mac80211.ko",
+        "net/wireless/cfg80211.ko",
+    ],
+    strip_modules = True,
+)
+
+kernel_module_group(
+    name = "wonder_ddk_modules",
+    srcs = ["//common-modules/wonder"],
+)
+
+kernel_abi(
+    name = "wonder_aarch64_abi",
+    kernel_build = ":wonder_aarch64",
+    kernel_modules = [":wonder_ddk_modules"],
+)
+
+kernel_modules_install(
+    name = "wonder_aarch64_modules_install",
+    kernel_build = ":wonder_aarch64",
+    kernel_modules = [":wonder_ddk_modules"],
+)
+
+copy_to_dist_dir(
+    name = "wonder_aarch64_dist",
+    data = [
+        ":kernel_aarch64",
+        ":kernel_aarch64_additional_artifacts",
+        ":wonder_aarch64",
+        ":wonder_aarch64_modules_install",
+    ],
+    dist_dir = "out/wonder_aarch64/dist",
     flat = True,
     log = "info",
 )

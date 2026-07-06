@@ -4,6 +4,9 @@
 
 #include <linux/of_graph.h>
 #if IS_ENABLED(CONFIG_OF) && IS_ENABLED(CONFIG_DRM_PANEL_BRIDGE)
+#ifndef __GENKSYMS__
+#include <linux/of.h>
+#endif
 #include <drm/drm_bridge.h>
 #endif
 
@@ -150,6 +153,8 @@ static inline int drm_of_panel_bridge_remove(const struct device_node *np,
 
 	bridge = of_drm_find_bridge(remote);
 	drm_panel_bridge_remove(bridge);
+
+	of_node_put(remote);
 
 	return 0;
 #else

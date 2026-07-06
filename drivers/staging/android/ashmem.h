@@ -19,6 +19,7 @@
 #ifdef CONFIG_COMPAT
 #define COMPAT_ASHMEM_SET_SIZE		_IOW(__ASHMEMIOC, 3, compat_size_t)
 #define COMPAT_ASHMEM_SET_PROT_MASK	_IOW(__ASHMEMIOC, 5, unsigned int)
+#define COMPAT_ASHMEM_GET_FILE_ID	_IOR(__ASHMEMIOC, 11, compat_uptr_t)
 #endif
 
 int is_ashmem_file(struct file *file);

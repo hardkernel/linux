@@ -814,6 +814,7 @@
   drm_compat_ioctl
   drm_connector_attach_encoder
   drm_connector_cleanup
+  drm_connector_helper_get_modes_fixed
   drm_connector_init
   drm_connector_register
   drm_connector_set_panel_orientation
@@ -825,6 +826,7 @@
   drm_crtc_commit_wait
   drm_crtc_from_index
   drm_crtc_handle_vblank
+  drm_crtc_helper_mode_valid_fixed
   drm_crtc_init_with_planes
   drm_crtc_send_vblank_event
   drm_crtc_vblank_get
@@ -852,6 +854,9 @@
   drm_encoder_cleanup
   drm_encoder_init
   __drm_err
+  drm_fb_memcpy
+  drm_fb_swab
+  drm_fb_xrgb8888_to_rgb565
   drm_format_info
   drm_format_info_block_height
   drm_format_info_block_width
@@ -860,6 +865,8 @@
   drm_framebuffer_lookup
   drm_framebuffer_remove
   drm_gem_create_mmap_offset
+  drm_gem_fb_create_with_dirty
+  drm_gem_fb_end_cpu_access
   drm_gem_fb_get_obj
   drm_gem_handle_create
   drm_gem_mmap
@@ -3168,6 +3175,7 @@
   tty_port_put
   tty_port_register_device
   tty_port_tty_get
+  __tty_port_tty_hangup
   tty_port_tty_hangup
   tty_port_tty_wakeup
   tty_register_driver
@@ -3197,6 +3205,7 @@
   typec_partner_set_identity
   typec_partner_set_pd_revision
   typec_partner_set_svdm_version
+  typec_partner_set_usb_power_delivery
   typec_port_register_altmodes
   typec_register_partner
   typec_register_port
@@ -3380,6 +3389,10 @@
   usb_match_one_id
   usb_os_desc_prepare_interf_dir
   usb_poison_urb
+  usb_power_delivery_register
+  usb_power_delivery_register_capabilities
+  usb_power_delivery_unregister
+  usb_power_delivery_unregister_capabilities
   usb_put_dev
   usb_put_function
   usb_put_function_instance
