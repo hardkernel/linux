@@ -1057,8 +1057,6 @@ struct vop2 {
 
 	bool merge_irq;
 
-	bool enable_reserved_plane;
-
 	bool iommu_fault_in_progress;
 
 	/**
@@ -5523,15 +5521,7 @@ static void vop2_initial(struct drm_crtc *crtc)
 			vop2_mask_write(vop2, 0x700, 0x3, 4, 0, 0, true);
 
 		if (vop2->version == VOP_VERSION_RK3576) {
-			/* reserved plane mode will enable iommu bypass for rtos reserved plane display,
-			 * but rkiommu 2.0 can't support iommu bypass function, so use rkiommu 1.0
-			 * at reserved plane mode by default, others will use rkiommu 2.0 by default.
-			 */
-			if (vop2->enable_reserved_plane)
-				VOP_CTRL_SET(vop2, rkmmu_v2_en, 0);
-			else /* Default use rkiommu 2.0 for axi0 */
-				VOP_CTRL_SET(vop2, rkmmu_v2_en, 1);
-
+			VOP_CTRL_SET(vop2, rkmmu_v2_en, 0);
 			if (vop2->merge_irq == true)
 				VOP_CTRL_SET(vop2, vp_intr_merge_en, 1);
 			VOP_CTRL_SET(vop2, lut_use_axi1, 0);
@@ -19828,12 +19818,10 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
 				vop2->vps[vp_id].primary_plane_phy_id = primary_plane_phy_id;
 			else
 				vop2->vps[vp_id].primary_plane_phy_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
-			if (!of_property_read_u32(child, "rockchip,reserved-plane", &reserved_plane_phy_id)) {
+			if (!of_property_read_u32(child, "rockchip,reserved-plane", &reserved_plane_phy_id))
 				vop2->vps[vp_id].reserved_plane_phy_id = reserved_plane_phy_id;
-				vop2->enable_reserved_plane = true;
-			} else {
+			else
 				vop2->vps[vp_id].reserved_plane_phy_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
-			}
 			vop2->vps[vp_id].xmirror_en = of_property_read_bool(child, "xmirror-enable");
 
 			ret = of_clk_set_defaults(child, false);

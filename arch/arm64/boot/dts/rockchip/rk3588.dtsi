@@ -16,8 +16,8 @@
 		ethernet0 = &gmac0;
 		hdptx0 = &hdptxphy0;
 		hdptx1 = &hdptxphy1;
-		hdptxhdmi0 = &hdptxphy_hdmi0;
-		hdptxhdmi1 = &hdptxphy_hdmi1;
+		hdptxhdmi0 = &hdptxphy0;
+		hdptxhdmi1 = &hdptxphy1;
 		hdmi0 = &hdmi0;
 		hdmi1 = &hdmi1;
 		hdmirx0 = &hdmirx_ctrler;
@@ -314,7 +314,7 @@
 			 <&cru DCLK_VOP2>,
 			 <&cru DCLK_VOP3>,
 			 <&hclk_vo1>,
-			 <&hdptxphy_hdmi1>;
+			 <&hdptxphy1>;
 		clock-names = "pclk",
 			      "hpd",
 			      "earc",
@@ -334,7 +334,7 @@
 		reg-io-width = <4>;
 		rockchip,grf = <&sys_grf>;
 		rockchip,vo1_grf = <&vo1_grf>;
-		phys = <&hdptxphy_hdmi1>;
+		phys = <&hdptxphy1>;
 		phy-names = "hdmi";
 		#sound-dai-cells = <0>;
 		status = "disabled";
@@ -698,28 +698,11 @@
 			 <&cru SRST_HDPTX1_CMN>, <&cru SRST_HDPTX1_LANE>;
 		reset-names = "apb", "init", "cmn", "lane";
 		rockchip,grf = <&hdptxphy1_grf>;
-		#phy-cells = <0>;
-		status = "disabled";
-	};
-
-	hdptxphy_hdmi1: hdmiphy@fed70000 {
-		compatible = "rockchip,rk3588-hdptx-phy-hdmi";
-		reg = <0x0 0xfed70000 0x0 0x2000>;
-		clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>, <&cru PCLK_HDPTX1>;
-		clock-names = "ref", "apb";
 		clock-output-names = "clk_hdmiphy_pixel1";
 		#clock-cells = <0>;
-		resets = <&cru SRST_HDPTX1>, <&cru SRST_P_HDPTX1>,
-			 <&cru SRST_HDPTX1_INIT>, <&cru SRST_HDPTX1_CMN>,
-			 <&cru SRST_HDPTX1_LANE>, <&cru SRST_HDPTX1_ROPLL>,
-			 <&cru SRST_HDPTX1_LCPLL>;
-		reset-names = "phy", "apb", "init", "cmn", "lane", "ropll",
-			      "lcpll";
-		rockchip,grf = <&hdptxphy1_grf>;
 		#phy-cells = <0>;
 		status = "disabled";
 	};
-
 
 	usbdp_phy1: phy@fed90000 {
 		compatible = "rockchip,rk3588-usbdp-phy";

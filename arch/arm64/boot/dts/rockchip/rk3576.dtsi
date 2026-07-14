@@ -3905,7 +3905,7 @@
 			 <&cru DCLK_VP2>,
 			 <&cru DCLK_EBC>,
 			 <&cru HCLK_VO0_ROOT>,
-			 <&hdptxphy_hdmi>;
+			 <&hdptxphy>;
 		clock-names = "pclk",
 			      "hpd",
 			      "earc",
@@ -3925,7 +3925,7 @@
 		reg-io-width = <4>;
 		rockchip,grf = <&ioc_grf>;
 		rockchip,vo0_grf = <&vo0_grf>;
-		phys = <&hdptxphy_hdmi>;
+		phys = <&hdptxphy>;
 		phy-names = "hdmi";
 		#sound-dai-cells = <0>;
 		status = "disabled";
@@ -6529,21 +6529,8 @@
 			 <&cru SRST_HDPTX_CMN>, <&cru SRST_HDPTX_LANE>;
 		reset-names = "apb", "init", "cmn", "lane";
 		rockchip,grf = <&hdptxphy_grf>;
-		#phy-cells = <0>;
-		status = "disabled";
-	};
-
-	hdptxphy_hdmi: hdmiphy@2b000000 {
-		compatible = "rockchip,rk3576-hdptx-phy-hdmi", "rockchip,rk3588-hdptx-phy-hdmi";
-		reg = <0x0 0x2b000000 0x0 0x2000>;
-		clocks = <&cru CLK_PHY_REF_SRC>, <&cru PCLK_HDPTX_APB>;
-		clock-names = "ref", "apb";
 		clock-output-names = "clk_hdmiphy_pixel0";
 		#clock-cells = <0>;
-		resets = <&cru SRST_P_HDPTX_APB>, <&cru SRST_HDPTX_INIT>,
-			 <&cru SRST_HDPTX_CMN>, <&cru SRST_HDPTX_LANE>;
-		reset-names = "apb", "init", "cmn", "lane";
-		rockchip,grf = <&hdptxphy_grf>;
 		#phy-cells = <0>;
 		status = "disabled";
 	};
