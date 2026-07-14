@@ -20,6 +20,7 @@ static void cdn_dp_set_signal_levels(struct cdn_dp_device *dp)
 	u8 pre_emphasis = (dp->train_set[0] & DP_TRAIN_PRE_EMPHASIS_MASK)
 			  >> DP_TRAIN_PRE_EMPHASIS_SHIFT;
 	unsigned int lane;
+	int ret;
 
 	for (lane = 0; lane < dp->max_lanes; lane++) {
 		phy_cfg.dp.voltage[lane] = swing;
@@ -31,7 +32,9 @@ static void cdn_dp_set_signal_levels(struct cdn_dp_device *dp)
 	phy_cfg.dp.set_lanes = false;
 	phy_cfg.dp.set_rate = false;
 	phy_cfg.dp.set_voltages = true;
-	phy_configure(port->phy, &phy_cfg);
+	ret = phy_configure(port->phy, &phy_cfg);
+	if (ret)
+		DRM_ERROR("failed to set phy signal levels: %d\n", ret);
 }
 
 static int cdn_dp_set_pattern(struct cdn_dp_device *dp, uint8_t dp_train_pat)
@@ -90,7 +93,7 @@ static int cdn_dp_set_pattern(struct cdn_dp_device *dp, uint8_t dp_train_pat)
 	else
 		ret = cdn_dp_reg_write(dp, DPTX_ENHNCD, 0);
 	if (ret)
-		DRM_ERROR("failed to set DPTX_ENHNCD, error: %x\n", ret);
+		DRM_ERROR("failed to set DPTX_ENHNCD, error: %d\n", ret);
 
 	return ret;
 }
@@ -149,7 +152,7 @@ static u32 cdn_dp_select_chaneq_pattern(struct cdn_dp_device *dp)
 	if (drm_dp_tps3_supported(dp->dpcd))
 		training_pattern = DP_TRAINING_PATTERN_3;
 	else
-		DRM_DEBUG_KMS("5.4 Gbps link rate without sink TPS3 support\n");
+		DRM_DEBUG_KMS("sink TPS3 not supported, falling back to TPS2\n");
 
 	return training_pattern;
 }

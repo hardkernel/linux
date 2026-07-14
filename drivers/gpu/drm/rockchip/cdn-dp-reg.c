@@ -88,7 +88,7 @@ static int cdn_dp_mailbox_read(struct cdn_dp_device *dp)
 	return readl(dp->regs + MAILBOX0_RD_DATA) & 0xff;
 }
 
-static int cdp_dp_mailbox_write(struct cdn_dp_device *dp, u8 val)
+static int cdn_dp_mailbox_write(struct cdn_dp_device *dp, u8 val)
 {
 	int ret, full;
 
@@ -167,13 +167,13 @@ static int cdn_dp_mailbox_send(struct cdn_dp_device *dp, u8 module_id,
 	header[3] = size & 0xff;
 
 	for (i = 0; i < 4; i++) {
-		ret = cdp_dp_mailbox_write(dp, header[i]);
+		ret = cdn_dp_mailbox_write(dp, header[i]);
 		if (ret)
 			return ret;
 	}
 
 	for (i = 0; i < size; i++) {
-		ret = cdp_dp_mailbox_write(dp, message[i]);
+		ret = cdn_dp_mailbox_write(dp, message[i]);
 		if (ret)
 			return ret;
 	}
@@ -312,21 +312,21 @@ int cdn_dp_get_aux_status(struct cdn_dp_device *dp)
 	ret = cdn_dp_mailbox_send(dp, MB_MODULE_ID_DP_TX,
 				  DPTX_GET_LAST_AUX_STAUS, 0, NULL);
 	if (ret)
-		goto err_get_hpd;
+		goto err_get_aux_status;
 
 	ret = cdn_dp_mailbox_validate_receive(dp, MB_MODULE_ID_DP_TX,
 					      DPTX_GET_LAST_AUX_STAUS,
 					      sizeof(status));
 	if (ret)
-		goto err_get_hpd;
+		goto err_get_aux_status;
 
 	ret = cdn_dp_mailbox_read_receive(dp, &status, sizeof(status));
 	if (ret)
-		goto err_get_hpd;
+		goto err_get_aux_status;
 
 	return status;
 
-err_get_hpd:
+err_get_aux_status:
 	DRM_DEV_ERROR(dp->dev, "get aux status failed: %d\n", ret);
 	return ret;
 }
@@ -385,7 +385,7 @@ int cdn_dp_set_firmware_active(struct cdn_dp_device *dp, bool enable)
 	msg[4] = enable ? FW_ACTIVE : FW_STANDBY;
 
 	for (i = 0; i < sizeof(msg); i++) {
-		ret = cdp_dp_mailbox_write(dp, msg[i]);
+		ret = cdn_dp_mailbox_write(dp, msg[i]);
 		if (ret)
 			goto err_set_firmware_active;
 	}
@@ -761,6 +761,8 @@ int cdn_dp_config_video(struct cdn_dp_device *dp)
 	val = div_u64(8 * (symbol + 1), bit_per_pix) - val;
 	val += 2;
 	ret = cdn_dp_reg_write(dp, DP_VC_TABLE(15), val);
+	if (ret)
+		goto err_config_video;
 
 	switch (video->color_depth) {
 	case 6:
