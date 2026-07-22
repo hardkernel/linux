@@ -123,6 +123,12 @@ static int serdes_i2c_backup_register(struct serdes *serdes)
 {
 	int i, ret = 0;
 
+	if (serdes->chip_data->check_ops && serdes->chip_data->check_ops->check_reg) {
+		ret = serdes->chip_data->check_ops->check_reg(serdes);
+		if (ret)
+			return ret;
+	}
+
 	for (i = 0; i < serdes->serdes_backup_seq->reg_seq_cnt; i++) {
 		if (serdes->serdes_backup_seq->reg_sequence[i].reg == 0xffff)
 			continue;
@@ -148,16 +154,19 @@ static int serdes_i2c_check_register(struct serdes *serdes, int *flag)
 		return 0;
 
 	ret = serdes_reg_read(serdes, serdes->serdes_backup_seq->reg_sequence[num].reg, &def);
-	if ((def != serdes->serdes_backup_seq->reg_sequence[num].def) || (ret < 0)) {
+	if (ret)
+		return ret;
+
+	if (def != serdes->serdes_backup_seq->reg_sequence[num].def) {
 		/* if read value != write value then write again */
 		dev_err(dev, "%s read %04x %04x != %04x\n", __func__,
 			serdes->serdes_backup_seq->reg_sequence[num].reg,
 			def, serdes->serdes_backup_seq->reg_sequence[num].def);
 		*flag = 1;
-		return ret;
+		return -EINVAL;
 	}
 
-	if (serdes->chip_data->check_ops->check_reg)
+	if (serdes->chip_data->check_ops && serdes->chip_data->check_ops->check_reg)
 		ret = serdes->chip_data->check_ops->check_reg(serdes);
 
 	return ret;
@@ -165,12 +174,18 @@ static int serdes_i2c_check_register(struct serdes *serdes, int *flag)
 
 static void serdes_reg_check_work(struct kthread_work *work)
 {
-	int flag = 0;
+	int ret, flag = 0;
 	struct serdes *serdes = container_of(work, struct serdes,
 					     reg_check_work.work);
 
+	if (atomic_read(&serdes->flag_early_suspend))
+		return;
+
 	if (atomic_read(&serdes->flag_ser_init)) {
-		serdes_i2c_backup_register(serdes);
+		ret = serdes_i2c_backup_register(serdes);
+		if (ret)
+			goto out;
+
 		atomic_set(&serdes->flag_ser_init, 0);
 	}
 
@@ -185,8 +200,11 @@ static void serdes_reg_check_work(struct kthread_work *work)
 		msleep(500);
 		SERDES_DBG_MFD("%s %s\n", __func__, serdes->chip_data->name);
 	}
-	kthread_queue_delayed_work(serdes->kworker, &serdes->reg_check_work,
-				   msecs_to_jiffies(2000));
+
+out:
+	if (!atomic_read(&serdes->flag_early_suspend))
+		kthread_queue_delayed_work(serdes->kworker, &serdes->reg_check_work,
+					msecs_to_jiffies(2000));
 }
 
 static int serdes_reg_check_work_setup(struct serdes *serdes)
@@ -269,6 +287,7 @@ static int serdes_get_init_seq(struct serdes *serdes)
 	struct device_node *np = dev->of_node;
 	const void *data;
 	int err, len, ret = 0;
+	u32 mode;
 
 	serdes_device_poweron(serdes);
 
@@ -302,6 +321,12 @@ static int serdes_get_init_seq(struct serdes *serdes)
 
 	/* init ser register(not des register) more early if uboot logo disabled */
 	serdes->route_enable = of_property_read_bool(dev->of_node, "route-enable");
+	if (!serdes->route_enable) {
+		err = serdes_get_route_mode(dev->of_node, &mode);
+		if (!err && mode != SERDES_FBD_CONFIG_FROM_NONE)
+			serdes->route_enable = true;
+	}
+
 	if ((!serdes->route_enable) && (serdes->chip_data->serdes_type == TYPE_SER)) {
 		if (serdes->chip_data->chip_init)
 			serdes->chip_data->chip_init(serdes);
@@ -499,6 +524,11 @@ static int serdes_i2c_suspend(struct device *dev)
 
 	atomic_set(&serdes->flag_early_suspend, 1);
 
+	if (!IS_ERR_OR_NULL(serdes->kworker))
+		kthread_cancel_delayed_work_sync(&serdes->reg_check_work);
+
+	atomic_set(&serdes->flag_ser_init, 0);
+
 	ret = serdes_device_suspend(serdes);
 
 	SERDES_DBG_MFD("%s: name=%s ret=%d\n", __func__, dev_name(serdes->dev), ret);
@@ -516,6 +546,11 @@ static int serdes_i2c_resume(struct device *dev)
 	ret = serdes_device_resume(serdes);
 
 	atomic_set(&serdes->flag_early_suspend, 0);
+	atomic_set(&serdes->flag_ser_init, 1);
+
+	if (!IS_ERR_OR_NULL(serdes->kworker))
+		kthread_queue_delayed_work(serdes->kworker, &serdes->reg_check_work,
+					   msecs_to_jiffies(5000));
 
 	SERDES_DBG_MFD("%s: name=%s ret=%d\n", __func__, dev_name(serdes->dev), ret);
 	return 0;
@@ -577,13 +612,16 @@ static int __init serdes_i2c_init(void)
 {
 	int ret;
 
+	serdes_debugfs_init();
+	serdes_route_bind(serdes_of_match);
+
 	ret = i2c_add_driver(&serdes_i2c_driver);
 	if (ret != 0) {
 		pr_err("Failed to register serdes I2C driver: %d\n", ret);
+		serdes_debugfs_exit();
+		serdes_route_unbind();
 		return ret;
 	}
-
-	serdes_debugfs_init();
 
 	return 0;
 }
@@ -592,6 +630,7 @@ static void __exit serdes_i2c_exit(void)
 {
 	i2c_del_driver(&serdes_i2c_driver);
 	serdes_debugfs_exit();
+	serdes_route_unbind();
 }
 
 subsys_initcall(serdes_i2c_init);
