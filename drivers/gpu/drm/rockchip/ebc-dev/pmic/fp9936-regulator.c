@@ -138,9 +138,9 @@ static void fp9936_powerup_sequence(struct fp9936_data *data)
 static void fp9936_poweroff_sequence(struct fp9936_data *data)
 {
 	disable_irq(data->pgood_irq);
-	gpiod_set_value_cansleep(data->enable_gpio, 1);
+	gpiod_set_value_cansleep(data->enable_gpio, 0);
 	msleep(50);
-	gpiod_set_value_cansleep(data->vdd_gpio, 1);
+	gpiod_set_value_cansleep(data->vdd_gpio, 0);
 }
 
 
@@ -240,7 +240,6 @@ static int fp9936_vcom_is_enabled(struct regulator_dev *rdev)
 	return gpiod_get_value_cansleep(data->enable_gpio);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 static int fp9936_set_suspend_disable(struct regulator_dev *rdev)
 {
 	DECLARE_BITMAP(values, FP9936_MAX_ENABLE_GPIO_NUM);
@@ -267,38 +266,7 @@ static int fp9936_set_suspend_disable(struct regulator_dev *rdev)
 
 	return 0;
 }
-#else
-static int fp9936_set_suspend_disable(struct regulator_dev *rdev)
-{
-	struct fp9936_data *data = rdev->reg_data;
 
-	/* Skip initial suspend */
-	if (data->initial_suspend) {
-		data->initial_suspend = false;
-		return 0;
-	}
-
-	fp9936_poweroff_sequence(data);
-
-	if (data->power_gpio) {
-		int i;
-		int nvalues = data->power_gpio->ndescs;
-		int *values = kmalloc_array(nvalues, sizeof(int), GFP_KERNEL);
-
-		if (!values)
-			return -ENOMEM;
-		for (i = 0; i < nvalues; i++)
-			values[i] = 0;
-		gpiod_set_array_value_cansleep(data->power_gpio->ndescs,
-						data->power_gpio->desc, values);
-		kfree(values);
-	}
-
-	return 0;
-}
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 static int fp9936_resume(struct regulator_dev *rdev)
 {
 	DECLARE_BITMAP(values, FP9936_MAX_ENABLE_GPIO_NUM);
@@ -332,43 +300,6 @@ static int fp9936_resume(struct regulator_dev *rdev)
 
 	return 0;
 }
-#else
-static int fp9936_resume(struct regulator_dev *rdev)
-{
-	struct fp9936_data *data = rdev->reg_data;
-	int i, ret;
-
-	if (data->power_gpio) {
-		int nvalues = data->power_gpio->ndescs;
-		int *values = kmalloc_array(nvalues, sizeof(int), GFP_KERNEL);
-
-		if (!values)
-			return -ENOMEM;
-		for (i = 0; i < nvalues; i++)
-			values[i] = 1;
-		gpiod_set_array_value_cansleep(data->power_gpio->ndescs,
-						data->power_gpio->desc, values);
-		kfree(values);
-	}
-
-	/* Waiting for i2c to become available after power up */
-	usleep_range(1500, 2500);
-
-	/* reg resume */
-	for (i = 0; i < FP9936_MAX_REG_NUM; i++) {
-		if (!fp9936_is_setting_reg(i))
-			continue;
-		ret = regmap_write(data->regmap, i, data->regsbak[i]);
-		if (ret)
-			dev_err(data->pdev->dev.parent, "Failed to write reg %d, ret:%d\n", i,
-				ret);
-	}
-
-	fp9936_powerup_sequence(data);
-
-	return 0;
-}
-#endif
 
 static const struct regulator_ops fp9936_vcom_volt_ops = {
 	.enable = fp9936_vcom_enable,

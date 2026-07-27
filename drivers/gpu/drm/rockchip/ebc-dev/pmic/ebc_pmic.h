@@ -26,6 +26,18 @@ struct ebc_pmic {
 	int (*pmic_set_vcom)(struct ebc_pmic *pmic, int value);
 };
 
+struct ebc_regulators {
+	struct regulator *vpos1;
+	struct regulator *vpos2;
+	struct regulator *vpos3;
+	struct regulator *vneg1;
+	struct regulator *vneg2;
+	struct regulator *vneg3;
+	struct regulator *vgh;
+	struct regulator *vgl;
+	struct regulator *vcom;
+};
+
 static inline void ebc_pmic_power_on(struct ebc_pmic *pmic)
 {
 	return pmic->pmic_power_req(pmic, 1);

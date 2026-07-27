@@ -21,7 +21,7 @@ enum ebc_buf_status {
 
 struct ebc_buf_s {
 	enum ebc_buf_status status; //buffer status.
-	unsigned long phy_addr; //buffer physical address.
+	int id; //buffer id.
 	char *virt_addr; //buffer virtual address.
 	char tid_name[TASK_COMM_LEN];
 	int buf_mode;
@@ -37,19 +37,24 @@ int ebc_drop_one_dsp_buf(void);
 struct ebc_buf_s *ebc_empty_osd_buf_get(void);
 struct ebc_buf_s *ebc_osd_buf_clone(void);
 int ebc_buf_release(struct ebc_buf_s *release_buf);
-int ebc_add_to_dsp_buf_list(struct ebc_buf_s *dsp_buf);
-int ebc_add_to_osd_buf_list(struct ebc_buf_s *dsp_buf);
+int ebc_add_to_dsp_buf_list_tail(struct ebc_buf_s *dsp_buf);
+int ebc_add_to_dsp_buf_list_head(struct ebc_buf_s *dsp_buf);
+int ebc_add_to_osd_buf_list_tail(struct ebc_buf_s *dsp_buf);
+int ebc_add_to_osd_buf_list_head(struct ebc_buf_s *dsp_buf);
 int ebc_get_dsp_list_enum_num(void);
 int ebc_get_osd_list_enum_num(void);
 struct ebc_buf_s *ebc_dsp_buf_get(void);
+struct ebc_buf_s *ebc_dsp_buf_pop_get(void);
 struct ebc_buf_s *ebc_osd_buf_get(void);
-struct ebc_buf_s *ebc_find_buf_by_phy_addr(unsigned long phy_addr);
+struct ebc_buf_s *ebc_osd_buf_pop_get(void);
+struct ebc_buf_s *ebc_find_buf_by_id(int id);
 struct ebc_buf_s *ebc_empty_buf_get(const char *tid_name);
 unsigned long ebc_phy_buf_base_get(void);
 char *ebc_virt_buf_base_get(void);
 int ebc_buf_state_show(char *buf);
 int ebc_buf_uninit(void);
-int ebc_buf_init(unsigned long phy_start, char *mem_start, int men_len, int dest_buf_len, int max_buf_num);
+int ebc_buf_list_init(void);
+int ebc_dsp_buf_init(int id, char *vaddr, size_t size);
+int ebc_osd_buf_init(int id, char *vaddr, size_t size);
 int ebc_dsp_buf_next_mode(void);
 #endif
-

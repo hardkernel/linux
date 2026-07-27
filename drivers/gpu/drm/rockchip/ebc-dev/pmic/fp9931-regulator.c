@@ -157,7 +157,6 @@ static int fp9931_get_status(struct regulator_dev *rdev)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 static int fp9931_set_suspend_disable(struct regulator_dev *rdev)
 {
 	DECLARE_BITMAP(values, FP9931_MAX_ENABLE_GPIO_NUM);
@@ -184,37 +183,7 @@ static int fp9931_set_suspend_disable(struct regulator_dev *rdev)
 
 	return 0;
 }
-#else
-static int fp9931_set_suspend_disable(struct regulator_dev *rdev)
-{
-	struct fp9931_data *data = rdev->reg_data;
 
-	/* Skip initial suspend */
-	if (data->initial_suspend) {
-		data->initial_suspend = false;
-		return 0;
-	}
-
-	gpiod_set_value_cansleep(data->enable_gpio, 0);
-
-	if (data->power_gpio) {
-		int i;
-		int nvalues = data->power_gpio->ndescs;
-		int *values = kmalloc_array(nvalues, sizeof(int), GFP_KERNEL);
-		if (!values)
-			return -ENOMEM;
-		for (i = 0; i < nvalues; i++)
-			values[i] = 0;
-		gpiod_set_array_value_cansleep(data->power_gpio->ndescs,
-						     data->power_gpio->desc, values);
-		kfree(values);
-	}
-
-	return 0;
-}
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 static int fp9931_resume(struct regulator_dev *rdev)
 {
 	DECLARE_BITMAP(values, FP9931_MAX_ENABLE_GPIO_NUM);
@@ -248,43 +217,6 @@ static int fp9931_resume(struct regulator_dev *rdev)
 
 	return 0;
 }
-#else
-static int fp9931_resume(struct regulator_dev *rdev)
-{
-	struct fp9931_data *data = rdev->reg_data;
-	int ret;
-
-	if (data->power_gpio) {
-		int i;
-		int nvalues = data->power_gpio->ndescs;
-		int *values = kmalloc_array(nvalues, sizeof(int), GFP_KERNEL);
-		if (!values)
-			return -ENOMEM;
-		for (i = 0; i < nvalues; i++)
-			values[i] = 1;
-		gpiod_set_array_value_cansleep(data->power_gpio->ndescs,
-						     data->power_gpio->desc, values);
-		kfree(values);
-	}
-
-	/* Waiting for i2c to become available after power up */
-	usleep_range(1000, 1500);
-
-	/* VCOM/VPOS_VNEG setting resume */
-	ret = regmap_write(rdev->regmap, FP9931_VCOM_SETTING, data->vcom_reg);
-	if (ret)
-		return ret;
-
-	ret = regmap_write_bits(rdev->regmap, FP9931_VPOS_VNEG_SETTING, VPOS_VNEG_SETTING,
-				data->vpos_vneg_reg);
-	if (ret)
-		return ret;
-
-	gpiod_set_value_cansleep(data->enable_gpio, 1);
-
-	return 0;
-}
-#endif
 
 static const struct regulator_ops fp9931_vpos_vneg_volt_ops = {
 	.list_voltage = regulator_list_voltage_table,

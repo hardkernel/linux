@@ -42,11 +42,9 @@ int ebc_get_init_log_level(void)
 
 int ebc_overlay_enable_control(void)
 {
-	return 0; //overlay enable/disable control by driver
+	/*
+	 * (1 << 0) / 0: overlay enable when EBC_ENABLE_OVERLAY
+	 * (1 << 1): overlay enable when EBC_PEN_PROXIMITY
+	 */
+	return 3;
 }
-
-int ebc_overlay_enable_timeout_ms(void)
-{
-	return 100; //100ms
-}
-

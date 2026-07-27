@@ -26,16 +26,21 @@ enum ebc_tcon_data_format {
 	EBC_RGB565_FORMAT = 2,
 	EBC_XBGR8888_FORMAT = 3,
 	EBC_Y5_FORMAT = 4,
+	EBC_Y1_FORMAT = 5,
 };
 
 enum ebc_tcon_version {
 	EBC_VERSION_RK3568 = 0,
 	EBC_VERSION_RK3576 = 1,
+	EBC_VERSION_RK3572 = 2,
+	EBC_VERSION_RK3506 = 3,
+	EBC_VERSION_PX30 = 4,
 };
 
 struct ebc_tcon {
 	struct device *dev;
 	void __iomem *regs;
+	unsigned int *regcache; /* register cache */
 	unsigned int len;
 	int irq;
 
@@ -43,10 +48,26 @@ struct ebc_tcon {
 	struct clk *hclk;
 	struct clk *dclk;
 	struct regmap *regmap_base;
+	struct regmap *grf;
+	struct phy *phy;
 
 	struct ebc_panel *panel;
 	int display_mode;
 	u32 version;
+
+	int low_8bit_offset;
+	int high_8bit_offset;
+
+	u32 line_rel;
+	u32 width;
+	u32 height;
+	u32 bytes_per_pixel;
+	u32 bytes_per_row;
+
+	struct panel_buffer buf;
+	void *priv;
+
+	u32 lut_offset;
 
 	int (*enable)(struct ebc_tcon *tcon, struct ebc_panel *panel);
 	void (*disable)(struct ebc_tcon *tcon);
@@ -59,7 +80,14 @@ struct ebc_tcon {
 	void (*dsp_end_callback)(void);
 	void (*set_line_flag_event)(struct ebc_tcon *tcon, u32 line, bool enable);
 	void (*line_flag_callback)(void);
+	int (*get_version)(struct ebc_tcon *tcon);
+	int (*clk_set_rate)(struct clk *clk, unsigned long rate);
 };
+
+static inline int ebc_tcon_get_version(struct ebc_tcon *tcon)
+{
+	return tcon->get_version(tcon);
+}
 
 static inline int ebc_tcon_enable(struct ebc_tcon *tcon, struct ebc_panel *panel)
 {
@@ -105,45 +133,5 @@ static inline void ebc_tcon_data_format_set(struct ebc_tcon *tcon, enum ebc_tcon
 static inline void ebc_tcon_set_line_flag_event(struct ebc_tcon *tcon, u32 line, bool enable)
 {
 	tcon->set_line_flag_event(tcon, line, enable);
-}
-
-struct eink_tcon {
-	struct device *dev;
-	void __iomem *regs;
-	unsigned int len;
-	int irq;
-
-	struct clk *hclk;
-	struct clk *pclk;
-	struct regmap *regmap_base;
-
-	int (*enable)(struct eink_tcon *tcon, struct ebc_panel *panel);
-	void (*disable)(struct eink_tcon *tcon);
-	void (*image_addr_set)(struct eink_tcon *tcon, u32 pre_image_buf_addr,
-			       u32 cur_image_buf_addr, u32 image_process_buf_addr);
-	void (*frame_start)(struct eink_tcon *tcon);
-
-	void (*dsp_end_callback)(void);
-};
-
-static inline int eink_tcon_enable(struct eink_tcon *tcon, struct ebc_panel *panel)
-{
-	return tcon->enable(tcon, panel);
-}
-
-static inline void eink_tcon_disable(struct eink_tcon *tcon)
-{
-	tcon->disable(tcon);
-}
-
-static inline void eink_tcon_image_addr_set(struct eink_tcon *tcon, u32 pre_image_buf_addr,
-					    u32 cur_image_buf_addr, u32 image_process_buf_addr)
-{
-	tcon->image_addr_set(tcon, pre_image_buf_addr, cur_image_buf_addr, image_process_buf_addr);
-}
-
-static inline void eink_tcon_frame_start(struct eink_tcon *tcon)
-{
-	tcon->frame_start(tcon);
 }
 #endif

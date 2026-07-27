@@ -4,7 +4,14 @@
  */
 
 #include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/version.h>
+#include <linux/dma-buf.h>
+#include <linux/dma-direction.h>
+#include <linux/scatterlist.h>
+#include <linux/device.h>
+#include <linux/dma-heap.h>
+#include <linux/poll.h>
 #include "ebc_dma_buf.h"
 
 struct ebc_dmabuf {
@@ -56,7 +63,6 @@ static void ebc_unmap_dma_buf(struct dma_buf_attachment *attachment, struct sg_t
 	kfree(st);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
 static int ebc_dmabuf_vmap(struct dma_buf *dma_buf, struct iosys_map *map)
 {
 	struct ebc_dmabuf *ebcbuf = to_ebc_dmabuf(dma_buf);
@@ -69,33 +75,12 @@ static int ebc_dmabuf_vmap(struct dma_buf *dma_buf, struct iosys_map *map)
 
 	return 0;
 }
-#else
-static void *ebc_dmabuf_vmap(struct dma_buf *dma_buf)
-{
-	struct ebc_dmabuf *ebcbuf = to_ebc_dmabuf(dma_buf);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
-	return vm_map_ram(ebcbuf->pages, ebcbuf->npages, 0);
-#else
-	return vm_map_ram(ebcbuf->pages, ebcbuf->npages, 0, PAGE_KERNEL);
-#endif
-}
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
 static void ebc_dmabuf_vunmap(struct dma_buf *dma_buf, struct iosys_map *map)
 {
 	vunmap(map->vaddr);
 	iosys_map_clear(map);
 }
-#else
-static void ebc_dmabuf_vunmap(struct dma_buf *dma_buf, void *vaddr)
-{
-	struct ebc_dmabuf *ebcbuf = to_ebc_dmabuf(dma_buf);
-
-	vm_unmap_ram(vaddr, ebcbuf->npages);
-}
-#endif
 
 static int ebc_dmabuf_mmap(struct dma_buf *dma_buf, struct vm_area_struct *vma)
 {
@@ -105,9 +90,7 @@ static int ebc_dmabuf_mmap(struct dma_buf *dma_buf, struct vm_area_struct *vma)
 
 	pfn = ((unsigned long)(ebcbuf->phy_addr) >> PAGE_SHIFT);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
-	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
-#else
+#if defined(CONFIG_ARM)
 	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
 #endif
 	ret = remap_pfn_range(vma, vma->vm_start, pfn, vma->vm_end - vma->vm_start,
@@ -172,3 +155,107 @@ err:
 	return ERR_PTR(-ENOMEM);
 }
 EXPORT_SYMBOL(ebc_get_dma_buf);
+
+static int ebc_alloc_buf_from_heap(struct device *dev, struct ebc_dma_buf_t *buf, size_t size, bool cma)
+{
+	int ret = 0;
+	struct dma_heap *heap;
+	struct dma_buf *dbuf;
+	void *vaddr;
+	struct dma_buf_attachment *attachment;
+	struct sg_table *sgt;
+
+	heap = dma_heap_find(cma ? "cma" : "system-dma32");
+	if (!heap) {
+		heap = dma_heap_find("linux,cma");
+		if (!heap) {
+			dev_err(dev, "failed to find dma heap\n");
+			return -EINVAL;
+		}
+	}
+
+	dbuf = dma_heap_buffer_alloc(heap, size, O_CLOEXEC|O_RDWR, 0);
+	if (IS_ERR(dbuf)) {
+		ret = PTR_ERR(dbuf);
+		dev_err(dev, "failed to alloc dma buffer from heap, ret: %d\n", ret);
+		goto err_alloc_dbuf;
+	}
+
+	vaddr = dma_buf_vmap(dbuf, &buf->map) ? NULL : buf->map.vaddr;
+
+	if (vaddr == NULL) {
+		dev_err(dev, "dma_buf_vmap failed\n");
+		ret = -ENOMEM;
+		goto err_vmap;
+	}
+	memset(vaddr, 0, size);
+
+	attachment = dma_buf_attach(dbuf, dev);
+	if (IS_ERR(attachment)) {
+		ret = PTR_ERR(attachment);
+		dev_err(dev, "dma_buf_attach failed, ret: %d\n", ret);
+		goto err_attach;
+	}
+
+	sgt = dma_buf_map_attachment(attachment, DMA_TO_DEVICE);
+	if (IS_ERR(sgt)) {
+		ret = PTR_ERR(sgt);
+		dev_err(dev, "map_attachment failed, ret: %d\n", ret);
+		goto err_map;
+	}
+
+	buf->dbuf = dbuf;
+	buf->attachment = attachment;
+	buf->sgt = sgt;
+	buf->paddr = sg_dma_address(sgt->sgl);
+	buf->vaddr = vaddr;
+	buf->size = size;
+
+	return 0;
+
+err_map:
+	dma_buf_detach(dbuf, attachment);
+err_attach:
+	dma_buf_vunmap(dbuf, &buf->map);
+err_vmap:
+	dma_buf_put(dbuf);
+err_alloc_dbuf:
+
+	return ret;
+}
+
+static void ebc_free_buf_to_heap(struct ebc_dma_buf_t *buf)
+{
+	if (buf->dbuf == NULL)
+		return;
+
+	if (buf->attachment && buf->sgt) {
+		dma_buf_unmap_attachment(buf->attachment, buf->sgt, DMA_TO_DEVICE);
+		buf->sgt = NULL;
+	}
+	if (buf->attachment) {
+		dma_buf_detach(buf->dbuf, buf->attachment);
+		buf->attachment = NULL;
+	}
+	if (buf->vaddr) {
+		dma_buf_vunmap(buf->dbuf, &buf->map);
+		buf->vaddr = NULL;
+	}
+	dma_buf_put(buf->dbuf);
+	buf->dbuf = NULL;
+}
+
+int ebc_alloc_dma_buf(struct device *dev, struct ebc_dma_buf_t *buf, size_t size)
+{
+	return ebc_alloc_buf_from_heap(dev, buf, size, false);
+}
+
+int ebc_alloc_dma_cma_buf(struct device *dev, struct ebc_dma_buf_t *buf, size_t size)
+{
+	return ebc_alloc_buf_from_heap(dev, buf, size, true);
+}
+
+void ebc_free_dma_buf(struct ebc_dma_buf_t *buf)
+{
+	ebc_free_buf_to_heap(buf);
+}

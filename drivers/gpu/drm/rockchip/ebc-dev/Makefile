@@ -6,7 +6,5 @@ obj-$(CONFIG_ROCKCHIP_EBC_DEV)   += bufmanage/
 obj-$(CONFIG_ROCKCHIP_EBC_DEV)   += pmic/
 obj-$(CONFIG_ROCKCHIP_EBC_DEV)   += tcon/
 
-AFLAGS_ebc_dev_v8.o += -march=armv8-a+lse
 AFLAGS_ebc_dev_y8_v8.o += -march=armv8-a+lse
-#rkebc-$(CONFIG_ARM64) += ebc_dev_v8.o
 rkebc-$(CONFIG_ARM64) += ebc_dev_y8_v8.o

@@ -8,9 +8,17 @@
 #ifndef _EBC_PANEL_H_
 #define _EBC_PANEL_H_
 
-#include <linux/dma-mapping.h>
-
 #define DIRECT_FB_NUM	2
+
+enum ebc_panel_bit_depth {
+	EBC_PANEL_8BIT = 0,
+	EBC_PANEL_16BIT = 1,
+	EBC_PANEL_24BIT = 2,
+};
+
+#define PANEL_IS_8BIT(panel) ((panel)->panel_bit_depth == EBC_PANEL_8BIT)
+#define PANEL_IS_16BIT(panel) ((panel)->panel_bit_depth == EBC_PANEL_16BIT)
+#define PANEL_IS_24BIT(panel) ((panel)->panel_bit_depth == EBC_PANEL_24BIT)
 
 struct panel_buffer {
 	void *virt_addr;
@@ -43,15 +51,16 @@ struct ebc_panel {
 	u32 fbl;
 	u32 fdl;
 	u32 fel;
-	u32 panel_16bit;
+	u32 panel_bit_depth;
 	u32 panel_color;
 	u32 mirror;
-	u32 disable_logo;
 	u32 rearrange;
 	u32 gate_dummy_start;
 	u32 gate_dummy_lenth;
 	u32 sdoe_mode;
 	u32 sdce_width;
+	u32 lel_keep_clk;
 	bool pmic_early_power_on;
+	u32 data_rate;
 };
 #endif

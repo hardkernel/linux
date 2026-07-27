@@ -14,14 +14,10 @@
 /*
 * max support panel size 2560x1920
 * ebc module display buf use 4bit per pixel
-* eink module display buf use 8bit per pixel
+* ebook module display buf use 8bit per pixel
 * ebc module direct mode display buf use 2bit per pixel
 */
-#define EBC_FB_SIZE		0x200000 /* 2M */
-#define EINK_FB_SIZE		0x500000 /* 5M */
-#define DIRECT_FB_SIZE		0x200000 /* 2M */
 #define LUT_TABLE_SIZE		0x100000 /* 1M */
-#define FRAME_COUNT_SIZE 0x500000 /* 5M */
 
 #define MAX_FB_NUM		4
 
@@ -61,11 +57,11 @@
 #define EBC_GET_STATUS				(0x7012)
 #define EBC_SET_FB_BLANK				(0x7013)
 #define EBC_SET_FB_UNBLANK			(0x7014)
-#define EBC_ENABLE_REPAIR			(0x7015)
-#define EBC_ENABLE_HIGH_FPS			(0x7016)
+#define EBC_BW_ENABLE_REPAIR			(0x7015)
+#define EBC_BW_GHOST_RM_LEVEL			(0x7016)
 #define EBC_GET_NORMAL_REPAIR		(0x7017)
-#define EBC_SET_FULL_REFRESH_WIDTH	(0x7018)
-#define EBC_SET_FULL_REFRESH_TYPE	(0x7019)
+#define EBC_SET_TRANSITION_WIDTH	(0x7018)
+#define EBC_SET_TRANSITION_TYPE		(0x7019)
 #define EBC_SET_FORCE_TEMPERATURE	(0x701a)
 #define EBC_ENABLE_WAVEFORM_FIX		(0x701b)
 #define EBC_SET_REGAL_TYPE		(0x701c)
@@ -73,16 +69,25 @@
 #define EBC_GET_PREV_BUFFER			(0x701e)
 #define EBC_GET_SUPPORT_REGAL			(0x701f)
 #define EBC_ENABLE_NORMAL_REPAIR		(0x7020)
-#define EBC_BALANCE_CTL			(0x7021)
+#define EBC_BW_BALANCE_CTL		(0x7021)
+#define EBC_SET_TCON_UPDATE_MODE	(0x7022)
+#define EBC_GET_WAVEFORM_VERSION	(0x7023)
+#define EBC_BW_GHOST_RM_TYPE		(0x7024)
+#define EBC_PEN_PROXIMITY		(0x7025)
 
-enum full_refresh_type {
-	NORMAL_FULL_REFRESH,
+enum transition_type {
+	DISABLE_TRANSITION_REFRESH,
 	CIRCULAR_OUTWARD_REFRESH,
 	DIAMOND_OUTWARD_REFRESH,
 	RECTANGLE_OUTWARD_REFRESH,
 	CROSS_OUTWARD_REFRESH,
 	SPIRAL_OUTWARD_REFRESH,
-	MAX_FULL_REFRESH_TYPE,
+	LINE_0_DEGREES_REFRESH,
+	LINE_90_DEGREES_REFRESH,
+	LINE_180_DEGREES_REFRESH,
+	LINE_270_DEGREES_REFRESH,
+	LUT_REFRESH,
+	MAX_TRANSITION_REFRESH,
 };
 
 /*

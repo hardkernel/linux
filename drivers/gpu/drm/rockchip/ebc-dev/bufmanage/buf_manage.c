@@ -18,7 +18,6 @@
 #include "buf_list.h"
 
 struct buf_info_s {
-	int buf_total_num;
 	unsigned long phy_mem_base;
 	char *virt_mem_base;
 
@@ -79,11 +78,11 @@ int ebc_drop_one_dsp_buf(void)
 	return BUF_ERROR;
 }
 
-int ebc_add_to_dsp_buf_list(struct ebc_buf_s *dsp_buf)
+static int ebc_add_to_dsp_buf_list(struct ebc_buf_s *dsp_buf, int pos)
 {
 	mutex_lock(&ebc_buf_info.dsp_buf_lock);
 	if (ebc_buf_info.dsp_buf_list) {
-		if (-1 == buf_list_add(ebc_buf_info.dsp_buf_list, (int *)dsp_buf, -1)) {
+		if (-1 == buf_list_add(ebc_buf_info.dsp_buf_list, (int *)dsp_buf, pos)) {
 			ebc_buf_release(dsp_buf);
 			mutex_unlock(&ebc_buf_info.dsp_buf_lock);
 			return BUF_ERROR;
@@ -97,13 +96,23 @@ int ebc_add_to_dsp_buf_list(struct ebc_buf_s *dsp_buf)
 	return BUF_SUCCESS;
 }
 
-int ebc_add_to_osd_buf_list(struct ebc_buf_s *dsp_buf)
+int ebc_add_to_dsp_buf_list_tail(struct ebc_buf_s *dsp_buf)
+{
+	return ebc_add_to_dsp_buf_list(dsp_buf, -1);
+}
+
+int ebc_add_to_dsp_buf_list_head(struct ebc_buf_s *dsp_buf)
+{
+	return ebc_add_to_dsp_buf_list(dsp_buf, 0);
+}
+
+static int ebc_add_to_osd_buf_list(struct ebc_buf_s *dsp_buf, int pos)
 {
 	int ret = BUF_SUCCESS;
 
 	mutex_lock(&ebc_buf_info.osd_buf_lock);
 	if (ebc_buf_info.osd_buf_list) {
-		if (-1 == buf_list_add(ebc_buf_info.osd_buf_list, (int *)dsp_buf, -1)) {
+		if (-1 == buf_list_add(ebc_buf_info.osd_buf_list, (int *)dsp_buf, pos)) {
 			ebc_buf_release(dsp_buf);
 			ret = BUF_ERROR;
 		}
@@ -112,7 +121,30 @@ int ebc_add_to_osd_buf_list(struct ebc_buf_s *dsp_buf)
 	return ret;
 }
 
+int ebc_add_to_osd_buf_list_tail(struct ebc_buf_s *dsp_buf)
+{
+	return ebc_add_to_osd_buf_list(dsp_buf, -1);
+}
+
+int ebc_add_to_osd_buf_list_head(struct ebc_buf_s *dsp_buf)
+{
+	return ebc_add_to_osd_buf_list(dsp_buf, 0);
+}
+
 struct ebc_buf_s *ebc_osd_buf_get(void)
+{
+	struct ebc_buf_s *buf = NULL;
+
+	mutex_lock(&ebc_buf_info.osd_buf_lock);
+	if (ebc_buf_info.osd_buf_list && (ebc_buf_info.osd_buf_list->nb_elt > 0)) {
+		buf = (struct ebc_buf_s *)buf_list_get(ebc_buf_info.osd_buf_list, 0);
+	}
+	mutex_unlock(&ebc_buf_info.osd_buf_lock);
+
+	return buf;
+}
+
+struct ebc_buf_s *ebc_osd_buf_pop_get(void)
 {
 	struct ebc_buf_s *buf = NULL;
 
@@ -136,7 +168,7 @@ int ebc_get_osd_list_enum_num(void)
 	return ebc_buf_info.osd_buf_list->nb_elt;
 }
 
-struct ebc_buf_s *ebc_find_buf_by_phy_addr(unsigned long phy_addr)
+struct ebc_buf_s *ebc_find_buf_by_id(int id)
 {
 	struct ebc_buf_s *temp_buf;
 	int temp_pos;
@@ -145,7 +177,7 @@ struct ebc_buf_s *ebc_find_buf_by_phy_addr(unsigned long phy_addr)
 		temp_pos = 0;
 		while (temp_pos < ebc_buf_info.buf_list->nb_elt) {
 			temp_buf = (struct ebc_buf_s *)buf_list_get(ebc_buf_info.buf_list, temp_pos++);
-			if (temp_buf && (temp_buf->phy_addr == phy_addr))
+			if (temp_buf && (temp_buf->id == id))
 				return temp_buf;
 		}
 	}
@@ -154,6 +186,19 @@ struct ebc_buf_s *ebc_find_buf_by_phy_addr(unsigned long phy_addr)
 }
 
 struct ebc_buf_s *ebc_dsp_buf_get(void)
+{
+	struct ebc_buf_s *buf = NULL;
+
+	mutex_lock(&ebc_buf_info.dsp_buf_lock);
+	if (ebc_buf_info.dsp_buf_list && (ebc_buf_info.dsp_buf_list->nb_elt > 0)) {
+		buf = (struct ebc_buf_s *)buf_list_get(ebc_buf_info.dsp_buf_list, 0);
+	}
+	mutex_unlock(&ebc_buf_info.dsp_buf_lock);
+
+	return buf;
+}
+
+struct ebc_buf_s *ebc_dsp_buf_pop_get(void)
 {
 	struct ebc_buf_s *buf = NULL;
 
@@ -199,7 +244,7 @@ struct ebc_buf_s *ebc_osd_buf_clone(void)
 		return NULL;
 
 	temp_buf->virt_addr = ebc_buf_info.osd_buf->virt_addr;
-	temp_buf->phy_addr = ebc_buf_info.osd_buf->phy_addr;
+	temp_buf->id = ebc_buf_info.osd_buf->id;
 	temp_buf->status = buf_osd;
 
 	return temp_buf;
@@ -270,7 +315,6 @@ int ebc_buf_uninit(void)
 	struct ebc_buf_s *temp_buf;
 	int pos;
 
-	ebc_buf_info.buf_total_num = 0;
 	if (ebc_buf_info.buf_list) {
 		pos = ebc_buf_info.buf_list->nb_elt - 1;
 		while (pos >= 0) {
@@ -285,18 +329,9 @@ int ebc_buf_uninit(void)
 	return BUF_SUCCESS;
 }
 
-int ebc_buf_init(unsigned long phy_start, char *mem_start, int men_len, int dest_buf_len, int max_buf_num)
+int ebc_buf_list_init(void)
 {
 	int res;
-	int use_len;
-	char *temp_addr;
-	struct ebc_buf_s *temp_buf;
-
-	if (max_buf_num < 0)
-		return BUF_ERROR;
-
-	if (NULL == mem_start)
-		return BUF_ERROR;
 
 	mutex_init(&ebc_buf_info.dsp_buf_lock);
 	mutex_init(&ebc_buf_info.ebc_buf_lock);
@@ -315,61 +350,58 @@ int ebc_buf_init(unsigned long phy_start, char *mem_start, int men_len, int dest
 		goto osd_list_err;
 	}
 
-	ebc_buf_info.buf_total_num = 0;
-	use_len = 0;
-
-	temp_addr = mem_start;
-	ebc_buf_info.virt_mem_base = mem_start;
-	ebc_buf_info.phy_mem_base = phy_start;
-	use_len += dest_buf_len;
-	while (use_len <= men_len) {
-		temp_buf = kzalloc(sizeof(*temp_buf), GFP_KERNEL);
-		if (NULL == temp_buf) {
-			res = BUF_ERROR;
-			goto exit;
-		}
-		temp_buf->virt_addr = temp_addr;
-		temp_buf->phy_addr = phy_start;
-		temp_buf->len = dest_buf_len;
-		temp_buf->status = buf_idle;
-
-		if (-1 == buf_list_add(ebc_buf_info.buf_list, (int *)temp_buf, -1)) {
-			res = BUF_ERROR;
-			goto exit;
-		}
-		ebc_buf_info.use_buf_is_empty = 0;
-
-		temp_addr += dest_buf_len;
-		phy_start += dest_buf_len;
-		use_len += dest_buf_len;
-
-		if (ebc_buf_info.buf_list->nb_elt == max_buf_num)
-			break;
-	}
-
-	ebc_buf_info.buf_total_num = ebc_buf_info.buf_list->nb_elt;
-	if (use_len <= men_len) {
-		temp_buf = kzalloc(sizeof(*temp_buf), GFP_KERNEL);
-		if (NULL == temp_buf) {
-			res = BUF_ERROR;
-			goto exit;
-		}
-		temp_buf->virt_addr = temp_addr;
-		temp_buf->phy_addr = phy_start;
-		temp_buf->len = dest_buf_len;
-		temp_buf->status = buf_osd;
-		ebc_buf_info.osd_buf = temp_buf;
-	}
-
 	return BUF_SUCCESS;
 
-exit:
-	ebc_buf_uninit();
-	buf_list_uninit(ebc_buf_info.osd_buf_list);
 osd_list_err:
 	buf_list_uninit(ebc_buf_info.dsp_buf_list);
 dsp_list_err:
 	buf_list_uninit(ebc_buf_info.buf_list);
 
+	return res;
+}
+
+int ebc_dsp_buf_init(int id, char *vaddr, size_t size)
+{
+	struct ebc_buf_s *temp_buf;
+	int res = 0;
+
+	temp_buf = kzalloc(sizeof(*temp_buf), GFP_KERNEL);
+	if (NULL == temp_buf) {
+		res = BUF_ERROR;
+		goto exit;
+	}
+	temp_buf->id = id;
+	temp_buf->virt_addr = vaddr;
+	temp_buf->len = size;
+	temp_buf->status = buf_idle;
+
+	if (-1 == buf_list_add(ebc_buf_info.buf_list, (int *)temp_buf, -1)) {
+		res = BUF_ERROR;
+		goto exit;
+	}
+	ebc_buf_info.use_buf_is_empty = 0;
+
+exit:
+	return res;
+}
+
+int ebc_osd_buf_init(int id, char *vaddr, size_t size)
+{
+	struct ebc_buf_s *temp_buf;
+	int res = 0;
+
+	temp_buf = kzalloc(sizeof(*temp_buf), GFP_KERNEL);
+	if (NULL == temp_buf) {
+		res = BUF_ERROR;
+		goto exit;
+	}
+	temp_buf->id = id;
+	temp_buf->virt_addr = vaddr;
+	temp_buf->len = size;
+	temp_buf->status = buf_osd;
+
+	ebc_buf_info.osd_buf = temp_buf;
+
+exit:
 	return res;
 }

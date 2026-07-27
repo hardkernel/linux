@@ -641,21 +641,13 @@ static int tps65185_probe(struct i2c_client *client, const struct i2c_device_id 
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
-static int tps65185_remove(struct i2c_client *client)
-#else
 static void tps65185_remove(struct i2c_client *client)
-#endif
 {
 	struct ebc_pmic *pmic = i2c_get_clientdata(client);
 	struct papyrus_sess *sess = pmic->drvpar;
 
 	if (sess->tmp_monitor_wq)
 		destroy_workqueue(sess->tmp_monitor_wq);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
-	return 0;
-#endif
 }
 
 static const struct i2c_device_id tps65185_id[] = {
