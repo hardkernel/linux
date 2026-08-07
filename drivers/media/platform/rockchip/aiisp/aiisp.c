@@ -686,8 +686,11 @@ static int rkaiisp_free_airms_pool(struct rkaiisp_device *aidev)
 	if (!aidev->init_buf)
 		return 0;
 
-	for (i = 0; i < aidev->rmsbuf.inbuf_num; i++)
+	for (i = 0; i < aidev->rmsbuf.inbuf_num; i++) {
+		if (aidev->rmsbuf.inplace_en)
+			continue;
 		rkaiisp_free_buffer(aidev, &aidev->rms_inbuf[i]);
+	}
 
 	for (i = 0; i < aidev->rmsbuf.outbuf_num; i++)
 		rkaiisp_free_buffer(aidev, &aidev->rms_outbuf[i]);
@@ -700,18 +703,97 @@ static int rkaiisp_free_airms_pool(struct rkaiisp_device *aidev)
 	return 0;
 }
 
-static int rkaiisp_init_airms_pool(struct rkaiisp_device *aidev, struct rkaiisp_rmsbuf_info *rmsbuf)
+static void rkaiisp_rms_apply_rd_inplace(struct rkaiisp_device *aidev,
+					 dma_addr_t *dma_addr, u32 *stride,
+					 u32 row_cols, u32 col_bytes)
 {
-	int i, ret = 0;
-	u32 bin_width, bin_height;
-	u32 size;
+	u32 slice_cols = aidev->rms_slice_cols_max;
+
+	if (!aidev->rmsbuf.inplace_en || !slice_cols)
+		return;
+
+	*dma_addr += (dma_addr_t)slice_cols * col_bytes;
+	if (*stride)
+		*stride += slice_cols;
+	else
+		*stride = row_cols + slice_cols;
+}
+
+static u32 rkaiisp_rms_bayer_row_cols(struct rkaiisp_device *aidev,
+				      struct rkaiisp_rmsbuf_info *rmsbuf)
+{
+	u32 row_cols = rmsbuf->image_width;
+
+	if (rmsbuf->inplace_en) {
+		row_cols += aidev->rms_slice_cols_max;
+		if (aidev->is_parthdl)
+			row_cols += 2 * RKAIISP_AIRMS_EXTEND_PIXEL;
+	}
+
+	return row_cols;
+}
+
+static dma_addr_t rkaiisp_rms_down_plane_offs(struct rkaiisp_device *aidev,
+					      struct rkaiisp_rmsbuf_info *rmsbuf)
+{
+	return (dma_addr_t)rkaiisp_rms_bayer_row_cols(aidev, rmsbuf) *
+	       rmsbuf->image_height * 2;
+}
+
+static u32 rkaiisp_rms_inbuf_size(struct rkaiisp_rmsbuf_info *rmsbuf, u32 slice_cols_max)
+{
+	u32 bin_width, bin_height, row_cols;
 
 	bin_width  = CEIL_BY(CEIL_DOWN(rmsbuf->image_width, 2), 2);
 	bin_height = CEIL_BY(CEIL_DOWN(rmsbuf->image_height, 2), 2);
-	size = rmsbuf->image_width * rmsbuf->image_height * 2 + bin_width * bin_height;
-	rmsbuf->inbuf_num = RKAIISP_MIN(rmsbuf->inbuf_num, RKAIISP_AIRMS_BUF_MAXCNT);
+	row_cols = rmsbuf->image_width + slice_cols_max;
+	if (rmsbuf->inplace_en && rmsbuf->image_width > RKAIISP_AIRMS_MAX_WIDTH)
+		row_cols += 2 * RKAIISP_AIRMS_EXTEND_PIXEL;
+
+	return row_cols * rmsbuf->image_height * 2 +
+	       bin_height * (bin_width + slice_cols_max);
+}
+
+static void rkaiisp_rms_bind_inbuf_shared(struct rkaiisp_device *aidev, int idx)
+{
+	struct rkaiisp_dummy_buffer *in = &aidev->rms_inbuf[idx];
+	struct rkaiisp_dummy_buffer *out = &aidev->rms_outbuf[idx];
+
+	memset(in, 0, sizeof(*in));
+	in->dma_fd = out->dma_fd;
+	in->dma_addr = out->dma_addr;
+	in->size = out->size;
+	/* Non-owning alias; rms_outbuf owns the allocation. */
+}
+
+static int rkaiisp_init_airms_pool(struct rkaiisp_device *aidev, struct rkaiisp_rmsbuf_info *rmsbuf)
+{
+	int i, ret = 0;
+	u32 size, inbuf_size, img_width, slice_cols_max;
+
+	if (aidev->init_buf) {
+		v4l2_err(&aidev->v4l2_dev,
+			 "airms buffer pool already initialized\n");
+		return -EBUSY;
+	}
+
+	slice_cols_max = 0;
+	/* in-place left padding covers the largest MI slice */
+	if (rmsbuf->inplace_en)
+		slice_cols_max = RKAIISP_AIRMS_INPLACE_PAD_COLS;
+	img_width = rmsbuf->image_width + slice_cols_max;
+	inbuf_size = rkaiisp_rms_inbuf_size(rmsbuf, slice_cols_max);
+	rmsbuf->inbuf_num = min_t(u32, rmsbuf->inbuf_num,
+				  ARRAY_SIZE(rmsbuf->inbuf_fd));
+	rmsbuf->outbuf_num = min_t(u32, rmsbuf->outbuf_num,
+				   ARRAY_SIZE(rmsbuf->outbuf_fd));
+	if (rmsbuf->inplace_en)
+		rmsbuf->inbuf_num = rmsbuf->outbuf_num;
 	for (i = 0; i < rmsbuf->inbuf_num; i++) {
-		aidev->rms_inbuf[i].size = size;
+		if (rmsbuf->inplace_en)
+			continue;
+
+		aidev->rms_inbuf[i].size = inbuf_size;
 		aidev->rms_inbuf[i].is_need_vaddr = false;
 		aidev->rms_inbuf[i].is_need_dbuf = true;
 		aidev->rms_inbuf[i].is_need_dmafd = true;
@@ -724,8 +806,8 @@ static int rkaiisp_init_airms_pool(struct rkaiisp_device *aidev, struct rkaiisp_
 		rmsbuf->inbuf_fd[i] = aidev->rms_inbuf[i].dma_fd;
 	}
 
-	aidev->rmsbuf = *rmsbuf;
-	aidev->part_rmsbuf = aidev->rmsbuf;
+	aidev->rms_slice_cols_max = slice_cols_max;
+	aidev->part_rmsbuf = *rmsbuf;
 	if (rmsbuf->image_width > RKAIISP_AIRMS_MAX_WIDTH) {
 		int proc_width;
 
@@ -735,16 +817,33 @@ static int rkaiisp_init_airms_pool(struct rkaiisp_device *aidev, struct rkaiisp_
 		aidev->part_rmsbuf.image_width = CEIL_BY(proc_width, 16);
 		aidev->part_rmsbuf.sigma_width = aidev->part_rmsbuf.image_width / 2;
 		aidev->part_rmsbuf.narmap_width = (aidev->part_rmsbuf.image_width + 7) / 8 * 2;
-		aidev->parthdl_image_oft = aidev->rmsbuf.image_width - aidev->part_rmsbuf.image_width;
-		size = (CEIL_BY(rmsbuf->image_width, 2) + 2 * RKAIISP_AIRMS_EXTEND_PIXEL) * rmsbuf->image_height * 2;
+		aidev->parthdl_image_oft = rmsbuf->image_width - aidev->part_rmsbuf.image_width;
+		size = (CEIL_BY(rmsbuf->image_width, 2) + 2 * RKAIISP_AIRMS_EXTEND_PIXEL +
+			slice_cols_max) * rmsbuf->image_height * 2;
 	} else {
 		aidev->is_parthdl = false;
 		aidev->parthdl_num = 1;
-		size = rmsbuf->image_width * rmsbuf->image_height * 2;
+		size = img_width * rmsbuf->image_height * 2;
 	}
 
-	rmsbuf->outbuf_num = RKAIISP_MIN(rmsbuf->outbuf_num, RKAIISP_AIRMS_BUF_MAXCNT);
 	for (i = 0; i < rmsbuf->outbuf_num; i++) {
+		if (rmsbuf->inplace_en) {
+			aidev->rms_outbuf[i].size = inbuf_size;
+			aidev->rms_outbuf[i].is_need_vaddr = false;
+			aidev->rms_outbuf[i].is_need_dbuf = true;
+			aidev->rms_outbuf[i].is_need_dmafd = true;
+			ret = rkaiisp_allow_buffer(aidev, &aidev->rms_outbuf[i]);
+			if (ret) {
+				rkaiisp_free_airms_pool(aidev);
+				v4l2_err(&aidev->v4l2_dev, "alloc buf failed: %d\n", ret);
+				return -EINVAL;
+			}
+			rkaiisp_rms_bind_inbuf_shared(aidev, i);
+			rmsbuf->outbuf_fd[i] = aidev->rms_outbuf[i].dma_fd;
+			rmsbuf->inbuf_fd[i] = aidev->rms_inbuf[i].dma_fd;
+			continue;
+		}
+
 		aidev->rms_outbuf[i].size = size;
 		aidev->rms_outbuf[i].is_need_vaddr = false;
 		aidev->rms_outbuf[i].is_need_dbuf = true;
@@ -753,10 +852,17 @@ static int rkaiisp_init_airms_pool(struct rkaiisp_device *aidev, struct rkaiisp_
 		if (ret) {
 			rkaiisp_free_airms_pool(aidev);
 			v4l2_err(&aidev->v4l2_dev, "alloc buf failed: %d\n", ret);
-			return -EINVAL;
+			return ret;
 		}
 		rmsbuf->outbuf_fd[i] = aidev->rms_outbuf[i].dma_fd;
 	}
+
+	if (rmsbuf->inplace_en)
+		v4l2_dbg(1, rkaiisp_debug, &aidev->v4l2_dev,
+			 "airms inplace: inbuf shares outbuf dmabuf, count %u size %u\n",
+			 rmsbuf->outbuf_num, inbuf_size);
+
+	aidev->rmsbuf = *rmsbuf;
 
 	aidev->narmap_buf.size = aidev->rmsbuf.narmap_width * aidev->rmsbuf.narmap_height;
 	aidev->narmap_buf.is_need_vaddr = false;
@@ -777,6 +883,27 @@ static int rkaiisp_queue_ispbuf(struct rkaiisp_device *aidev, union rkaiisp_queu
 	unsigned long flags = 0;
 	int sequence = 0;
 	int ret = 0;
+
+	if (aidev->exealgo == AIRMS) {
+		int inbuf_idx = idxbuf->airms_st.inbuf_idx;
+		int outbuf_idx = idxbuf->airms_st.outbuf_idx;
+
+		if ((u32)inbuf_idx >= aidev->rmsbuf.inbuf_num ||
+		    (u32)outbuf_idx >= aidev->rmsbuf.outbuf_num) {
+			v4l2_err(&aidev->v4l2_dev,
+				 "invalid airms buffer index: in %d/%u, out %d/%u\n",
+				 inbuf_idx, aidev->rmsbuf.inbuf_num,
+				 outbuf_idx, aidev->rmsbuf.outbuf_num);
+			return -EINVAL;
+		}
+
+		if (aidev->rmsbuf.inplace_en && inbuf_idx != outbuf_idx) {
+			v4l2_err(&aidev->v4l2_dev,
+				 "airms inplace requires identical buffer index: in %d, out %d\n",
+				 inbuf_idx, outbuf_idx);
+			return -EINVAL;
+		}
+	}
 
 	spin_lock_irqsave(&hw_dev->hw_lock, flags);
 	if (!aidev->streamon) {
@@ -1295,11 +1422,17 @@ static u32 rkaiisp_config_rdchannel(struct rkaiisp_device *aidev,
 				if (aidev->parthdl_idx == 1)
 					dma_addr += aidev->parthdl_image_oft * 2;
 				stride = rmsbuf->image_width;
+				if (rmsbuf->inplace_en)
+					stride += 2 * RKAIISP_AIRMS_EXTEND_PIXEL;
+				rkaiisp_rms_apply_rd_inplace(aidev, &dma_addr, &stride,
+							     rmsbuf->image_width, 2);
 			} else {
 				width  = rmsbuf->image_width;
 				height = rmsbuf->image_height;
 				buffer_index = aidev->curr_idxbuf.airms_st.inbuf_idx;
 				dma_addr = aidev->rms_inbuf[buffer_index].dma_addr;
+				rkaiisp_rms_apply_rd_inplace(aidev, &dma_addr, &stride,
+							     rmsbuf->image_width, 2);
 			}
 			break;
 		case ALLZERO_NARMAP:
@@ -1323,21 +1456,27 @@ static u32 rkaiisp_config_rdchannel(struct rkaiisp_device *aidev,
 				width  = rmsbuf->image_width;
 				height = rmsbuf->image_height;
 				buffer_index = aidev->curr_idxbuf.airms_st.inbuf_idx;
-				dma_addr = aidev->rms_inbuf[buffer_index].dma_addr + width * height * 2;
+				dma_addr = aidev->rms_inbuf[buffer_index].dma_addr +
+					   rkaiisp_rms_down_plane_offs(aidev, rmsbuf);
 				if (aidev->parthdl_idx == 1)
 					dma_addr += aidev->parthdl_image_oft / 2;
 				width  = CEIL_BY(CEIL_DOWN(part_rmsbuf->image_width, 2), 2);
 				height = CEIL_BY(CEIL_DOWN(part_rmsbuf->image_height, 2), 2);
 				sig_width = width;
 				stride = CEIL_BY(CEIL_DOWN(rmsbuf->image_width, 2), 2);
+				rkaiisp_rms_apply_rd_inplace(aidev, &dma_addr, &stride,
+							     stride, 1);
 			} else {
 				width  = rmsbuf->image_width;
 				height = rmsbuf->image_height;
 				buffer_index = aidev->curr_idxbuf.airms_st.inbuf_idx;
-				dma_addr = aidev->rms_inbuf[buffer_index].dma_addr + width * height * 2;
+				dma_addr = aidev->rms_inbuf[buffer_index].dma_addr +
+					   rkaiisp_rms_down_plane_offs(aidev, rmsbuf);
 				width  = CEIL_BY(CEIL_DOWN(rmsbuf->image_width, 2), 2);
 				height = CEIL_BY(CEIL_DOWN(rmsbuf->image_height, 2), 2);
 				sig_width = width;
+				rkaiisp_rms_apply_rd_inplace(aidev, &dma_addr, &stride,
+							     width, 1);
 			}
 			break;
 		default:
@@ -1393,7 +1532,6 @@ static void rkaiisp_run_cfg(struct rkaiisp_device *aidev, u32 run_idx)
 	aidev->is_state_err = false;
 	cur_params = (struct rkaiisp_params *)aidev->cur_params->vaddr[0];
 	model_cfg = &cur_params->model_cfg[run_idx];
-
 	lastlv = model_cfg->sw_aiisp_level_num - 1;
 	lv_mode = model_cfg->sw_aiisp_lv_mode[lastlv];
 	out_chns = channels_lut[model_cfg->sw_aiisp_mode][lv_mode];
@@ -1429,11 +1567,14 @@ static void rkaiisp_run_cfg(struct rkaiisp_device *aidev, u32 run_idx)
 			rkaiisp_determine_size(aidev, model_cfg);
 		}
 	} else if (aidev->model_mode == REMOSAIC_MODE) {
+		int outbuf_idx = aidev->curr_idxbuf.airms_st.outbuf_idx;
+
 		sig_width = rkaiisp_config_rdchannel(aidev, model_cfg, run_idx);
 
-		dma_addr = aidev->rms_outbuf[aidev->curr_idxbuf.airms_st.outbuf_idx].dma_addr;
+		dma_addr = aidev->rms_outbuf[outbuf_idx].dma_addr;
 		if (aidev->parthdl_idx == 1)
-			dma_addr += 2 * (CEIL_BY(rmsbuf->image_width, 2) / 2 + RKAIISP_AIRMS_EXTEND_PIXEL);
+			dma_addr += 2 * (CEIL_BY(rmsbuf->image_width, 2) / 2 +
+					 RKAIISP_AIRMS_EXTEND_PIXEL);
 		rkaiisp_write(aidev, AIISP_MI_CHN0_WR_BASE, dma_addr, false);
 
 		rkaiisp_gen_slice_param(aidev, model_cfg, sig_width);
@@ -1442,6 +1583,8 @@ static void rkaiisp_run_cfg(struct rkaiisp_device *aidev, u32 run_idx)
 		iir_stride = CEIL_BY(rmsbuf->image_width, 2);
 		if (aidev->is_parthdl)
 			iir_stride += 2 * RKAIISP_AIRMS_EXTEND_PIXEL;
+		if (rmsbuf->inplace_en)
+			iir_stride += aidev->rms_slice_cols_max;
 		rkaiisp_write(aidev, AIISP_MI_CHN0_WR_STRIDE, iir_stride / 2, false);
 	} else if (aidev->model_mode == SINGLEX2_MODE) {
 		if (run_idx == 0) {
@@ -2319,4 +2462,3 @@ int rkaiisp_set_aiynr_ybuf(struct rkaiisp_device *aidev, struct aiisp_aiynr_ybuf
 
 	return 0;
 }
-

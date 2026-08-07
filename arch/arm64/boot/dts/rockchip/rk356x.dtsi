@@ -609,6 +609,7 @@
 			snps,dis-del-phy-power-chg-quirk;
 			snps,dis-tx-ipgap-linecheck-quirk;
 			snps,dis_rxdet_inp3_quirk;
+			snps,loa-filter-en-quirk;
 			snps,parkmode-disable-hs-quirk;
 			snps,parkmode-disable-ss-quirk;
 			quirk-skip-phy-init;
@@ -643,6 +644,7 @@
 			snps,dis-del-phy-power-chg-quirk;
 			snps,dis-tx-ipgap-linecheck-quirk;
 			snps,dis_rxdet_inp3_quirk;
+			snps,loa-filter-en-quirk;
 			snps,parkmode-disable-hs-quirk;
 			snps,parkmode-disable-ss-quirk;
 			status = "disabled";
@@ -2540,6 +2542,7 @@
 		clock-names = "usr", "sbpi", "apb", "phy";
 		resets = <&cru SRST_OTPPHY>;
 		reset-names = "otp_phy";
+		rockchip,otp-cache;
 
 		/* Data cells */
 		cpu_code: cpu-code@2 {

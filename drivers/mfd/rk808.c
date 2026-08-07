@@ -863,7 +863,7 @@ static void rk801_device_reboot(void)
 	struct rk808 *rk808 = i2c_get_clientdata(rk808_i2c_client);
 	int ret, act_pol;
 
-	if (!rk808->pins || !rk808->pins->reset)
+	if (!rk808->pins || !rk808->pins->p || !rk808->pins->reset)
 		return;
 
 	regmap_update_bits(rk808->regmap, RK801_SLEEP_CFG_REG,
@@ -1286,6 +1286,61 @@ static struct kobject *rk8xx_kobj;
 static struct device_attribute rk8xx_attrs =
 		__ATTR(rk8xx_dbg, 0200, NULL, rk8xx_dbg_store);
 
+/*
+ * rk8xx_pinctrl_init - Parse pinctrl states from Device Tree for RK8xx PMIC
+ * @rk808: Pointer to the main RK808 PMIC data structure
+ *
+ * This function attempts to obtain and configure the pinctrl states for the PMIC.
+ * It is designed to be resilient: failure to obtain the pinctrl handle or any
+ * specific state is treated as a non-fatal condition (the feature is simply disabled),
+ * with appropriate debug messages logged.
+ *
+ * Return: 0 on success (or if pinctrl is not available/fully configured),
+ *         or a negative error code on critical resource allocation failure.
+ */
+static int rk8xx_pinctrl_init(struct rk808 *rk808)
+{
+	struct device *dev = &rk808->i2c->dev;
+
+	/* 1. Allocate the pin info structure */
+	rk808->pins = devm_kzalloc(dev, sizeof(*rk808->pins), GFP_KERNEL);
+	if (!rk808->pins)
+		return -ENOMEM;
+
+	/* 2. Obtain the pinctrl handle */
+	rk808->pins->p = devm_pinctrl_get(dev);
+	if (IS_ERR(rk808->pins->p)) {
+		/*
+		 * pinctrl is an optional feature for this driver.
+		 * If not available, free the allocated structure and continue.
+		 */
+		dev_info(dev, "no pinctrl handle available\n");
+		devm_kfree(dev, rk808->pins);
+		rk808->pins = NULL;
+		return 0;
+	}
+	/* 3. Look up optional, PMIC-specific states */
+	rk808->pins->power_off = pinctrl_lookup_state(rk808->pins->p, "pmic-power-off");
+	if (IS_ERR(rk808->pins->power_off)) {
+		rk808->pins->power_off = NULL;
+		dev_info(dev, "no power-off pinctrl state\n");
+	}
+
+	rk808->pins->sleep = pinctrl_lookup_state(rk808->pins->p, "pmic-sleep");
+	if (IS_ERR(rk808->pins->sleep)) {
+		rk808->pins->sleep = NULL;
+		dev_info(dev, "no sleep pinctrl state\n");
+	}
+
+	rk808->pins->reset = pinctrl_lookup_state(rk808->pins->p, "pmic-reset");
+	if (IS_ERR(rk808->pins->reset)) {
+		rk808->pins->reset = NULL;
+		dev_info(dev, "no reset pinctrl state\n");
+	}
+
+	return 0;
+}
+
 static const struct of_device_id rk808_of_match[] = {
 	{ .compatible = "rockchip,rk801" },
 	{ .compatible = "rockchip,rk805" },
@@ -1457,6 +1512,9 @@ static int rk808_probe(struct i2c_client *client,
 	rk808->i2c = client;
 	rk808_i2c_client = client;
 	i2c_set_clientdata(client, rk808);
+	ret = rk8xx_pinctrl_init(rk808);
+	if (ret)
+		return ret;
 
 	rk808->regmap = devm_regmap_init_i2c(client, rk808->regmap_cfg);
 	if (IS_ERR(rk808->regmap)) {

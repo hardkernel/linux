@@ -39,7 +39,6 @@
 #define RKAIISP_AIRMS_BUF_MAXCNT	8
 #define RKAIISP_AIRMS_MAX_WIDTH		4096
 #define RKAIISP_AIRMS_EXTEND_PIXEL	16
-#define RKAIISP_MIN(a, b)		((a) < (b) ? (a) : (b))
 
 enum rkaiisp_irqhdl_ret {
 	NOT_WREND		= (0 << 0),
@@ -157,6 +156,8 @@ struct rkaiisp_device {
 	u32 parthdl_idx;
 	u32 parthdl_num;
 	u32 parthdl_image_oft;
+
+	u32 rms_slice_cols_max;
 
 	u64 pre_frm_st;
 	u64 frm_st;

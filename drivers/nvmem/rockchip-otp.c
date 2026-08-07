@@ -191,6 +191,8 @@ struct rockchip_otp {
 	const struct rockchip_data *data;
 	struct hwspinlock *hwlock;
 	DECLARE_BITMAP(wp_mask, ROCKCHIP_OTP_WP_MASK_NBITS);
+	u8 *cache;
+	nvmem_reg_read_t reg_read_cache;
 };
 
 struct rockchip_data {
@@ -875,6 +877,42 @@ static int rv1126_otp_oem_write(void *context, unsigned int offset, void *val,
 	return ret;
 }
 
+static int rockchip_otp_read_cache(void *context, unsigned int offset, void *val,
+				   size_t bytes)
+{
+	struct rockchip_otp *otp = context;
+	int size = otp->data->size;
+
+	if (!otp->cache || (offset >= size) || (bytes > size) ||
+	    ((offset + bytes) > size))
+		return -EINVAL;
+
+	memcpy(val, otp->cache + offset, bytes);
+
+	return 0;
+}
+
+static void rockchip_otp_cache_init(struct rockchip_otp *otp)
+{
+	int ret;
+
+	if (!of_property_read_bool(otp->dev->of_node, "rockchip,otp-cache"))
+		return;
+
+	if (otp->data && otp->data->reg_read) {
+		otp->cache = devm_kzalloc(otp->dev, otp->data->size, GFP_KERNEL);
+		if (!otp->cache)
+			return;
+		ret = otp->data->reg_read(otp, 0, otp->cache, otp->data->size);
+		if (ret != 0) {
+			devm_kfree(otp->dev, otp->cache);
+			otp->cache = NULL;
+			return;
+		}
+		otp->reg_read_cache = rockchip_otp_read_cache;
+	}
+}
+
 static int rockchip_otp_lock(struct rockchip_otp *otp)
 {
 	mutex_lock(&rockchip_otp_mutex);
@@ -919,7 +957,9 @@ static int rockchip_otp_read(void *context, unsigned int offset,
 	ret = rockchip_otp_lock(otp);
 	if (ret)
 		return ret;
-	if (otp->data && otp->data->reg_read)
+	if (otp->cache && otp->reg_read_cache)
+		ret = otp->reg_read_cache(context, offset, val, bytes);
+	else if (otp->data && otp->data->reg_read)
 		ret = otp->data->reg_read(context, offset, val, bytes);
 	rockchip_otp_unlock(otp);
 
@@ -938,6 +978,9 @@ static int rockchip_otp_write(void *context, unsigned int offset, void *val,
 	if (rockchip_otp_wr_magic == ROCKCHIP_OTP_WR_MAGIC &&
 	    otp->data && otp->data->reg_write) {
 		ret = otp->data->reg_write(context, offset, val, bytes);
+		if (!ret && otp->cache && otp->data->reg_read)
+			otp->data->reg_read(context, offset,
+					    otp->cache + offset, bytes);
 		rockchip_otp_wr_magic = 0;
 	}
 	rockchip_otp_unlock(otp);
@@ -1214,6 +1257,8 @@ static int rockchip_otp_probe(struct platform_device *pdev)
 		if (ret)
 			return ret;
 	}
+
+	rockchip_otp_cache_init(otp);
 
 	nvmem = devm_nvmem_register(dev, otp->config);
 

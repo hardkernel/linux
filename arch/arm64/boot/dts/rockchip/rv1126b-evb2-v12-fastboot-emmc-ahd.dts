@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
+ */
+
+#include "rv1126b-evb2-v12-fastboot-emmc.dts"
+
+/ {
+	model = "Rockchip RV1126B EVB2 V12 eMMC AHD Fastboot Board";
+	compatible = "rockchip,rv1126b-evb2-v12-fastboot-emmc-ahd",
+		     "rockchip,rv1126b";
+};
+
+&tp2815 {
+	reset-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+&dw9800v {
+	status = "disabled";
+};
+
+&imx766 {
+	status = "disabled";
+};
+
+&imx327 {
+	status = "disabled";
+};
+
+&imx415 {
+	status = "disabled";
+};
+
+&imx586 {
+	status = "disabled";
+};
+
+&sc450ai {
+	status = "disabled";
+};
+
+&sc850sl {
+	status = "disabled";
+};
+
+&sc635hai {
+	status = "disabled";
+};
+
+&gc8613 {
+	status = "disabled";
+};
+
+&ox03c10 {
+	status = "disabled";
+};
+
+&os12d40 {
+	status = "disabled";
+};
+
+&otp_eeprom {
+	status = "disabled";
+};
+
+&dfi {
+	status = "okay";
+};
+
+&dmc {
+	center-supply = <&vdd_log>;
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+};
+
+&dsi_in_vop {
+	status = "okay";
+};

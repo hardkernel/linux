@@ -16,6 +16,7 @@
 #define RKAIISP_MODEL_UPDATE			0x01
 #define RKAIISP_OTHER_UPDATE			0x02
 #define RKAIISP_AIYNR_YBUF_NUM_MAX		8
+#define RKAIISP_AIRMS_INPLACE_PAD_COLS		352
 
 #define RKAIISP_CMD_SET_PARAM_INFO		\
 	_IOW('V', BASE_VIDIOC_PRIVATE + 0, struct rkaiisp_param_info)
@@ -132,6 +133,8 @@ struct rkaiisp_rmsbuf_info {
 	__u32 outbuf_num;
 	int inbuf_fd[6];
 	int outbuf_fd[6];
+	__u32 inplace_en;
+	__u32 reserved[8];
 } __attribute__ ((packed));
 
 struct rkaiisp_ynrbuf_info {

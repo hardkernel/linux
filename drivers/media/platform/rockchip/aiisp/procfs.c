@@ -60,6 +60,11 @@ static int rkaiisp_show(struct seq_file *p, void *v)
 	seq_printf(p, "%-18s %d\n", "image width", image_width);
 	seq_printf(p, "%-18s %d\n", "image height", image_height);
 
+	if (aidev->exealgo == AIRMS) {
+		seq_printf(p, "%-18s %u\n", "inplace en", aidev->rmsbuf.inplace_en);
+		seq_printf(p, "%-18s %u\n", "slice cols max", aidev->rms_slice_cols_max);
+	}
+
 	spin_lock_irqsave(&hw_dev->hw_lock, flags);
 	idx_buf_len = rkaiisp_get_idxbuf_len(aidev);
 	spin_unlock_irqrestore(&hw_dev->hw_lock, flags);

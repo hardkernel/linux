@@ -10,9 +10,11 @@
  *
  *v0.1.1:
  *1. First version;
+ *v0.2.0:
+ * - support AIRMS REMOSAIC in-place processing
  *
  */
 
-#define RKAIISP_DRIVER_VERSION KERNEL_VERSION(0, 1, 0x1)
+#define RKAIISP_DRIVER_VERSION KERNEL_VERSION(0, 2, 0x0)
 
 #endif
