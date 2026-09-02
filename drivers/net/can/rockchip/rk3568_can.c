@@ -1121,5 +1121,5 @@ static struct platform_driver rk3568_can_driver = {
 module_platform_driver(rk3568_can_driver);
 
 MODULE_AUTHOR("Elaine Zhang <zhangqing@rock-chips.com>");
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("RK3568 CAN Drivers");
+MODULE_DESCRIPTION("Rockchip CANFD Drivers");
+MODULE_LICENSE("GPL v2");
