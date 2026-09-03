@@ -1361,9 +1361,7 @@
 		compatible = "hyn,3240";
 		reg = <0x5a>;
 
-		pinctrl-names = "ts_active","ts_suspend";
-		pinctrl-0 = <&ts_int_active &ts_reset_active>;
-		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+		pinctrl-names = "ts_active", "ts_suspend";
 
 		reset-gpios = <&gpio0 RK_PB6 GPIO_ACTIVE_HIGH>;
 		irq-gpios = <&gpio0 RK_PB5 GPIO_ACTIVE_LOW>;
