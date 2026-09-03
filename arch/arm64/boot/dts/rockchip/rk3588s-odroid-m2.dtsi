@@ -332,7 +332,7 @@
 	>;
 };
 
-&hdptxphy_hdmi0 {
+&hdptxphy0 {
 	status = "okay";
 };
 
@@ -1076,7 +1076,7 @@
 
 &vp0 {
 	assigned-clocks = <&cru DCLK_VOP0>;
-	assigned-clock-parents = <&hdptxphy_hdmi0>;
+	assigned-clock-parents = <&hdptxphy0>;
 	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER0 | 1 << ROCKCHIP_VOP2_ESMART0)>;
 	rockchip,primary-plane = <ROCKCHIP_VOP2_ESMART0>;
 };
