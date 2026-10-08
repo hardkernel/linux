@@ -1121,11 +1121,30 @@ static int ili9881c_send_cmd_data(struct ili9881c *ctx, u8 cmd, u8 data)
 	return 0;
 }
 
+/* Temporary diagnostics: a failed read must not stop panel initialization. */
+static void ili9881c_diag_read(struct ili9881c *ctx, u8 reg)
+{
+	u8 value = 0;
+	ssize_t ret;
+
+	ret = mipi_dsi_dcs_read(ctx->dsi, reg, &value, sizeof(value));
+	if (ret == sizeof(value))
+		dev_info(&ctx->dsi->dev, "ILI9881C diag: reg 0x%02x = 0x%02x\n",
+			 reg, value);
+	else
+		dev_warn(&ctx->dsi->dev, "ILI9881C diag: reg 0x%02x read returned %zd\n",
+			 reg, ret);
+}
+
 static int ili9881c_prepare(struct drm_panel *panel)
 {
 	struct ili9881c *ctx = panel_to_ili9881c(panel);
 	unsigned int i;
 	int ret;
+
+	dev_info(&ctx->dsi->dev,
+		 "ILI9881C diag: lanes=%u flags=0x%lx panel-clock=%d kHz\n",
+		 ctx->dsi->lanes, ctx->dsi->mode_flags, ctx->desc->mode->clock);
 
 	/* Power the panel */
 	ret = regulator_enable(ctx->power);
@@ -1140,6 +1159,15 @@ static int ili9881c_prepare(struct drm_panel *panel)
 	gpiod_set_value_cansleep(ctx->reset, 0);
 	msleep(20);
 
+	/*
+	 * Page 1, B7: bit 1 enables software lane selection; bit 0 selects
+	 * two lanes (1) or three/four lanes (0). Match the panel receiver
+	 * to the host lane count instead of hard-coding it in the init table.
+	 * Leave B6 unchanged to preserve the board's lane mapping/polarity.
+	 */
+	ili9881c_switch_page(ctx, 1);
+	ili9881c_send_cmd_data(ctx, 0xB7, (ctx->dsi->lanes <= 2) ? 0x03 : 0x02);
+
 	for (i = 0; i < ctx->desc->init_length; i++) {
 		const struct ili9881c_instr *instr = &ctx->desc->init[i];
 
@@ -1149,9 +1177,26 @@ static int ili9881c_prepare(struct drm_panel *panel)
 			ret = ili9881c_send_cmd_data(ctx, instr->arg.cmd.cmd,
 						      instr->arg.cmd.data);
 
-		if (ret)
+		if (ret) {
+			dev_err(&ctx->dsi->dev,
+				"ILI9881C diag: init index=%u op=%u failed: %d\n",
+				i, (unsigned int)instr->op, ret);
 			return ret;
+		}
 	}
+
+	ret = mipi_dsi_set_maximum_return_packet_size(ctx->dsi, 1);
+	if (ret)
+		dev_warn(&ctx->dsi->dev,
+			 "ILI9881C diag: return packet size failed: %d\n", ret);
+
+	ret = ili9881c_switch_page(ctx, 1);
+	if (ret)
+		return ret;
+
+	dev_info(&ctx->dsi->dev, "ILI9881C diag: page 1 after init\n");
+	ili9881c_diag_read(ctx, 0xb6);
+	ili9881c_diag_read(ctx, 0xb7);
 
 	ret = ili9881c_switch_page(ctx, 0);
 	if (ret)
@@ -1162,20 +1207,42 @@ static int ili9881c_prepare(struct drm_panel *panel)
 		return ret;
 
 	ret = mipi_dsi_dcs_exit_sleep_mode(ctx->dsi);
+	if (ret) {
+		dev_err(&ctx->dsi->dev, "ILI9881C diag: sleep out failed: %d\n", ret);
+		return ret;
+	}
+
+	/*
+	 * Wait for Sleep Out, then send Display On while the host is still
+	 * in command mode. The Rockchip DW-MIPI-DSI host starts video before
+	 * calling enable(); LP transfers there clear its HS clock request.
+	 * Keep Display On and diagnostic reads here, before video starts.
+	 */
+	msleep(120);
+
+	/* The panel is still on DCS page 0, with the host in command mode. */
+	dev_info(&ctx->dsi->dev, "ILI9881C diag: page 0 before display on\n");
+	ili9881c_diag_read(ctx, 0x0a);
+	ili9881c_diag_read(ctx, 0x0c);
+
+	ret = mipi_dsi_dcs_set_display_on(ctx->dsi);
+	dev_info(&ctx->dsi->dev, "ILI9881C diag: display on returned %d\n", ret);
 	if (ret)
 		return ret;
+
+	/* Allow the panel display state to settle before reading it. */
+	msleep(100);
+	dev_info(&ctx->dsi->dev, "ILI9881C diag: page 0 after display on\n");
+	ili9881c_diag_read(ctx, 0x0a);
+	ili9881c_diag_read(ctx, 0x0c);
+	ili9881c_diag_read(ctx, 0x05);
 
 	return 0;
 }
 
 static int ili9881c_enable(struct drm_panel *panel)
 {
-	struct ili9881c *ctx = panel_to_ili9881c(panel);
-
-	msleep(120);
-
-	mipi_dsi_dcs_set_display_on(ctx->dsi);
-
+	/* Display On was sent in prepare(), before video mode starts. */
 	return 0;
 }
 
@@ -1360,6 +1427,8 @@ static int ili9881c_dsi_probe(struct mipi_dsi_device *dsi)
 
 	ret = of_property_read_u32(dsi->dev.of_node, "dsi,lanes", &val);
 	dsi->lanes = ret ? 4 : val;
+
+	printk("tobetter -- %s,%d -- dsi lanes=%d\n", __func__, __LINE__, dsi->lanes);
 
 	return mipi_dsi_attach(dsi);
 }
